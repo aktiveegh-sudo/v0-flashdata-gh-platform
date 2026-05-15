@@ -617,16 +617,16 @@ export default function AuthPage() {
 +                  <button className="font-medium text-amber-200 transition hover:text-amber-100 hover:underline">
 +                    Terms of Service
 +                  </button>{' '}
-+                  and{' '}
-+                  <button className="font-medium text-amber-200 transition hover:text-amber-100 hover:underline">
-+                    Privacy Policy
-+                  </button>
-+                </p>
-+              </div>
-+            </div>
-+          </div>
-+        </motion.section>
-+      </div>
-+    </div>
-+  )
-+}
+                  and{' '}
+                  <button className="font-medium text-amber-200 transition hover:text-amber-100 hover:underline">
+                    Privacy Policy
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+      </div>
+    </div>
+  )
+}
