@@ -17,11 +17,11 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useStore } from "@/lib/store"
+import { useAuthStore } from "@/lib/store"
 import toast from "react-hot-toast"
 
 export default function SettingsPage() {
-  const { user } = useStore()
+  const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState("profile")
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
