@@ -67,6 +67,28 @@ export default function AuthPage() {
     rememberMe: false,
   })
 
+  const resolvePostAuthRoute = async (user: SupabaseUser) => {
+    const fallbackAdmin = (user.email || '').toLowerCase() === 'admin@flashdatagh.com'
+
+    const { data: profile } = await supabase.client
+      .from('profiles')
+      .select('role,status')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const isSuperAdmin = profile?.role === 'super_admin' || fallbackAdmin
+    const isSuspended = profile?.status === 'suspended'
+
+    if (isSuspended) {
+      await supabase.auth.signOut()
+      clearAuth()
+      toast.error('Your account is suspended. Contact support.')
+      return '/'
+    }
+
+    return isSuperAdmin ? '/admin/overview' : '/dashboard/overview'
+  }
+
   const mapAuthUser = (user: SupabaseUser) => {
     const metadata = user.user_metadata as {
       full_name?: string
@@ -112,9 +134,21 @@ export default function AuthPage() {
   }
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard/overview')
+    const redirectAuthenticatedUser = async () => {
+      if (!isAuthenticated) {
+        return
+      }
+
+      const { data } = await supabase.auth.getSession()
+      if (!data.session?.user) {
+        return
+      }
+
+      const nextRoute = await resolvePostAuthRoute(data.session.user)
+      router.push(nextRoute)
     }
+
+    void redirectAuthenticatedUser()
   }, [isAuthenticated, router])
 
   useEffect(() => {
@@ -193,7 +227,8 @@ export default function AuthPage() {
         if (data.session?.user) {
           setAuthUser(mapAuthUser(data.session.user))
           toast.success('Account created successfully!')
-          router.push('/dashboard/overview')
+          const nextRoute = await resolvePostAuthRoute(data.session.user)
+          router.push(nextRoute)
           return
         }
 
@@ -215,7 +250,8 @@ export default function AuthPage() {
 
       setAuthUser(mapAuthUser(data.user))
       toast.success('Welcome back!')
-      router.push('/dashboard/overview')
+      const nextRoute = await resolvePostAuthRoute(data.user)
+      router.push(nextRoute)
     } finally {
       setLoading(false)
       setIsSubmitting(false)

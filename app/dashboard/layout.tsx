@@ -40,6 +40,30 @@ export default function DashboardLayout({
 
       const metadata = data.session.user.user_metadata as { full_name?: string; phone?: string; avatar_url?: string }
 
+      const { data: profile } = await supabase.client
+        .from('profiles')
+        .select('role,status')
+        .eq('id', data.session.user.id)
+        .maybeSingle()
+
+      const isSuperAdmin =
+        profile?.role === 'super_admin' ||
+        (data.session.user.email || '').toLowerCase() === 'admin@flashdatagh.com'
+
+      if (profile?.status === 'suspended') {
+        clearAuth()
+        await supabase.auth.signOut()
+        router.push('/')
+        setCheckingSession(false)
+        return
+      }
+
+      if (isSuperAdmin) {
+        router.push('/admin/overview')
+        setCheckingSession(false)
+        return
+      }
+
       setAuthUser({
         id: data.session.user.id,
         name: metadata?.full_name || data.session.user.email?.split('@')[0] || 'User',
