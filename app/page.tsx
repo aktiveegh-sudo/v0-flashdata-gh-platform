@@ -251,22 +251,34 @@ export default function AuthPage() {
                     )}
                   </AnimatePresence>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-white/80">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        placeholder="+233 24 123 4567"
-                        value={formData.phone}
-                        onChange={handlePhoneChange}
-                        className="h-12 border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/35 focus-visible:ring-amber-300/50"
-                        required={activeTab === 'signup'}
-                      />
-                    </div>
-                  </div>
+                  <AnimatePresence mode="wait">
+                    {activeTab === 'signup' && (
+                      <motion.div
+                        key="phone"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.22 }}
+                      >
+                        <div className="space-y-2">
+                          <Label htmlFor="phone" className="text-white/80">Phone Number</Label>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                            <Input
+                              id="phone"
+                              name="phone"
+                              type="tel"
+                              placeholder="+233 24 123 4567"
+                              value={formData.phone}
+                              onChange={handlePhoneChange}
+                              className="h-12 border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/35 focus-visible:ring-amber-300/50"
+                              required={activeTab === 'signup'}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-white/80">Email Address</Label>
