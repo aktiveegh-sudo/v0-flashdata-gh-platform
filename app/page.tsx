@@ -64,6 +64,30 @@ export default function AuthPage() {
   useEffect(() => {
     const syncSession = async () => {
       const { data, error } = await supabase.auth.getSession()
+      if (error || !data.session?.user) {
+        clearAuth()
+        return
+      }
+
+      setAuthUser(mapAuthUser(data.session.user))
+    }
+
+    void syncSession()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setAuthUser(mapAuthUser(session.user))
+      } else {
+        clearAuth()
+      }
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
+  }, [clearAuth, setAuthUser])
+
+  return (
     <div className="relative min-h-screen overflow-hidden bg-[#07111f] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,195,0,0.16),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(0,200,83,0.18),transparent_25%),linear-gradient(135deg,#08111f_0%,#0c172a_46%,#09111b_100%)]" />
       <div className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:52px_52px]" />
@@ -169,150 +193,8 @@ export default function AuthPage() {
               })}
             </div>
           </div>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 24, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="order-1 lg:order-2"
-        >
-          <div className="relative mx-auto w-full max-w-xl">
-            <div className="absolute -left-6 top-6 h-24 w-24 rounded-full bg-amber-300/20 blur-2xl" />
-            <div className="absolute -right-4 bottom-8 h-24 w-24 rounded-full bg-emerald-300/20 blur-2xl" />
-
-            <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 shadow-[0_30px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-              <div className="border-b border-white/10 bg-white/5 px-6 py-5 sm:px-8">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.28em] text-white/50">Secure access</p>
-                    <h3 className="mt-2 text-2xl font-bold text-white">Welcome to FlashData GH</h3>
-                  </div>
-                  <div className="hidden rounded-full border border-emerald-300/20 bg-emerald-300/15 px-3 py-1 text-xs font-medium text-emerald-100 sm:flex">
-                    Supabase Auth
-                  </div>
-                </div>
-              </div>
-
-              <div className="px-6 py-6 sm:px-8">
-                <div className="mb-6 flex rounded-2xl border border-white/10 bg-black/20 p-1.5">
-                  {(['signin', 'signup'] as AuthTab[]).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`relative flex-1 rounded-xl py-3 text-sm font-semibold transition-all ${
-                        activeTab === tab ? 'text-slate-950' : 'text-white/65 hover:text-white'
-                      }`}
-                    >
-                      {activeTab === tab && (
-                        <motion.div
-                          layoutId="authTab"
-                          className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-300 via-yellow-200 to-lime-200 shadow-lg"
-                          transition={{ type: 'spring', duration: 0.45, bounce: 0.2 }}
-                        />
-                      )}
-                      <span className="relative z-10">{tab === 'signin' ? 'Sign In' : 'Create Account'}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <p className="mb-6 text-sm leading-6 text-white/65">
-                  {activeTab === 'signin'
-                    ? 'Access your wallet, orders, and services dashboard with your Supabase account.'
-                    : 'Create your profile, wallet, and secure access in a single step.'}
-                </p>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <AnimatePresence mode="wait">
-                    {activeTab === 'signup' && (
-                      <motion.div
-                        key="fullName"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.22 }}
-                      >
-                        <div className="space-y-2">
-                          <Label htmlFor="fullName" className="text-white/80">Full Name</Label>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                            <Input
-                              id="fullName"
-                              name="fullName"
-                              placeholder="Kwame Asante"
-                              value={formData.fullName}
-                              onChange={handleInputChange}
-                              className="h-12 border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/35 focus-visible:ring-amber-300/50"
-                              required={activeTab === 'signup'}
-                            />
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <AnimatePresence mode="wait">
-                    {activeTab === 'signup' && (
-                      <motion.div
-                        key="phone"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.22 }}
-                      >
-                        <div className="space-y-2">
-                          <Label htmlFor="phone" className="text-white/80">Phone Number</Label>
-                          <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                            <Input
-                              id="phone"
-                              name="phone"
-                              type="tel"
-                              placeholder="+233 24 123 4567"
-                              value={formData.phone}
-                              onChange={handlePhoneChange}
-                              className="h-12 border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/35 focus-visible:ring-amber-300/50"
-                              required={activeTab === 'signup'}
-                            />
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-white/80">Email Address</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="kwame@example.com"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="h-12 border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/35 focus-visible:ring-amber-300/50"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-white/80">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Enter your password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className="h-12 border-white/10 bg-black/20 pl-10 pr-10 text-white placeholder:text-white/35 focus-visible:ring-amber-300/50"
-                        required
-                      />
-                      <button
-                        type="button"
+        )
+      }
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 transition hover:text-white"
                       >
