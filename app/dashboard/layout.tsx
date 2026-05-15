@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { PageLoader } from '@/components/loader'
@@ -13,21 +14,46 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, setAuthUser, clearAuth } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
   useEffect(() => {
-    if (mounted && !isAuthenticated) {
-      router.push('/')
+    if (!mounted) {
+      return
     }
-  }, [mounted, isAuthenticated, router])
 
-  if (!mounted) {
+    const ensureSession = async () => {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (error || !data.session?.user) {
+        clearAuth()
+        router.push('/')
+        setCheckingSession(false)
+        return
+      }
+
+      const metadata = data.session.user.user_metadata as { full_name?: string; phone?: string; avatar_url?: string }
+
+      setAuthUser({
+        id: data.session.user.id,
+        name: metadata?.full_name || data.session.user.email?.split('@')[0] || 'User',
+        email: data.session.user.email || '',
+        phone: metadata?.phone || '',
+        avatar: metadata?.avatar_url,
+      })
+      setCheckingSession(false)
+    }
+
+    void ensureSession()
+  }, [clearAuth, mounted, router, setAuthUser])
+
+  if (!mounted || checkingSession) {
     return <PageLoader />
   }
 

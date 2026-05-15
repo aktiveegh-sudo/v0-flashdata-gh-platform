@@ -9,14 +9,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuthStore, useLoadingStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase/client'
 import { GhanaFlagIcon } from '@/components/loader'
 import toast from 'react-hot-toast'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 type AuthTab = 'signin' | 'signup'
 
 export default function AuthPage() {
   const router = useRouter()
-  const { login, isAuthenticated } = useAuthStore()
+  const { setAuthUser, clearAuth, isAuthenticated } = useAuthStore()
   const { setLoading } = useLoadingStore()
   const [activeTab, setActiveTab] = useState<AuthTab>('signin')
   const [showPassword, setShowPassword] = useState(false)
@@ -39,9 +41,62 @@ export default function AuthPage() {
     }
   }, [isAuthenticated, router])
 
+  useEffect(() => {
+    const syncSession = async () => {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (error || !data.session?.user) {
+        clearAuth()
+        return
+      }
+
+      setAuthUser(mapAuthUser(data.session.user))
+    }
+
+    void syncSession()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setAuthUser(mapAuthUser(session.user))
+      } else {
+        clearAuth()
+      }
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
+  }, [clearAuth, setAuthUser])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const mapAuthUser = (user: SupabaseUser) => {
+    const metadata = user.user_metadata as { full_name?: string; phone?: string; avatar_url?: string }
+
+    return {
+      id: user.id,
+      name: metadata?.full_name || user.email?.split('@')[0] || 'User',
+      email: user.email || '',
+      phone: metadata?.phone || '',
+      avatar: metadata?.avatar_url,
+    }
+  }
+
+  const normalizeGhanaPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '')
+
+    if (digits.startsWith('233') && digits.length === 12) {
+      return `+${digits}`
+    }
+
+    if (digits.startsWith('0') && digits.length === 10) {
+      return `+233${digits.slice(1)}`
+    }
+
+    return ''
   }
 
   const formatPhoneNumber = (value: string) => {
@@ -73,22 +128,61 @@ export default function AuthPage() {
     setIsSubmitting(true)
     setLoading(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      if (activeTab === 'signup') {
+        const normalizedPhone = normalizeGhanaPhone(formData.phone)
 
-    const user = {
-      id: '1',
-      name: formData.fullName || 'Demo User',
-      email: formData.email || 'demo@flashdata.gh',
-      phone: formData.phone || '+233 24 123 4567',
+        if (!normalizedPhone) {
+          toast.error('Please enter a valid Ghana phone number')
+          return
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.fullName,
+              phone: normalizedPhone,
+            },
+          },
+        })
+
+        if (error) {
+          toast.error(error.message)
+          return
+        }
+
+        if (data.session?.user) {
+          setAuthUser(mapAuthUser(data.session.user))
+          toast.success('Account created successfully!')
+          router.push('/dashboard/overview')
+          return
+        }
+
+        toast.success('Account created. Please check your email to verify your account.')
+        setActiveTab('signin')
+        setFormData((prev) => ({ ...prev, password: '', confirmPassword: '' }))
+        return
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      })
+
+      if (error || !data.user) {
+        toast.error(error?.message || 'Unable to sign in')
+        return
+      }
+
+      setAuthUser(mapAuthUser(data.user))
+      toast.success('Welcome back!')
+      router.push('/dashboard/overview')
+    } finally {
+      setLoading(false)
+      setIsSubmitting(false)
     }
-
-    login(user)
-    setLoading(false)
-    setIsSubmitting(false)
-    
-    toast.success(activeTab === 'signin' ? 'Welcome back!' : 'Account created successfully!')
-    router.push('/dashboard/overview')
   }
 
   return (
@@ -200,7 +294,7 @@ export default function AuthPage() {
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     className="pl-10"
-                    required
+                    required={activeTab === 'signup'}
                   />
                 </div>
               </div>

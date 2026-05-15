@@ -15,6 +15,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useAuthStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
@@ -35,7 +36,14 @@ export function Header({ onMenuClick }: HeaderProps) {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+
     logout()
     toast.success('Logged out successfully')
     router.push('/')
