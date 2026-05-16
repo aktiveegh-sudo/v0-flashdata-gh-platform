@@ -28,7 +28,6 @@ const emptyForm = {
   name: '',
   amount: '',
   cost_price: '',
-  selling_price: '',
 }
 
 export default function AdminPackagesPage() {
@@ -66,13 +65,21 @@ export default function AdminPackagesPage() {
       name: form.name,
       amount: form.amount,
       cost_price: Number(form.cost_price),
-      selling_price: Number(form.selling_price),
+      selling_price: editingId ? rows.find((pkg) => pkg.id === editingId)?.selling_price ?? Number(form.cost_price) : Number(form.cost_price),
       validity: 'Non-expiry',
     }
 
-    if (!payload.name || !payload.amount || Number.isNaN(payload.cost_price) || Number.isNaN(payload.selling_price)) {
-      toast.error('Please fill all fields')
+    if (!payload.name || !payload.amount || Number.isNaN(payload.cost_price)) {
+      toast.error('Please fill all required fields')
       return
+    }
+
+    if (Number.isNaN(payload.selling_price)) {
+      payload.selling_price = payload.cost_price
+    }
+
+    if (payload.selling_price < payload.cost_price) {
+      payload.selling_price = payload.cost_price
     }
 
     if (editingId) {
@@ -103,7 +110,6 @@ export default function AdminPackagesPage() {
       name: pkg.name,
       amount: pkg.amount,
       cost_price: String(pkg.cost_price),
-      selling_price: String(pkg.selling_price),
     })
   }
 
@@ -159,10 +165,6 @@ export default function AdminPackagesPage() {
               <Label>Cost Price</Label>
               <Input type="number" min="0" step="0.01" value={form.cost_price} onChange={(e) => setForm((prev) => ({ ...prev, cost_price: e.target.value }))} />
             </div>
-            <div className="space-y-2">
-              <Label>Selling Price</Label>
-              <Input type="number" min="0" step="0.01" value={form.selling_price} onChange={(e) => setForm((prev) => ({ ...prev, selling_price: e.target.value }))} />
-            </div>
             <div className="md:col-span-2 xl:col-span-5 flex flex-wrap gap-2">
               <Button type="submit">
                 <Plus className="mr-2 h-4 w-4" />
@@ -174,6 +176,7 @@ export default function AdminPackagesPage() {
                 </Button>
               )}
               <Badge variant="outline" className="h-10 px-3 py-2">Validity: Non-expiry</Badge>
+              <Badge variant="secondary" className="h-10 px-3 py-2">Selling price is managed by agents</Badge>
             </div>
           </form>
         </CardContent>
@@ -190,7 +193,7 @@ export default function AdminPackagesPage() {
                 <th className="px-3 py-3">Network</th>
                 <th className="px-3 py-3">Name</th>
                 <th className="px-3 py-3">Amount</th>
-                <th className="px-3 py-3">Cost</th>
+                <th className="px-3 py-3">Data Price</th>
                 <th className="px-3 py-3">Selling</th>
                 <th className="px-3 py-3">Status</th>
                 <th className="px-3 py-3">Actions</th>
