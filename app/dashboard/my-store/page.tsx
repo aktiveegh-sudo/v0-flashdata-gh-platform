@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Store,
@@ -9,9 +10,14 @@ import {
   DollarSign,
   ArrowUpRight,
   Package,
+  Copy,
+  Link2,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { supabase } from '@/lib/supabase/client'
+import toast from 'react-hot-toast'
 import {
   LineChart,
   Line,
@@ -48,6 +54,51 @@ const recentOrders = [
 ]
 
 export default function MyStorePage() {
+  const [storeSlug, setStoreSlug] = useState('')
+
+  useEffect(() => {
+    const loadStoreSlug = async () => {
+      const { data: authData } = await supabase.auth.getUser()
+      if (!authData.user) {
+        return
+      }
+
+      const { data } = await supabase.client
+        .from('agent_stores')
+        .select('slug')
+        .eq('agent_id', authData.user.id)
+        .maybeSingle()
+
+      if (data?.slug) {
+        setStoreSlug(data.slug)
+      }
+    }
+
+    void loadStoreSlug()
+  }, [])
+
+  const publicLink = useMemo(() => {
+    if (!storeSlug) {
+      return ''
+    }
+
+    if (typeof window === 'undefined') {
+      return `/store/${storeSlug}`
+    }
+
+    return `${window.location.origin}/store/${storeSlug}`
+  }, [storeSlug])
+
+  const copyStoreLink = async () => {
+    if (!publicLink) {
+      toast.error('Set up your store slug in Store Settings first')
+      return
+    }
+
+    await navigator.clipboard.writeText(publicLink)
+    toast.success('Store link copied')
+  }
+
   const stats = [
     {
       label: 'Total Earnings',
@@ -94,6 +145,24 @@ export default function MyStorePage() {
         <h1 className="text-2xl font-bold text-foreground lg:text-3xl">My Store</h1>
         <p className="text-muted-foreground">Manage your reseller store and track performance</p>
       </div>
+
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Link2 className="h-4 w-4 text-primary" />
+              Your Public Store Link
+            </p>
+            <p className="text-sm text-primary">
+              {publicLink || 'Create your store slug in Store Settings to get your link'}
+            </p>
+          </div>
+          <Button onClick={copyStoreLink} className="gap-2" variant="secondary">
+            <Copy className="h-4 w-4" />
+            Copy Link
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
