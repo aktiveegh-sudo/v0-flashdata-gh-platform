@@ -1,53 +1,127 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ShoppingCart, Check, X, Clock, Phone } from 'lucide-react'
+import { ShoppingCart, Check, X, Clock, Phone, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useStoreOrderStore, useLoadingStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
-const networkColors: Record<string, string> = {
-  MTN: 'bg-yellow-500 text-black',
-  'Airtel-Tigo': 'bg-red-500 text-white',
-  Telecel: 'bg-blue-600 text-white',
+type StoreOrder = {
+  id: string
+  item_type: 'data' | 'service'
+  customer_name: string
+  customer_phone: string
+  quantity: number
+  total_price: number
+  status: 'pending' | 'accepted' | 'declined' | 'completed'
+  created_at: string
+  data_packages: {
+    network: string
+    name: string
+    amount: string
+  } | null
+  online_services: {
+    name: string
+    category: string
+  } | null
 }
 
 export default function StoreOrdersPage() {
-  const { orders, updateOrderStatus } = useStoreOrderStore()
-  const { setLoading } = useLoadingStore()
+  const [loading, setLoading] = useState(true)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [orders, setOrders] = useState<StoreOrder[]>([])
 
-  const handleAccept = async (orderId: string) => {
+  const loadOrders = async () => {
     setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    updateOrderStatus(orderId, 'accepted')
+
+    const { data: authData, error: authError } = await supabase.auth.getUser()
+    if (authError || !authData.user) {
+      toast.error('Please login again')
+      setLoading(false)
+      return
+    }
+
+    const { data: store, error: storeError } = await supabase.client
+      .from('agent_stores')
+      .select('id')
+      .eq('agent_id', authData.user.id)
+      .maybeSingle()
+
+    if (storeError) {
+      toast.error(storeError.message)
+      setLoading(false)
+      return
+    }
+
+    if (!store) {
+      toast.error('Set up your store in Store Settings first')
+      setLoading(false)
+      return
+    }
+
+    const { data, error } = await supabase.client
+      .from('agent_store_orders')
+      .select('id,item_type,customer_name,customer_phone,quantity,total_price,status,created_at,data_packages(network,name,amount),online_services(name,category)')
+      .eq('store_id', store.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      toast.error(error.message)
+      setLoading(false)
+      return
+    }
+
+    setOrders((data as StoreOrder[] | null) ?? [])
     setLoading(false)
-    toast.success('Order accepted! Processing data transfer...')
   }
 
-  const handleDecline = async (orderId: string) => {
-    setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    updateOrderStatus(orderId, 'declined')
-    setLoading(false)
-    toast.error('Order declined')
-  }
+  useEffect(() => {
+    void loadOrders()
+  }, [])
 
-  const handleComplete = async (orderId: string) => {
-    setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    updateOrderStatus(orderId, 'completed')
-    setLoading(false)
-    toast.success('Order completed successfully!')
+  const updateStatus = async (orderId: string, status: StoreOrder['status']) => {
+    setUpdatingId(orderId)
+
+    const { error } = await supabase.client
+      .from('agent_store_orders')
+      .update({ status })
+      .eq('id', orderId)
+
+    setUpdatingId(null)
+
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+
+    setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)))
+    toast.success(`Order ${status}`)
   }
 
   const pendingOrders = orders.filter((o) => o.status === 'pending')
   const acceptedOrders = orders.filter((o) => o.status === 'accepted')
   const completedOrders = orders.filter((o) => o.status === 'completed' || o.status === 'declined')
 
-  const OrderCard = ({ order }: { order: typeof orders[0] }) => (
+  const statusClass = (status: StoreOrder['status']) => {
+    if (status === 'completed') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+    if (status === 'pending') return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+    if (status === 'accepted') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+    return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+  }
+
+  const itemTitle = (order: StoreOrder) => {
+    if (order.item_type === 'data') {
+      return `${order.data_packages?.network || ''} ${order.data_packages?.name || 'Data'} (${order.data_packages?.amount || ''})`
+    }
+
+    return order.online_services?.name || 'Service Order'
+  }
+
+  const OrderCard = ({ order }: { order: StoreOrder }) => (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -56,72 +130,79 @@ export default function StoreOrdersPage() {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-            {order.customerName.split(' ').map((n) => n[0]).join('')}
+            {order.customer_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
           </div>
           <div>
-            <p className="font-semibold text-foreground">{order.customerName}</p>
+            <p className="font-semibold text-foreground">{order.customer_name}</p>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Phone className="h-3 w-3" />
-              {order.customerPhone}
+              {order.customer_phone}
             </div>
           </div>
         </div>
-        <Badge
-          variant="secondary"
-          className={
-            order.status === 'completed'
-              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-              : order.status === 'pending'
-              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-              : order.status === 'accepted'
-              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-          }
-        >
+        <Badge variant="secondary" className={statusClass(order.status)}>
           {order.status}
         </Badge>
       </div>
 
       <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-3">
-        <div className="flex items-center gap-3">
-          <Badge className={networkColors[order.network] || 'bg-primary'}>
-            {order.network}
-          </Badge>
-          <span className="font-semibold text-foreground">{order.dataAmount}</span>
+        <div>
+          <p className="font-semibold text-foreground">{itemTitle(order)}</p>
+          <p className="text-sm text-muted-foreground">Qty: {order.quantity}</p>
         </div>
-        <span className="text-lg font-bold text-primary">GH₵ {order.amount.toFixed(2)}</span>
+        <span className="text-lg font-bold text-primary">GHc {Number(order.total_price).toFixed(2)}</span>
       </div>
 
-      <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
-        <span>{format(new Date(order.date), 'MMM d, yyyy · h:mm a')}</span>
-        
-        {order.status === 'pending' && (
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+        <span>{format(new Date(order.created_at), 'MMM d, yyyy � h:mm a')}</span>
+
+        {order.status === 'pending' ? (
           <div className="flex gap-2">
             <Button
               size="sm"
               variant="outline"
               className="gap-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              onClick={() => handleDecline(order.id)}
+              onClick={() => void updateStatus(order.id, 'declined')}
+              disabled={updatingId === order.id}
             >
-              <X className="h-4 w-4" />
+              {updatingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
               Decline
             </Button>
-            <Button size="sm" className="gap-1" onClick={() => handleAccept(order.id)}>
-              <Check className="h-4 w-4" />
+            <Button
+              size="sm"
+              className="gap-1"
+              onClick={() => void updateStatus(order.id, 'accepted')}
+              disabled={updatingId === order.id}
+            >
+              {updatingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               Accept
             </Button>
           </div>
-        )}
+        ) : null}
 
-        {order.status === 'accepted' && (
-          <Button size="sm" className="gap-1" onClick={() => handleComplete(order.id)}>
-            <Check className="h-4 w-4" />
+        {order.status === 'accepted' ? (
+          <Button
+            size="sm"
+            className="gap-1"
+            onClick={() => void updateStatus(order.id, 'completed')}
+            disabled={updatingId === order.id}
+          >
+            {updatingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             Mark Complete
           </Button>
-        )}
+        ) : null}
       </div>
     </motion.div>
   )
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        Loading store orders...
+      </div>
+    )
+  }
 
   return (
     <motion.div
@@ -129,13 +210,11 @@ export default function StoreOrdersPage() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Store Orders</h1>
-        <p className="text-muted-foreground">Manage incoming customer orders</p>
+        <p className="text-muted-foreground">Manage incoming public orders from your custom store link</p>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
@@ -174,8 +253,7 @@ export default function StoreOrdersPage() {
         </Card>
       </div>
 
-      {/* Pending Orders */}
-      {pendingOrders.length > 0 && (
+      {pendingOrders.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -191,10 +269,9 @@ export default function StoreOrdersPage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* Processing Orders */}
-      {acceptedOrders.length > 0 && (
+      {acceptedOrders.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -210,9 +287,8 @@ export default function StoreOrdersPage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* Completed Orders */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

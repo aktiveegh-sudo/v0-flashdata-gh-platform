@@ -1,18 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Zap, Tv, Phone, Radio, Wifi, CreditCard } from 'lucide-react'
+import { Globe, Loader2, Plus, Edit2, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -21,131 +24,225 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useWalletStore, useTransactionStore, useLoadingStore } from '@/lib/store'
+import { Badge } from '@/components/ui/badge'
+import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
-const services = [
-  {
-    id: 'electricity',
-    name: 'Electricity Bills',
-    description: 'Pay ECG and other electricity bills',
-    icon: Zap,
-    color: 'bg-yellow-500',
-    providers: ['ECG Prepaid', 'ECG Postpaid', 'NEDCo'],
-  },
-  {
-    id: 'tv',
-    name: 'TV Subscriptions',
-    description: 'Renew your TV subscription',
-    icon: Tv,
-    color: 'bg-purple-500',
-    providers: ['DStv', 'GOtv', 'StarTimes'],
-  },
-  {
-    id: 'airtime',
-    name: 'Airtime',
-    description: 'Buy airtime for any network',
-    icon: Phone,
-    color: 'bg-green-500',
-    providers: ['MTN', 'Airtel-Tigo', 'Telecel'],
-  },
-  {
-    id: 'cable',
-    name: 'Cable TV',
-    description: 'Pay cable TV subscriptions',
-    icon: Radio,
-    color: 'bg-blue-500',
-    providers: ['MultiTV', 'SurfLine'],
-  },
-  {
-    id: 'internet',
-    name: 'Internet',
-    description: 'Pay for broadband internet',
-    icon: Wifi,
-    color: 'bg-teal-500',
-    providers: ['Busy Internet', 'Vodafone Broadband', 'MTN Fiber'],
-  },
-  {
-    id: 'other',
-    name: 'Other Payments',
-    description: 'Insurance, school fees, and more',
-    icon: CreditCard,
-    color: 'bg-orange-500',
-    providers: ['Insurance', 'School Fees', 'Other'],
-  },
-]
+type BaseService = {
+  id: string
+  name: string
+  category: string
+  price: number
+  description: string | null
+}
+
+type StoreService = {
+  id: string
+  selling_price: number
+  is_active: boolean
+  online_services: BaseService | null
+}
 
 export default function OtherServicesPage() {
-  const { balance, deductFunds } = useWalletStore()
-  const { addTransaction } = useTransactionStore()
-  const { setLoading } = useLoadingStore()
-  
-  const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [storeId, setStoreId] = useState('')
+
+  const [baseServices, setBaseServices] = useState<BaseService[]>([])
+  const [storeServices, setStoreServices] = useState<StoreService[]>([])
+
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingService, setEditingService] = useState<StoreService | null>(null)
+
   const [formData, setFormData] = useState({
-    provider: '',
-    accountNumber: '',
-    amount: '',
-    phone: '',
+    baseServiceId: '',
+    sellingPrice: '',
+    active: true,
   })
 
-  const handleSelectService = (service: typeof services[0]) => {
-    setSelectedService(service)
+  const availableBaseServices = useMemo(() => {
+    if (editingService) return baseServices
+
+    const selectedIds = new Set(storeServices.map((svc) => svc.online_services?.id).filter(Boolean))
+    return baseServices.filter((svc) => !selectedIds.has(svc.id))
+  }, [baseServices, editingService, storeServices])
+
+  const loadData = async () => {
+    setLoading(true)
+
+    const { data: authData, error: authError } = await supabase.auth.getUser()
+    if (authError || !authData.user) {
+      toast.error('Please login again')
+      setLoading(false)
+      return
+    }
+
+    const { data: store, error: storeError } = await supabase.client
+      .from('agent_stores')
+      .select('id')
+      .eq('agent_id', authData.user.id)
+      .maybeSingle()
+
+    if (storeError) {
+      toast.error(storeError.message)
+      setLoading(false)
+      return
+    }
+
+    if (!store) {
+      toast.error('Set up your store in Store Settings first')
+      setLoading(false)
+      return
+    }
+
+    setStoreId(store.id)
+
+    const [{ data: servicesData, error: servicesError }, { data: configured, error: configuredError }] = await Promise.all([
+      supabase.client
+        .from('online_services')
+        .select('id,name,category,price,description')
+        .eq('is_active', true)
+        .order('category')
+        .order('name'),
+      supabase.client
+        .from('agent_store_service_prices')
+        .select('id,selling_price,is_active,online_services(id,name,category,price,description)')
+        .eq('store_id', store.id)
+        .order('created_at', { ascending: false }),
+    ])
+
+    if (servicesError) {
+      toast.error(servicesError.message)
+      setLoading(false)
+      return
+    }
+
+    if (configuredError) {
+      toast.error(configuredError.message)
+      setLoading(false)
+      return
+    }
+
+    setBaseServices((servicesData as BaseService[] | null) ?? [])
+    setStoreServices((configured as StoreService[] | null) ?? [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    void loadData()
+  }, [])
+
+  const resetForm = () => {
     setFormData({
-      provider: '',
-      accountNumber: '',
-      amount: '',
-      phone: '',
+      baseServiceId: '',
+      sellingPrice: '',
+      active: true,
     })
+    setEditingService(null)
+  }
+
+  const handleOpenDialog = (service?: StoreService) => {
+    if (service) {
+      setEditingService(service)
+      setFormData({
+        baseServiceId: service.online_services?.id || '',
+        sellingPrice: service.selling_price.toString(),
+        active: service.is_active,
+      })
+    } else {
+      resetForm()
+    }
     setIsDialogOpen(true)
   }
 
   const handleSubmit = async () => {
-    if (!formData.provider || !formData.accountNumber || !formData.amount) {
-      toast.error('Please fill in all required fields')
+    if (!storeId || !formData.baseServiceId || !formData.sellingPrice) {
+      toast.error('Please fill in all fields')
       return
     }
 
-    const amount = parseFloat(formData.amount)
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid amount')
+    const sellingPrice = Number.parseFloat(formData.sellingPrice)
+    if (!Number.isFinite(sellingPrice) || sellingPrice <= 0) {
+      toast.error('Selling price must be greater than zero')
       return
     }
 
-    if (balance < amount) {
-      toast.error('Insufficient wallet balance')
-      return
+    if (editingService) {
+      const { error } = await supabase.client
+        .from('agent_store_service_prices')
+        .update({
+          selling_price: sellingPrice,
+          is_active: formData.active,
+        })
+        .eq('id', editingService.id)
+
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+
+      toast.success('Service updated successfully')
+    } else {
+      const { error } = await supabase.client
+        .from('agent_store_service_prices')
+        .insert({
+          store_id: storeId,
+          service_id: formData.baseServiceId,
+          selling_price: sellingPrice,
+          is_active: formData.active,
+        })
+
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+
+      toast.success('Service added successfully')
     }
 
     setIsDialogOpen(false)
-    setLoading(true)
+    resetForm()
+    await loadData()
+  }
 
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.client
+      .from('agent_store_service_prices')
+      .delete()
+      .eq('id', id)
 
-    const success = deductFunds(amount)
-    if (success) {
-      const reference = `FD-${selectedService?.id.toUpperCase().slice(0, 3)}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-      
-      addTransaction({
-        type: 'bill',
-        amount,
-        status: 'success',
-        reference,
-        description: `${formData.provider} - ${selectedService?.name}`,
-      })
-
-      toast.success(
-        <div>
-          <p className="font-semibold">Payment successful!</p>
-          <p className="text-sm">Ref: {reference}</p>
-        </div>
-      )
-    } else {
-      toast.error('Payment failed. Please try again.')
+    if (error) {
+      toast.error(error.message)
+      return
     }
 
-    setLoading(false)
-    setSelectedService(null)
+    toast.success('Service removed')
+    await loadData()
+  }
+
+  const handleToggleActive = async (id: string, active: boolean) => {
+    const { error } = await supabase.client
+      .from('agent_store_service_prices')
+      .update({ is_active: active })
+      .eq('id', id)
+
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+
+    toast.success(`Service ${active ? 'activated' : 'deactivated'}`)
+    await loadData()
+  }
+
+  const margin = (sellingPrice: number, basePrice: number) => sellingPrice - basePrice
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        Loading services...
+      </div>
+    )
   }
 
   return (
@@ -154,150 +251,139 @@ export default function OtherServicesPage() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Other Online Services</h1>
-        <p className="text-muted-foreground">Pay bills and purchase various services</p>
-      </div>
-
-      {/* Services Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {services.map((service) => (
-          <motion.div
-            key={service.id}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Card
-              className="cursor-pointer transition-all hover:border-primary hover:shadow-lg"
-              onClick={() => handleSelectService(service)}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${service.color} text-white`}
-                  >
-                    <service.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{service.name}</h3>
-                    <p className="text-sm text-muted-foreground">{service.description}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Payment Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedService && (
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${selectedService.color} text-white`}
-                >
-                  <selectedService.icon className="h-4 w-4" />
-                </div>
-              )}
-              {selectedService?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Fill in the details below to make a payment
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Provider</Label>
-              <Select
-                value={formData.provider}
-                onValueChange={(value) => setFormData({ ...formData, provider: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedService?.providers.map((provider) => (
-                    <SelectItem key={provider} value={provider}>
-                      {provider}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="accountNumber">
-                {selectedService?.id === 'electricity'
-                  ? 'Meter Number'
-                  : selectedService?.id === 'tv' || selectedService?.id === 'cable'
-                  ? 'Smart Card Number'
-                  : selectedService?.id === 'airtime'
-                  ? 'Phone Number'
-                  : 'Account Number'}
-              </Label>
-              <Input
-                id="accountNumber"
-                placeholder="Enter number"
-                value={formData.accountNumber}
-                onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (GH₵)</Label>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="Enter amount"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number (for receipt)</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="024 123 4567"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-
-            {formData.amount && (
-              <div className="rounded-lg bg-muted p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Amount</span>
-                  <span className="font-semibold">GH₵ {parseFloat(formData.amount || '0').toFixed(2)}</span>
-                </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-muted-foreground">Wallet Balance</span>
-                  <span className={balance < parseFloat(formData.amount || '0') ? 'text-destructive' : ''}>
-                    GH₵ {balance.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <Button
-              className="w-full"
-              onClick={handleSubmit}
-              disabled={
-                !formData.provider ||
-                !formData.accountNumber ||
-                !formData.amount ||
-                balance < parseFloat(formData.amount || '0')
-              }
-            >
-              Pay GH₵ {parseFloat(formData.amount || '0').toFixed(2)}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Store Services</h1>
+          <p className="text-muted-foreground">Set pricing and availability for non-data services in your store</p>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2" onClick={() => handleOpenDialog()}>
+              <Plus className="h-4 w-4" />
+              Add Service
             </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingService ? 'Edit Service' : 'Add Service'}</DialogTitle>
+              <DialogDescription>
+                {editingService ? 'Update this service pricing' : 'Pick a service and set your selling price'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Service</Label>
+                <Select
+                  value={formData.baseServiceId}
+                  onValueChange={(value) => setFormData({ ...formData, baseServiceId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select service" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableBaseServices.map((svc) => (
+                      <SelectItem key={svc.id} value={svc.id}>
+                        {svc.category} - {svc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="sellingPrice">Selling Price (GHc)</Label>
+                <Input
+                  id="sellingPrice"
+                  type="number"
+                  step="0.01"
+                  value={formData.sellingPrice}
+                  onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium">Active</p>
+                  <p className="text-xs text-muted-foreground">Visible on your public store</p>
+                </div>
+                <Switch
+                  checked={formData.active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => void handleSubmit()}>{editingService ? 'Update' : 'Add'}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-primary" />
+            Store Services ({storeServices.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {storeServices.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">No services configured yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {storeServices.map((svc) => (
+                <div key={svc.id} className="rounded-lg border border-border p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-foreground">{svc.online_services?.name}</p>
+                        <Badge variant="secondary">{svc.online_services?.category}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{svc.online_services?.description || 'No description'}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={svc.is_active}
+                        onCheckedChange={(checked) => void handleToggleActive(svc.id, checked)}
+                      />
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(svc)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => void handleDelete(svc.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Base Price</p>
+                      <p className="font-medium">GHc {Number(svc.online_services?.price || 0).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Selling Price</p>
+                      <p className="font-semibold">GHc {Number(svc.selling_price).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Margin</p>
+                      <p className="font-semibold text-green-600 dark:text-green-400">
+                        GHc {margin(Number(svc.selling_price), Number(svc.online_services?.price || 0)).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   )
 }

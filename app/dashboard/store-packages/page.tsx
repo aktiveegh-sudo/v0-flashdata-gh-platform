@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Edit2, Trash2, Package, Check, X } from 'lucide-react'
+import { Plus, Edit2, Trash2, Package, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,18 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import { useStorePackageStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 const networkColors: Record<string, string> = {
@@ -45,36 +34,129 @@ const networkColors: Record<string, string> = {
   Telecel: 'bg-blue-600 text-white',
 }
 
+type BasePackage = {
+  id: string
+  network: string
+  name: string
+  amount: string
+  cost_price: number
+  selling_price: number
+  validity: string
+}
+
+type StorePackage = {
+  id: string
+  selling_price: number
+  is_active: boolean
+  data_packages: BasePackage | null
+}
+
 export default function StorePackagesPage() {
-  const { packages, addPackage, updatePackage, deletePackage } = useStorePackageStore()
+  const [loading, setLoading] = useState(true)
+  const [storeId, setStoreId] = useState('')
+
+  const [basePackages, setBasePackages] = useState<BasePackage[]>([])
+  const [storePackages, setStorePackages] = useState<StorePackage[]>([])
+
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingPackage, setEditingPackage] = useState<typeof packages[0] | null>(null)
-  
+  const [editingPackage, setEditingPackage] = useState<StorePackage | null>(null)
+
   const [formData, setFormData] = useState({
-    network: '',
-    dataAmount: '',
-    costPrice: '',
+    basePackageId: '',
     sellingPrice: '',
+    active: true,
   })
+
+  const availableBasePackages = useMemo(() => {
+    if (editingPackage) {
+      return basePackages
+    }
+
+    const selectedIds = new Set(storePackages.map((pkg) => pkg.data_packages?.id).filter(Boolean))
+    return basePackages.filter((pkg) => !selectedIds.has(pkg.id))
+  }, [basePackages, editingPackage, storePackages])
+
+  const loadData = async () => {
+    setLoading(true)
+
+    const { data: authData, error: authError } = await supabase.auth.getUser()
+    if (authError || !authData.user) {
+      toast.error('Please login again')
+      setLoading(false)
+      return
+    }
+
+    const { data: store, error: storeError } = await supabase.client
+      .from('agent_stores')
+      .select('id')
+      .eq('agent_id', authData.user.id)
+      .maybeSingle()
+
+    if (storeError) {
+      toast.error(storeError.message)
+      setLoading(false)
+      return
+    }
+
+    if (!store) {
+      toast.error('Set up your store in Store Settings first')
+      setLoading(false)
+      return
+    }
+
+    setStoreId(store.id)
+
+    const [{ data: allBase, error: baseError }, { data: configured, error: configuredError }] = await Promise.all([
+      supabase.client
+        .from('data_packages')
+        .select('id,network,name,amount,cost_price,selling_price,validity')
+        .eq('is_active', true)
+        .order('network')
+        .order('cost_price'),
+      supabase.client
+        .from('agent_store_packages')
+        .select('id,selling_price,is_active,data_packages(id,network,name,amount,cost_price,selling_price,validity)')
+        .eq('store_id', store.id)
+        .order('created_at', { ascending: false }),
+    ])
+
+    if (baseError) {
+      toast.error(baseError.message)
+      setLoading(false)
+      return
+    }
+
+    if (configuredError) {
+      toast.error(configuredError.message)
+      setLoading(false)
+      return
+    }
+
+    setBasePackages((allBase as BasePackage[] | null) ?? [])
+    setStorePackages((configured as StorePackage[] | null) ?? [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    void loadData()
+  }, [])
 
   const resetForm = () => {
     setFormData({
-      network: '',
-      dataAmount: '',
-      costPrice: '',
+      basePackageId: '',
       sellingPrice: '',
+      active: true,
     })
     setEditingPackage(null)
   }
 
-  const handleOpenDialog = (pkg?: typeof packages[0]) => {
+  const handleOpenDialog = (pkg?: StorePackage) => {
     if (pkg) {
       setEditingPackage(pkg)
       setFormData({
-        network: pkg.network,
-        dataAmount: pkg.dataAmount,
-        costPrice: pkg.costPrice.toString(),
-        sellingPrice: pkg.sellingPrice.toString(),
+        basePackageId: pkg.data_packages?.id || '',
+        sellingPrice: pkg.selling_price.toString(),
+        active: pkg.is_active,
       })
     } else {
       resetForm()
@@ -82,44 +164,95 @@ export default function StorePackagesPage() {
     setIsDialogOpen(true)
   }
 
-  const handleSubmit = () => {
-    if (!formData.network || !formData.dataAmount || !formData.costPrice || !formData.sellingPrice) {
+  const handleSubmit = async () => {
+    if (!storeId || !formData.basePackageId || !formData.sellingPrice) {
       toast.error('Please fill in all fields')
       return
     }
 
-    const packageData = {
-      network: formData.network,
-      dataAmount: formData.dataAmount,
-      costPrice: parseFloat(formData.costPrice),
-      sellingPrice: parseFloat(formData.sellingPrice),
-      active: true,
+    const sellingPrice = Number.parseFloat(formData.sellingPrice)
+    if (!Number.isFinite(sellingPrice) || sellingPrice <= 0) {
+      toast.error('Selling price must be greater than zero')
+      return
     }
 
     if (editingPackage) {
-      updatePackage(editingPackage.id, packageData)
-      toast.success('Package updated successfully!')
+      const { error } = await supabase.client
+        .from('agent_store_packages')
+        .update({
+          selling_price: sellingPrice,
+          is_active: formData.active,
+        })
+        .eq('id', editingPackage.id)
+
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+
+      toast.success('Package updated successfully')
     } else {
-      addPackage(packageData)
-      toast.success('Package added successfully!')
+      const { error } = await supabase.client
+        .from('agent_store_packages')
+        .insert({
+          store_id: storeId,
+          data_package_id: formData.basePackageId,
+          selling_price: sellingPrice,
+          is_active: formData.active,
+        })
+
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+
+      toast.success('Package added successfully')
     }
 
     setIsDialogOpen(false)
     resetForm()
+    await loadData()
   }
 
-  const handleDelete = (id: string) => {
-    deletePackage(id)
-    toast.success('Package deleted successfully!')
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.client
+      .from('agent_store_packages')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+
+    toast.success('Package deleted successfully')
+    await loadData()
   }
 
-  const handleToggleActive = (id: string, active: boolean) => {
-    updatePackage(id, { active })
+  const handleToggleActive = async (id: string, active: boolean) => {
+    const { error } = await supabase.client
+      .from('agent_store_packages')
+      .update({ is_active: active })
+      .eq('id', id)
+
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+
     toast.success(`Package ${active ? 'activated' : 'deactivated'}`)
+    await loadData()
   }
 
-  const profit = (sellingPrice: number, costPrice: number) => {
-    return sellingPrice - costPrice
+  const profit = (sellingPrice: number, costPrice: number) => sellingPrice - costPrice
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        Loading store packages...
+      </div>
+    )
   }
 
   return (
@@ -128,11 +261,10 @@ export default function StorePackagesPage() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Store Data Packages</h1>
-          <p className="text-muted-foreground">Manage the data packages you sell in your store</p>
+          <p className="text-muted-foreground">Choose packages and set your own selling prices</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -143,71 +275,66 @@ export default function StorePackagesPage() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {editingPackage ? 'Edit Package' : 'Add New Package'}
-              </DialogTitle>
+              <DialogTitle>{editingPackage ? 'Edit Package' : 'Add New Package'}</DialogTitle>
               <DialogDescription>
                 {editingPackage
                   ? 'Update the package details below'
-                  : 'Fill in the details to add a new data package'}
+                  : 'Select a base package and set your selling price'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Network</Label>
+                <Label>Base Package</Label>
                 <Select
-                  value={formData.network}
-                  onValueChange={(value) => setFormData({ ...formData, network: value })}
+                  value={formData.basePackageId}
+                  onValueChange={(value) => setFormData({ ...formData, basePackageId: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select network" />
+                    <SelectValue placeholder="Select package" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MTN">MTN</SelectItem>
-                    <SelectItem value="Airtel-Tigo">Airtel-Tigo</SelectItem>
-                    <SelectItem value="Telecel">Telecel</SelectItem>
+                    {availableBasePackages.map((pkg) => (
+                      <SelectItem key={pkg.id} value={pkg.id}>
+                        {pkg.network} - {pkg.name} ({pkg.amount})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="dataAmount">Data Amount</Label>
+                <Label htmlFor="sellingPrice">Selling Price (GHc)</Label>
                 <Input
-                  id="dataAmount"
-                  placeholder="e.g., 2GB, 5GB, 10GB"
-                  value={formData.dataAmount}
-                  onChange={(e) => setFormData({ ...formData, dataAmount: e.target.value })}
+                  id="sellingPrice"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.sellingPrice}
+                  onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="costPrice">Cost Price (GH₵)</Label>
-                  <Input
-                    id="costPrice"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.costPrice}
-                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
-                  />
+
+              <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium">Active</p>
+                  <p className="text-xs text-muted-foreground">Visible on your public store</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sellingPrice">Selling Price (GH₵)</Label>
-                  <Input
-                    id="sellingPrice"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.sellingPrice}
-                    onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                  />
-                </div>
+                <Switch
+                  checked={formData.active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
+                />
               </div>
-              {formData.costPrice && formData.sellingPrice && (
+
+              {formData.basePackageId && formData.sellingPrice && (
                 <div className="rounded-lg bg-muted p-3">
                   <p className="text-sm text-muted-foreground">
                     Profit per sale:{' '}
                     <span className="font-semibold text-green-600 dark:text-green-400">
-                      GH₵ {profit(parseFloat(formData.sellingPrice), parseFloat(formData.costPrice)).toFixed(2)}
+                      GHc{' '}
+                      {profit(
+                        parseFloat(formData.sellingPrice),
+                        basePackages.find((pkg) => pkg.id === formData.basePackageId)?.cost_price || 0
+                      ).toFixed(2)}
                     </span>
                   </p>
                 </div>
@@ -217,7 +344,7 @@ export default function StorePackagesPage() {
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSubmit}>
+              <Button onClick={() => void handleSubmit()}>
                 {editingPackage ? 'Update Package' : 'Add Package'}
               </Button>
             </DialogFooter>
@@ -225,114 +352,74 @@ export default function StorePackagesPage() {
         </Dialog>
       </div>
 
-      {/* Packages Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
-            All Packages ({packages.length})
+            All Packages ({storePackages.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Desktop Table */}
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Network
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Data Amount
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Cost Price
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Selling Price
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Profit
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Actions
-                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Network</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Package</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data Price</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Selling Price</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Profit</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {packages.length === 0 ? (
+                {storePackages.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                      No packages yet. Add your first package!
+                      No packages yet. Add your first package.
                     </td>
                   </tr>
                 ) : (
-                  packages.map((pkg) => (
-                    <tr
-                      key={pkg.id}
-                      className="border-b border-border transition-colors hover:bg-muted/50"
-                    >
+                  storePackages.map((pkg) => (
+                    <tr key={pkg.id} className="border-b border-border transition-colors hover:bg-muted/50">
                       <td className="px-4 py-3">
-                        <Badge className={networkColors[pkg.network] || 'bg-primary'}>
-                          {pkg.network}
+                        <Badge className={networkColors[pkg.data_packages?.network || ''] || 'bg-primary'}>
+                          {pkg.data_packages?.network || 'N/A'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 font-medium">{pkg.dataAmount}</td>
-                      <td className="px-4 py-3">GH₵ {pkg.costPrice.toFixed(2)}</td>
-                      <td className="px-4 py-3 font-semibold">GH₵ {pkg.sellingPrice.toFixed(2)}</td>
+                      <td className="px-4 py-3 font-medium">{pkg.data_packages?.name} ({pkg.data_packages?.amount})</td>
+                      <td className="px-4 py-3">GHc {Number(pkg.data_packages?.cost_price || 0).toFixed(2)}</td>
+                      <td className="px-4 py-3 font-semibold">GHc {Number(pkg.selling_price).toFixed(2)}</td>
                       <td className="px-4 py-3">
                         <span className="font-semibold text-green-600 dark:text-green-400">
-                          GH₵ {profit(pkg.sellingPrice, pkg.costPrice).toFixed(2)}
+                          GHc {profit(Number(pkg.selling_price), Number(pkg.data_packages?.cost_price || 0)).toFixed(2)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <Switch
-                            checked={pkg.active}
-                            onCheckedChange={(checked) => handleToggleActive(pkg.id, checked)}
+                            checked={pkg.is_active}
+                            onCheckedChange={(checked) => void handleToggleActive(pkg.id, checked)}
                           />
-                          <span className={pkg.active ? 'text-green-600' : 'text-muted-foreground'}>
-                            {pkg.active ? 'Active' : 'Inactive'}
+                          <span className={pkg.is_active ? 'text-green-600' : 'text-muted-foreground'}>
+                            {pkg.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(pkg)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleOpenDialog(pkg)}
+                            className="text-destructive"
+                            onClick={() => void handleDelete(pkg.id)}
                           >
-                            <Edit2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Package</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this package? This action cannot
-                                  be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(pkg.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
                         </div>
                       </td>
                     </tr>
@@ -342,88 +429,62 @@ export default function StorePackagesPage() {
             </table>
           </div>
 
-          {/* Mobile Cards */}
-          <div className="space-y-3 md:hidden">
-            {packages.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">
-                No packages yet. Add your first package!
-              </div>
+          <div className="space-y-4 md:hidden">
+            {storePackages.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">No packages yet. Add your first package.</p>
             ) : (
-              packages.map((pkg) => (
-                <div
-                  key={pkg.id}
-                  className="rounded-lg border border-border bg-card p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <Badge className={networkColors[pkg.network] || 'bg-primary'}>
-                        {pkg.network}
-                      </Badge>
-                      <p className="mt-2 text-xl font-bold text-foreground">{pkg.dataAmount}</p>
+              storePackages.map((pkg) => (
+                <Card key={pkg.id} className="border-border">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge className={networkColors[pkg.data_packages?.network || ''] || 'bg-primary'}>
+                            {pkg.data_packages?.network || 'N/A'}
+                          </Badge>
+                          <span className="font-semibold text-foreground">{pkg.data_packages?.name} ({pkg.data_packages?.amount})</span>
+                        </div>
+                        <Switch
+                          checked={pkg.is_active}
+                          onCheckedChange={(checked) => void handleToggleActive(pkg.id, checked)}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Cost</p>
+                          <p className="font-medium">GHc {Number(pkg.data_packages?.cost_price || 0).toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Selling</p>
+                          <p className="font-semibold">GHc {Number(pkg.selling_price).toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Profit</p>
+                          <p className="font-semibold text-green-600 dark:text-green-400">
+                            GHc {profit(Number(pkg.selling_price), Number(pkg.data_packages?.cost_price || 0)).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenDialog(pkg)}>
+                          <Edit2 className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-destructive"
+                          onClick={() => void handleDelete(pkg.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenDialog(pkg)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Package</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this package?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(pkg.id)}
-                              className="bg-destructive"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Cost</p>
-                      <p className="font-medium">GH₵ {pkg.costPrice.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Sell</p>
-                      <p className="font-semibold">GH₵ {pkg.sellingPrice.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Profit</p>
-                      <p className="font-semibold text-green-600">
-                        GH₵ {profit(pkg.sellingPrice, pkg.costPrice).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-                    <span className="text-sm text-muted-foreground">Status</span>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={pkg.active}
-                        onCheckedChange={(checked) => handleToggleActive(pkg.id, checked)}
-                      />
-                      <span className={pkg.active ? 'text-green-600' : 'text-muted-foreground'}>
-                        {pkg.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))
             )}
           </div>
