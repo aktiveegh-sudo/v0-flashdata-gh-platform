@@ -20,11 +20,13 @@ import {
   LogOut,
   ChevronDown,
   X,
+  User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore, useLoadingStore } from '@/lib/store'
 import { GhanaFlagIcon } from '@/components/loader'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import toast from 'react-hot-toast'
 
 interface NavItem {
@@ -74,9 +76,12 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { logout } = useAuthStore()
+  const { logout, user } = useAuthStore()
   const { setLoading } = useLoadingStore()
   const [expandedItems, setExpandedItems] = useState<string[]>([])
+
+  const getInitials = (name: string) =>
+    name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 
   const toggleExpanded = (label: string) => {
     setExpandedItems((prev) =>
@@ -106,14 +111,21 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <button
             onClick={() => toggleExpanded(item.label)}
             className={cn(
-              'flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+              'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
               isActive || isExpanded
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                ? 'bg-primary/10 text-primary'
                 : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
             )}
           >
             <div className="flex items-center gap-3">
-              <item.icon className="h-5 w-5" />
+              <div className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-lg transition-all',
+                isActive || isExpanded
+                  ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/30'
+                  : 'bg-sidebar-accent/60'
+              )}>
+                <item.icon className="h-4 w-4" />
+              </div>
               <span>{item.label}</span>
             </div>
             <ChevronDown
@@ -132,16 +144,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="ml-8 mt-1 space-y-1 border-l border-sidebar-border pl-3">
+                <div className="ml-8 mt-1 space-y-1 border-l-2 border-primary/20 pl-3">
                   {item.children?.map((child) => (
                     <Link
                       key={child.href}
                       href={child.href}
                       onClick={onClose}
                       className={cn(
-                        'block rounded-md px-3 py-2 text-sm transition-all',
+                        'block rounded-lg px-3 py-2 text-sm transition-all',
                         pathname === child.href || pathname.includes(child.href)
-                          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                          ? 'bg-primary text-primary-foreground font-medium'
                           : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                       )}
                     >
@@ -161,13 +173,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         href={item.href}
         onClick={onClose}
         className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+          'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
           isActive
-            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+            ? 'bg-primary/10 text-primary'
             : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
         )}
       >
-        <item.icon className="h-5 w-5" />
+        {isActive && (
+          <motion.div
+            layoutId="sidebar-active-indicator"
+            className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary"
+          />
+        )}
+        <div className={cn(
+          'flex h-8 w-8 items-center justify-center rounded-lg transition-all',
+          isActive
+            ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/30'
+            : 'bg-sidebar-accent/60'
+        )}>
+          <item.icon className="h-4 w-4" />
+        </div>
         <span>{item.label}</span>
       </Link>
     )
@@ -178,7 +203,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
         <Link href="/dashboard/overview" className="flex items-center gap-2">
-          <GhanaFlagIcon className="h-8 w-8" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+            <GhanaFlagIcon className="h-6 w-6" />
+          </div>
           <span className="text-lg font-bold text-sidebar-foreground">
             Flash<span className="text-primary">Data</span>
           </span>
@@ -228,15 +255,34 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             {bottomNavItems.map((item) => (
               <NavLink key={item.label} item={item} />
             ))}
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-all hover:bg-destructive/10"
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Logout</span>
-            </button>
           </div>
         </nav>
+      </div>
+
+      {/* User Profile Footer */}
+      <div className="border-t border-sidebar-border p-3">
+        <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/40 px-3 py-2.5">
+          <Avatar className="h-8 w-8 shrink-0">
+            <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+              {user?.name ? getInitials(user.name) : <User className="h-4 w-4" />}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-sidebar-foreground">
+              {user?.name || 'User'}
+            </p>
+            <p className="truncate text-xs text-sidebar-foreground/50">
+              {user?.email || ''}
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-destructive transition-colors hover:bg-destructive/10"
+            aria-label="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   )

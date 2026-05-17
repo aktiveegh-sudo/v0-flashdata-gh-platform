@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Menu, Search, Bell, User } from 'lucide-react'
+import { Menu, Search, Bell, User, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -16,17 +16,37 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 interface HeaderProps {
   onMenuClick: () => void
 }
 
+const pageLabels: Record<string, string> = {
+  '/dashboard/overview': 'Overview',
+  '/dashboard/wallet': 'Wallet',
+  '/dashboard/buy-data': 'Buy Data',
+  '/dashboard/transactions': 'Transactions',
+  '/dashboard/my-store': 'My Store',
+  '/dashboard/store-packages': 'Store Packages',
+  '/dashboard/other-services': 'Other Services',
+  '/dashboard/store-orders': 'Store Orders',
+  '/dashboard/store-transactions': 'Store Transactions',
+  '/dashboard/withdrawal': 'Withdrawal',
+  '/dashboard/store-settings': 'Store Settings',
+  '/dashboard/developer-api': 'Developer API',
+  '/dashboard/contact-support': 'Contact Support',
+  '/dashboard/settings': 'Settings',
+}
+
 export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, logout } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState('')
+
+  const pageTitle = pageLabels[pathname] ?? pageLabels[Object.keys(pageLabels).find((k) => pathname.startsWith(k)) ?? ''] ?? 'Dashboard'
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,6 +97,10 @@ export function Header({ onMenuClick }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
+        {/* Page title — desktop */}
+        <h2 className="hidden text-base font-semibold text-foreground lg:block">
+          {pageTitle}
+        </h2>
 
         {/* Search - Desktop */}
         <form onSubmit={handleSearch} className="hidden md:block">
@@ -110,6 +134,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               <Bell className="h-5 w-5" />
               <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 3
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-50" />
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -141,28 +166,33 @@ export function Header({ onMenuClick }: HeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 px-2">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground">
+              <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold">
                   {user ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden text-sm font-medium lg:inline-block">
-                {user?.name || 'User'}
+                {user?.name?.split(' ')[0] || 'User'}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
+            <div className="flex items-center gap-3 rounded-t-md bg-gradient-to-br from-primary/10 to-primary/5 px-3 py-3">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold">
+                  {user ? getInitials(user.name) : 'U'}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex flex-col">
-                <span>{user?.name || 'User'}</span>
-                <span className="text-xs font-normal text-muted-foreground">
+                <span className="text-sm font-semibold">{user?.name || 'User'}</span>
+                <span className="text-xs text-muted-foreground">
                   {user?.email || 'user@example.com'}
                 </span>
               </div>
-            </DropdownMenuLabel>
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push('/dashboard/store-settings')}>
-              <User className="mr-2 h-4 w-4" />
+              <Settings className="mr-2 h-4 w-4" />
               Profile Settings
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push('/dashboard/wallet')}>
@@ -170,7 +200,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               My Wallet
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>

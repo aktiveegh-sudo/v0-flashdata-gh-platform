@@ -3,23 +3,26 @@
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
-  Wallet,
   TrendingUp,
   Package,
   ArrowUpRight,
-  Plus,
   Wifi,
+  Wallet,
+  Sparkles,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { WalletCard } from '@/components/wallet-card'
+import { StatsCard } from '@/components/stats-card'
+import { QuickActions } from '@/components/quick-actions'
 import { useAuthStore, useWalletStore, useTransactionStore } from '@/lib/store'
 import { format } from 'date-fns'
 
-const networkLogos: Record<string, { bg: string; text: string }> = {
-  MTN: { bg: 'bg-yellow-500', text: 'text-black' },
-  'Airtel-Tigo': { bg: 'bg-red-500', text: 'text-white' },
-  Telecel: { bg: 'bg-blue-600', text: 'text-white' },
+const networkLogos: Record<string, { bg: string; text: string; gradient: string }> = {
+  MTN: { bg: 'bg-yellow-500', text: 'text-black', gradient: 'from-yellow-400 to-yellow-600' },
+  'Airtel-Tigo': { bg: 'bg-red-500', text: 'text-white', gradient: 'from-red-500 to-red-700' },
+  Telecel: { bg: 'bg-blue-600', text: 'text-white', gradient: 'from-blue-500 to-blue-700' },
 }
 
 export default function OverviewPage() {
@@ -33,27 +36,32 @@ export default function OverviewPage() {
     {
       label: 'Total Data Bought',
       value: '45.5 GB',
-      change: '+12%',
       icon: Package,
+      gradient: 'from-violet-500 to-purple-600',
+      trend: { value: 12, isPositive: true },
+      delay: 0,
     },
     {
       label: 'This Month Savings',
-      value: 'GH₵ 32.50',
-      change: '+8%',
+      value: 'GHâ‚µ 32.50',
       icon: TrendingUp,
+      gradient: 'from-emerald-500 to-green-600',
+      trend: { value: 8, isPositive: true },
+      delay: 0.05,
     },
     {
       label: 'Active Packages',
       value: '3',
-      change: '0%',
       icon: Wifi,
+      gradient: 'from-sky-500 to-blue-600',
+      delay: 0.1,
     },
   ]
 
   const networks = [
-    { name: 'MTN', color: 'bg-yellow-500', textColor: 'text-black' },
-    { name: 'Airtel-Tigo', color: 'bg-red-500', textColor: 'text-white' },
-    { name: 'Telecel', color: 'bg-blue-600', textColor: 'text-white' },
+    { name: 'MTN', gradient: 'from-yellow-400 to-amber-500', textColor: 'text-black', accent: 'shadow-yellow-400/30' },
+    { name: 'Airtel-Tigo', gradient: 'from-red-500 to-rose-600', textColor: 'text-white', accent: 'shadow-red-500/30' },
+    { name: 'Telecel', gradient: 'from-blue-500 to-blue-700', textColor: 'text-white', accent: 'shadow-blue-500/30' },
   ]
 
   const containerVariants = {
@@ -61,7 +69,7 @@ export default function OverviewPage() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.08,
       },
     },
   }
@@ -71,6 +79,9 @@ export default function OverviewPage() {
     visible: { opacity: 1, y: 0 },
   }
 
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+
   return (
     <motion.div
       variants={containerVariants}
@@ -78,42 +89,40 @@ export default function OverviewPage() {
       animate="visible"
       className="space-y-6"
     >
-      {/* Welcome Section */}
+      {/* Welcome Banner */}
       <motion.div variants={itemVariants}>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">
-          Welcome back, {user?.name?.split(' ')[0] || 'User'}!
-        </h1>
-        <p className="text-muted-foreground">
-          Here&apos;s what&apos;s happening with your account today.
-        </p>
-      </motion.div>
-
-      {/* Wallet Balance Card */}
-      <motion.div variants={itemVariants}>
-        <Card className="overflow-hidden bg-gradient-to-br from-primary to-primary/80">
-          <CardContent className="p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-medium text-primary-foreground/80">
-                  Wallet Balance
-                </p>
-                <p className="text-3xl font-bold text-primary-foreground lg:text-4xl">
-                  GH₵ {balance.toFixed(2)}
-                </p>
-              </div>
-              <Link href="/dashboard/wallet">
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="gap-2 bg-white/20 text-primary-foreground hover:bg-white/30"
-                >
-                  <Plus className="h-4 w-4" />
-                  Fund Wallet
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-6 text-primary-foreground">
+          {/* Decorative blobs */}
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute -bottom-8 left-1/3 h-32 w-32 rounded-full bg-white/5 blur-xl" />
+          <div className="relative z-10 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="flex items-center gap-1.5 text-sm font-medium text-primary-foreground/70">
+                <Sparkles className="h-3.5 w-3.5" />
+                {greeting}
+              </p>
+              <h1 className="text-2xl font-bold lg:text-3xl">
+                {user?.name?.split(' ')[0] || 'User'} ðŸ‘‹
+              </h1>
+              <p className="mt-1 text-sm text-primary-foreground/70">
+                Here&apos;s what&apos;s happening with your account today.
+              </p>
+            </div>
+            <div className="mt-3 sm:mt-0">
+              <Link href="/dashboard/buy-data">
+                <Button size="sm" className="gap-2 bg-white/20 text-primary-foreground hover:bg-white/30 border-white/20 border">
+                  <Wifi className="h-4 w-4" />
+                  Buy Data Now
                 </Button>
               </Link>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Wallet Card */}
+      <motion.div variants={itemVariants}>
+        <WalletCard balance={balance} />
       </motion.div>
 
       {/* Stats Grid */}
@@ -122,41 +131,39 @@ export default function OverviewPage() {
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
       >
         {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <stat.icon className="h-5 w-5 text-primary" />
-                </div>
-                <Badge
-                  variant="secondary"
-                  className={
-                    stat.change.startsWith('+')
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-muted text-muted-foreground'
-                  }
-                >
-                  {stat.change}
-                </Badge>
-              </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            key={stat.label}
+            title={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            gradient={stat.gradient}
+            trend={stat.trend}
+            delay={stat.delay}
+          />
         ))}
       </motion.div>
 
-      {/* Quick Buy & Recent Transactions */}
+      {/* Quick Actions */}
+      <motion.div variants={itemVariants}>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <QuickActions />
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Quick Buy Networks & Recent Transactions */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Quick Buy Data */}
+        {/* Quick Buy by Network */}
         <motion.div variants={itemVariants}>
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wifi className="h-5 w-5 text-primary" />
-                Quick Buy Data
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <Wifi className="h-4 w-4 text-primary" />
+                Buy Data by Network
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -167,14 +174,14 @@ export default function OverviewPage() {
                     href={`/dashboard/buy-data?network=${network.name.toLowerCase()}`}
                   >
                     <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`flex flex-col items-center justify-center rounded-xl ${network.color} p-4 transition-shadow hover:shadow-lg`}
+                      whileHover={{ scale: 1.04, y: -2 }}
+                      whileTap={{ scale: 0.97 }}
+                      className={`flex flex-col items-center justify-center rounded-2xl bg-gradient-to-br ${network.gradient} p-4 shadow-lg ${network.accent} transition-shadow hover:shadow-xl`}
                     >
-                      <span className={`text-lg font-bold ${network.textColor}`}>
+                      <span className={`text-sm font-bold ${network.textColor} leading-tight`}>
                         {network.name}
                       </span>
-                      <span className={`text-xs ${network.textColor}/80`}>
+                      <span className={`text-[10px] ${network.textColor} opacity-80 mt-0.5`}>
                         Buy Data
                       </span>
                     </motion.div>
@@ -188,51 +195,55 @@ export default function OverviewPage() {
         {/* Recent Transactions */}
         <motion.div variants={itemVariants}>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <Wallet className="h-4 w-4 text-primary" />
                 Recent Transactions
               </CardTitle>
               <Link href="/dashboard/transactions">
-                <Button variant="ghost" size="sm" className="gap-1 text-primary">
+                <Button variant="ghost" size="sm" className="gap-1 text-primary h-7 text-xs">
                   View All
-                  <ArrowUpRight className="h-4 w-4" />
+                  <ArrowUpRight className="h-3 w-3" />
                 </Button>
               </Link>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {recentTransactions.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">
+                  <p className="py-6 text-center text-sm text-muted-foreground">
                     No transactions yet
                   </p>
                 ) : (
-                  recentTransactions.map((tx) => (
-                    <div
+                  recentTransactions.map((tx, i) => (
+                    <motion.div
                       key={tx.id}
-                      className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.05 }}
+                      className="flex items-center justify-between rounded-xl bg-muted/40 p-3 transition-colors hover:bg-muted/70"
                     >
                       <div className="flex items-center gap-3">
-                        {tx.network && (
+                        {tx.network ? (
                           <div
-                            className={`flex h-10 w-10 items-center justify-center rounded-lg text-xs font-bold ${
-                              networkLogos[tx.network]?.bg || 'bg-primary'
+                            className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br text-xs font-bold shadow-sm ${
+                              networkLogos[tx.network]?.gradient
+                                ? `bg-gradient-to-br ${networkLogos[tx.network].gradient}`
+                                : 'bg-primary/10'
                             } ${networkLogos[tx.network]?.text || 'text-primary-foreground'}`}
                           >
                             {tx.network.slice(0, 3)}
                           </div>
-                        )}
-                        {!tx.network && (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                            <Wallet className="h-5 w-5 text-primary" />
+                        ) : (
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                            <Wallet className="h-4 w-4 text-primary" />
                           </div>
                         )}
                         <div>
-                          <p className="text-sm font-medium text-foreground">
+                          <p className="text-sm font-medium leading-tight text-foreground">
                             {tx.description}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(tx.date), 'MMM d, yyyy · h:mm a')}
+                            {format(new Date(tx.date), 'MMM d Â· h:mm a')}
                           </p>
                         </div>
                       </div>
@@ -240,26 +251,26 @@ export default function OverviewPage() {
                         <p
                           className={`text-sm font-semibold ${
                             tx.type === 'wallet'
-                              ? 'text-green-600 dark:text-green-400'
+                              ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-foreground'
                           }`}
                         >
-                          {tx.type === 'wallet' ? '+' : '-'}GH₵ {tx.amount.toFixed(2)}
+                          {tx.type === 'wallet' ? '+' : '-'}GHâ‚µ{tx.amount.toFixed(2)}
                         </p>
                         <Badge
                           variant="secondary"
-                          className={
+                          className={`text-[10px] ${
                             tx.status === 'success'
                               ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                               : tx.status === 'pending'
                               ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                               : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          }
+                          }`}
                         >
                           {tx.status}
                         </Badge>
                       </div>
-                    </div>
+                    </motion.div>
                   ))
                 )}
               </div>
