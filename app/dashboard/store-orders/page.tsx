@@ -154,7 +154,7 @@ export default function StoreOrdersPage() {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>{format(new Date(order.created_at), 'MMM d, yyyy · h:mm a')}</span>
+        <span>{format(new Date(order.created_at), 'MMM d, yyyy - h:mm a')}</span>
 
         {order.status === 'pending' ? (
           <div className="flex gap-2">
