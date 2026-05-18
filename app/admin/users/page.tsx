@@ -31,10 +31,7 @@ export default function AdminUsersPage() {
       toast.error(syncError.message)
     }
 
-    const { data, error } = await supabase.client
-      .from('profiles')
-      .select('id,full_name,phone,email,role,status,avatar_url,created_at,wallets(balance)')
-      .order('created_at', { ascending: false })
+    const { data, error } = await supabase.client.rpc('admin_list_users')
 
     if (error) {
       toast.error(error.message)
@@ -238,7 +235,7 @@ export default function AdminUsersPage() {
                     <td className="px-3 py-3 font-medium">{row.full_name || '-'}</td>
                     <td className="px-3 py-3">{row.phone || '-'}</td>
                     <td className="px-3 py-3">{row.email || '-'}</td>
-                    <td className="px-3 py-3">{ghanaCurrency(Number(row.wallets?.[0]?.balance || 0))}</td>
+                    <td className="px-3 py-3">{ghanaCurrency(Number(row.wallet_balance ?? row.wallets?.[0]?.balance || 0))}</td>
                     <td className="px-3 py-3"><Badge variant="outline">{row.role}</Badge></td>
                     <td className="px-3 py-3">
                       <Badge variant={row.status === 'active' ? 'default' : 'destructive'}>{row.status}</Badge>

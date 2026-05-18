@@ -8,6 +8,7 @@ export type ProfileRow = {
   avatar_url: string | null
   created_at: string
   wallets?: { balance: number }[]
+  wallet_balance?: number | null
 }
 
 export type MetricCard = {
