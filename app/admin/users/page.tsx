@@ -31,7 +31,30 @@ export default function AdminUsersPage() {
       toast.error(syncError.message)
     }
 
-    const { data, error } = await supabase.client.rpc('admin_list_users')
+    const { data: rpcData, error: rpcError } = await supabase.client.rpc('admin_list_users')
+    if (!rpcError && rpcData) {
+      const normalized = (rpcData as Array<Record<string, unknown>>).map((row) => ({
+        id: String(row.id),
+        full_name: (row.full_name as string | null) ?? null,
+        phone: (row.phone as string | null) ?? null,
+        email: (row.email as string | null) ?? null,
+        role: (row.role as 'user' | 'super_admin') ?? 'user',
+        status: (row.status as 'active' | 'suspended') ?? 'active',
+        avatar_url: (row.avatar_url as string | null) ?? null,
+        created_at: String(row.created_at),
+        wallet_balance: Number(row.wallet_balance ?? 0),
+        wallets: [{ balance: Number(row.wallet_balance ?? 0) }],
+      }))
+
+      setRows(normalized)
+      setLoading(false)
+      return
+    }
+
+    const { data, error } = await supabase.client
+      .from('profiles')
+      .select('id,full_name,phone,email,role,status,avatar_url,created_at,wallets(balance)')
+      .order('created_at', { ascending: false })
 
     if (error) {
       toast.error(error.message)
@@ -126,7 +149,7 @@ export default function AdminUsersPage() {
       return
     }
 
-    toast.success(`Updated ${ids.length} user(s)`) 
+    toast.success(`Updated ${ids.length} user(s)`)
     setSelected([])
     void loadUsers()
   }
@@ -235,7 +258,7 @@ export default function AdminUsersPage() {
                     <td className="px-3 py-3 font-medium">{row.full_name || '-'}</td>
                     <td className="px-3 py-3">{row.phone || '-'}</td>
                     <td className="px-3 py-3">{row.email || '-'}</td>
-                    <td className="px-3 py-3">{ghanaCurrency(Number(row.wallet_balance ?? row.wallets?.[0]?.balance || 0))}</td>
+                    <td className="px-3 py-3">{ghanaCurrency(Number(row.wallets?.[0]?.balance || row.wallet_balance || 0))}</td>
                     <td className="px-3 py-3"><Badge variant="outline">{row.role}</Badge></td>
                     <td className="px-3 py-3">
                       <Badge variant={row.status === 'active' ? 'default' : 'destructive'}>{row.status}</Badge>

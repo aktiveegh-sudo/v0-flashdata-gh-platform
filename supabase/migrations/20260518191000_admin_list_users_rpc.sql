@@ -1,4 +1,4 @@
-﻿-- Return all platform users for super admins, bypassing fragile client-side RLS joins.
+-- Robust admin users feed to avoid client-side RLS visibility gaps.
 
 create or replace function public.admin_list_users()
 returns table (
@@ -17,11 +17,12 @@ security definer
 set search_path = public
 as $$
 begin
-  if not (
-    public.is_super_admin(auth.uid())
-    or lower(coalesce(auth.jwt() ->> 'email', '')) = 'admin@flashdatagh.com'
-  ) then
-    raise exception 'Only super admins can list all users.';
+  if auth.uid() is null then
+    raise exception 'Authentication required.';
+  end if;
+
+  if not public.is_super_admin(auth.uid()) then
+    raise exception 'Only super admins can view all users.';
   end if;
 
   return query
@@ -34,7 +35,7 @@ begin
     p.status,
     p.avatar_url,
     p.created_at,
-    coalesce(w.balance, 0)::numeric as wallet_balance
+    coalesce(w.balance, 0) as wallet_balance
   from public.profiles p
   left join public.wallets w on w.user_id = p.id
   order by p.created_at desc;
