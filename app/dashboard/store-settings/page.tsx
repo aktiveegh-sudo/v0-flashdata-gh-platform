@@ -33,6 +33,27 @@ export default function StoreSettingsPage() {
   const [allowOnlineServices, setAllowOnlineServices] = useState(true)
   const [isActive, setIsActive] = useState(true)
 
+  const resolveAgentId = async () => {
+    if (agentId) {
+      return agentId
+    }
+
+    const { data: userData } = await supabase.auth.getUser()
+    const userId = userData.user?.id || ''
+    if (userId) {
+      setAgentId(userId)
+      return userId
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const sessionUserId = sessionData.session?.user?.id || ''
+    if (sessionUserId) {
+      setAgentId(sessionUserId)
+    }
+
+    return sessionUserId
+  }
+
   useEffect(() => {
     const loadStore = async () => {
       const { data: userData, error: userError } = await supabase.auth.getUser()
@@ -96,7 +117,9 @@ export default function StoreSettingsPage() {
 
   const handleSave = async () => {
     const normalizedSlug = slug.trim().toLowerCase()
-    if (!agentId) {
+
+    const currentAgentId = await resolveAgentId()
+    if (!currentAgentId) {
       toast.error('Unable to identify current agent')
       return
     }
@@ -114,7 +137,7 @@ export default function StoreSettingsPage() {
     setSaving(true)
 
     const payload = {
-      agent_id: agentId,
+      agent_id: currentAgentId,
       slug: normalizedSlug,
       brand_name: brandName.trim(),
       tagline: tagline.trim() || null,
