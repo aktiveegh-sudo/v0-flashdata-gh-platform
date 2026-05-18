@@ -33,6 +33,42 @@ export default function StoreSettingsPage() {
   const [allowOnlineServices, setAllowOnlineServices] = useState(true)
   const [isActive, setIsActive] = useState(true)
 
+  const ensureProfileExists = async (uid: string) => {
+    const { data: existingProfile, error: profileFetchError } = await supabase.client
+      .from('profiles')
+      .select('id')
+      .eq('id', uid)
+      .maybeSingle()
+
+    if (profileFetchError) {
+      return profileFetchError
+    }
+
+    if (existingProfile) {
+      return null
+    }
+
+    const { data: userData } = await supabase.auth.getUser()
+    const user = userData.user
+
+    const fullName = (user?.user_metadata?.full_name as string | undefined)?.trim() || null
+    const phone = (user?.user_metadata?.phone as string | undefined)?.trim() || null
+
+    const { error: insertProfileError } = await supabase.client
+      .from('profiles')
+      .insert({
+        id: uid,
+        full_name: fullName,
+        phone,
+      })
+
+    if (insertProfileError && !insertProfileError.message.toLowerCase().includes('duplicate key')) {
+      return insertProfileError
+    }
+
+    return null
+  }
+
   const resolveAgentId = async () => {
     if (agentId) {
       return agentId
@@ -131,6 +167,12 @@ export default function StoreSettingsPage() {
 
     if (!SLUG_REGEX.test(normalizedSlug)) {
       toast.error('Use lowercase letters, numbers, and hyphens only for slug')
+      return
+    }
+
+    const profileError = await ensureProfileExists(currentAgentId)
+    if (profileError) {
+      toast.error(`Unable to initialize profile: ${profileError.message}`)
       return
     }
 
