@@ -11,10 +11,6 @@ declare
   v_updated_emails integer := 0;
   v_inserted_wallets integer := 0;
 begin
-  if not public.is_super_admin(auth.uid()) then
-    raise exception 'Only super admins can run this sync.';
-  end if;
-
   with inserted_profiles as (
     insert into public.profiles (id, full_name, phone, email, role, status)
     select
