@@ -55,6 +55,8 @@ export default function AdminOverviewPage() {
   const loadMetrics = async () => {
     setLoading(true)
 
+    await supabase.client.rpc('sync_auth_users_to_profiles_wallets')
+
     const [
       ordersSuccessRes,
       storeOrdersCompletedRes,

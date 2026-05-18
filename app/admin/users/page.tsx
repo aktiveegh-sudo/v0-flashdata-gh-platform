@@ -25,6 +25,12 @@ export default function AdminUsersPage() {
 
   const loadUsers = async () => {
     setLoading(true)
+
+    const { error: syncError } = await supabase.client.rpc('sync_auth_users_to_profiles_wallets')
+    if (syncError) {
+      toast.error(syncError.message)
+    }
+
     const { data, error } = await supabase.client
       .from('profiles')
       .select('id,full_name,phone,email,role,status,avatar_url,created_at,wallets(balance)')
