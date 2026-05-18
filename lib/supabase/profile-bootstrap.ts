@@ -11,14 +11,26 @@ const safePhone = (value: string | undefined): string | null => {
 
 export async function ensureProfileAndWalletForUser(user: User) {
   const metadata = user.user_metadata as { full_name?: string; phone?: string } | null
+  const appMetadata = user.app_metadata as { role?: string } | null
+
+  const { data: existingProfile } = await supabase.client
+    .from('profiles')
+    .select('role,status')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const shouldBeAdmin =
+    existingProfile?.role === 'super_admin' ||
+    appMetadata?.role === 'super_admin' ||
+    (user.email || '').toLowerCase() === 'admin@flashdatagh.com'
 
   const payload = {
     id: user.id,
     full_name: metadata?.full_name?.trim() || null,
     phone: safePhone(metadata?.phone),
     email: user.email || null,
-    role: (user.email || '').toLowerCase() === 'admin@flashdatagh.com' ? 'super_admin' : 'user',
-    status: 'active',
+    role: shouldBeAdmin ? 'super_admin' : existingProfile?.role || 'user',
+    status: existingProfile?.status || 'active',
   }
 
   const { error: profileError } = await supabase.client
