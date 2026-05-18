@@ -69,6 +69,17 @@ export default function WalletPage() {
     return matchesType && matchesSearch
   })
 
+  const totalFunded = walletTransactions
+    .filter((tx) => tx.type === 'wallet' && tx.status === 'success')
+    .reduce((sum, tx) => sum + tx.amount, 0)
+
+  const totalSpent = walletTransactions
+    .filter((tx) => tx.type !== 'wallet' && tx.status === 'success')
+    .reduce((sum, tx) => sum + tx.amount, 0)
+
+  const dataPurchases = walletTransactions.filter((tx) => tx.type === 'data' && tx.status === 'success').length
+  const topupCount = walletTransactions.filter((tx) => tx.type === 'wallet').length
+
   const handleAddMoney = async () => {
     if (!amount || !paymentMethod) {
       toast.error('Please fill in all fields')
@@ -234,7 +245,7 @@ export default function WalletPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Funded</p>
-              <p className="text-xl font-bold text-foreground">GH₵ 1,250.00</p>
+              <p className="text-xl font-bold text-foreground">GHc {totalFunded.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -245,7 +256,7 @@ export default function WalletPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Spent</p>
-              <p className="text-xl font-bold text-foreground">GH₵ 1,001.25</p>
+              <p className="text-xl font-bold text-foreground">GHc {totalSpent.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -256,7 +267,7 @@ export default function WalletPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Data Purchases</p>
-              <p className="text-xl font-bold text-foreground">23</p>
+              <p className="text-xl font-bold text-foreground">{dataPurchases}</p>
             </div>
           </CardContent>
         </Card>
@@ -267,7 +278,7 @@ export default function WalletPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Top-ups</p>
-              <p className="text-xl font-bold text-foreground">8</p>
+              <p className="text-xl font-bold text-foreground">{topupCount}</p>
             </div>
           </CardContent>
         </Card>

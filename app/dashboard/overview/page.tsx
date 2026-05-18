@@ -31,27 +31,32 @@ export default function OverviewPage() {
   const { transactions } = useTransactionStore()
 
   const recentTransactions = transactions.slice(0, 5)
+  const successfulTransactions = transactions.filter((tx) => tx.status === 'success')
+  const pendingTransactions = transactions.filter((tx) => tx.status === 'pending')
+  const thisMonthSpend = successfulTransactions
+    .filter((tx) => tx.type !== 'wallet' && new Date(tx.date).getMonth() === new Date().getMonth())
+    .reduce((sum, tx) => sum + tx.amount, 0)
 
   const stats = [
     {
-      label: 'Total Data Bought',
-      value: '45.5 GB',
+      label: 'Successful Transactions',
+      value: String(successfulTransactions.length),
       icon: Package,
       gradient: 'from-violet-500 to-purple-600',
-      trend: { value: 12, isPositive: true },
+      trend: { value: successfulTransactions.length, isPositive: true },
       delay: 0,
     },
     {
-      label: 'This Month Savings',
-      value: 'GHâ‚µ 32.50',
+      label: 'This Month Spend',
+      value: `GHc ${thisMonthSpend.toFixed(2)}`,
       icon: TrendingUp,
       gradient: 'from-emerald-500 to-green-600',
-      trend: { value: 8, isPositive: true },
+      trend: { value: 0, isPositive: true },
       delay: 0.05,
     },
     {
-      label: 'Active Packages',
-      value: '3',
+      label: 'Pending Transactions',
+      value: String(pendingTransactions.length),
       icon: Wifi,
       gradient: 'from-sky-500 to-blue-600',
       delay: 0.1,
@@ -102,7 +107,7 @@ export default function OverviewPage() {
                 {greeting}
               </p>
               <h1 className="text-2xl font-bold lg:text-3xl">
-                {user?.name?.split(' ')[0] || 'User'} ðŸ‘‹
+                {user?.name?.split(' ')[0] || 'User'}
               </h1>
               <p className="mt-1 text-sm text-primary-foreground/70">
                 Here&apos;s what&apos;s happening with your account today.
@@ -243,7 +248,7 @@ export default function OverviewPage() {
                             {tx.description}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(tx.date), 'MMM d Â· h:mm a')}
+                            {format(new Date(tx.date), 'MMM d - h:mm a')}
                           </p>
                         </div>
                       </div>
@@ -255,7 +260,7 @@ export default function OverviewPage() {
                               : 'text-foreground'
                           }`}
                         >
-                          {tx.type === 'wallet' ? '+' : '-'}GHâ‚µ{tx.amount.toFixed(2)}
+                          {tx.type === 'wallet' ? '+' : '-'}GHc {tx.amount.toFixed(2)}
                         </p>
                         <Badge
                           variant="secondary"

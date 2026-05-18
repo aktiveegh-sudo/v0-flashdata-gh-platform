@@ -202,56 +202,91 @@ export default function PublicAgentStorePage() {
     )
   }
 
+  const accent = store.theme_color || '#0ea5e9'
+
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(15,23,42,0.08),transparent_40%)]">
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 lg:px-6">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-white"
+              style={{ backgroundColor: accent }}
+            >
+              <Store className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold leading-none">{store.brand_name}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Storefront</p>
+            </div>
+          </div>
+          <nav className="hidden items-center gap-5 text-sm text-muted-foreground md:flex">
+            <a href="#catalog" className="hover:text-foreground">Catalog</a>
+            <a href="#order" className="hover:text-foreground">Order</a>
+            <a href="#contact" className="hover:text-foreground">Contact</a>
+          </nav>
+          <Badge variant="outline">/{store.slug}</Badge>
+        </div>
+      </header>
+
       <section
         className="relative overflow-hidden border-b border-border"
         style={{
           background: store.cover_url
-            ? `linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url(${store.cover_url}) center/cover`
-            : `linear-gradient(135deg, ${store.theme_color || '#0ea5e9'} 0%, #0f172a 100%)`,
+            ? `linear-gradient(rgba(0,0,0,.48), rgba(0,0,0,.48)), url(${store.cover_url}) center/cover`
+            : `linear-gradient(132deg, ${accent} 0%, #0f172a 64%, #020617 100%)`,
         }}
       >
-        <div className="mx-auto max-w-6xl px-4 py-12 text-white lg:px-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-2">
-              <p className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
-                <Sparkles className="h-3.5 w-3.5" />
-                Agent Store
-              </p>
-              <h1 className="text-3xl font-bold lg:text-4xl">{store.brand_name}</h1>
-              <p className="max-w-2xl text-sm text-white/85 lg:text-base">
-                {store.tagline || store.description || 'Buy data and services directly from this trusted agent.'}
-              </p>
+        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-14 text-white lg:grid-cols-[1.5fr_1fr] lg:px-6">
+          <div className="space-y-4">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium">
+              <Sparkles className="h-3.5 w-3.5" />
+              Trusted Digital Shop
+            </p>
+            <h1 className="max-w-3xl text-3xl font-bold leading-tight lg:text-5xl">{store.brand_name}</h1>
+            <p className="max-w-2xl text-sm text-white/85 lg:text-base">
+              {store.tagline || store.description || 'Buy data bundles and digital services directly from this verified store.'}
+            </p>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <a href="#catalog">
+                <Button className="bg-white text-slate-900 hover:bg-white/90">Browse Catalog</Button>
+              </a>
+              <a href="#order">
+                <Button variant="outline" className="border-white/35 bg-white/5 text-white hover:bg-white/15">
+                  Place an Order
+                </Button>
+              </a>
             </div>
-            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm backdrop-blur">
-              <p className="font-medium">/{store.slug}</p>
-              <p className="text-white/80">No login needed</p>
-            </div>
+          </div>
+          <div className="rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur">
+            <p className="text-xs uppercase tracking-wide text-white/70">Store Promise</p>
+            <ul className="mt-3 space-y-2 text-sm text-white/90">
+              <li>No sign-up required</li>
+              <li>Simple order process</li>
+              <li>Fast agent response</li>
+            </ul>
           </div>
         </div>
       </section>
 
-      <main className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1.5fr_1fr] lg:px-6">
-        <section className="space-y-6">
-          <Card>
-            <CardHeader>
+      <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 lg:px-6">
+        <section id="catalog">
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b border-border bg-muted/30">
               <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5 text-primary" />
-                Available Products
+                <Store className="h-5 w-5" style={{ color: accent }} />
+                Products and Services
               </CardTitle>
-              <CardDescription>
-                Select a data package or a service to continue.
-              </CardDescription>
+              <CardDescription>Choose what you want to buy before submitting your order.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 lg:p-6">
               <Tabs defaultValue={store.allow_data ? 'data' : 'services'} className="w-full">
-                <TabsList className="mb-4 grid w-full grid-cols-2">
+                <TabsList className="mb-5 grid w-full grid-cols-2">
                   <TabsTrigger value="data" disabled={!store.allow_data}>Data</TabsTrigger>
                   <TabsTrigger value="services" disabled={!store.allow_online_services}>Services</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="data" className="space-y-3">
+                <TabsContent value="data" className="grid gap-3 md:grid-cols-2">
                   {packages.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No data packages available right now.</p>
                   ) : (
@@ -262,29 +297,29 @@ export default function PublicAgentStorePage() {
                           setSelectedService(null)
                           setSelectedData(item)
                         }}
-                        className={`w-full rounded-xl border p-4 text-left transition-all ${
+                        className={`rounded-xl border p-4 text-left transition-all ${
                           selectedData?.id === item.id
                             ? 'border-primary bg-primary/5 shadow-sm'
                             : 'border-border hover:border-primary/40'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="font-semibold">
-                              {item.data_packages?.network} {item.data_packages?.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.data_packages?.amount} • {item.data_packages?.validity}
+                            <p className="font-semibold">{item.data_packages?.network} {item.data_packages?.name}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {item.data_packages?.amount} | {item.data_packages?.validity}
                             </p>
                           </div>
-                          <Badge className="bg-primary">GHc {Number(item.selling_price).toFixed(2)}</Badge>
+                          <Badge className="shrink-0" style={{ backgroundColor: accent }}>
+                            GHc {Number(item.selling_price).toFixed(2)}
+                          </Badge>
                         </div>
                       </button>
                     ))
                   )}
                 </TabsContent>
 
-                <TabsContent value="services" className="space-y-3">
+                <TabsContent value="services" className="grid gap-3 md:grid-cols-2">
                   {services.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No services available right now.</p>
                   ) : (
@@ -295,20 +330,22 @@ export default function PublicAgentStorePage() {
                           setSelectedData(null)
                           setSelectedService(item)
                         }}
-                        className={`w-full rounded-xl border p-4 text-left transition-all ${
+                        className={`rounded-xl border p-4 text-left transition-all ${
                           selectedService?.id === item.id
                             ? 'border-primary bg-primary/5 shadow-sm'
                             : 'border-border hover:border-primary/40'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="font-semibold">{item.online_services?.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.online_services?.category} • {item.online_services?.description || 'Quick processing'}
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {item.online_services?.category} | {item.online_services?.description || 'Quick processing'}
                             </p>
                           </div>
-                          <Badge className="bg-primary">GHc {Number(item.selling_price).toFixed(2)}</Badge>
+                          <Badge className="shrink-0" style={{ backgroundColor: accent }}>
+                            GHc {Number(item.selling_price).toFixed(2)}
+                          </Badge>
                         </div>
                       </button>
                     ))
@@ -319,15 +356,15 @@ export default function PublicAgentStorePage() {
           </Card>
         </section>
 
-        <aside className="space-y-6">
-          <Card>
+        <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+          <Card id="order">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <ShoppingCart className="h-4 w-4 text-primary" />
-                Place Order
+                <ShoppingCart className="h-4 w-4" style={{ color: accent }} />
+                Order Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="customerName">Full Name</Label>
                 <Input id="customerName" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
@@ -344,52 +381,70 @@ export default function PublicAgentStorePage() {
                 <Label htmlFor="quantity">Quantity</Label>
                 <Input id="quantity" type="number" min={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="customerNote">Note (optional)</Label>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="customerNote">Order Note (optional)</Label>
                 <Textarea id="customerNote" rows={3} value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
               </div>
-
-              <div className="rounded-lg bg-muted p-3 text-sm">
-                <p className="text-muted-foreground">Selected item</p>
-                <p className="font-semibold">
-                  {selectedData
-                    ? `${selectedData.data_packages?.network} ${selectedData.data_packages?.name}`
-                    : selectedService
-                    ? selectedService.online_services?.name
-                    : 'None selected'}
-                </p>
-                <p className="mt-1 text-muted-foreground">Total</p>
-                <p className="text-lg font-bold text-primary">GHc {totalPrice.toFixed(2)}</p>
-              </div>
-
-              <Button className="w-full" onClick={submitOrder} disabled={submitting}>
-                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Submit Order
-              </Button>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Contact Agent</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {store.contact_phone ? (
-                <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" />{store.contact_phone}</p>
-              ) : null}
-              {store.contact_email ? (
-                <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" />{store.contact_email}</p>
-              ) : null}
-              {store.whatsapp_number ? (
-                <p className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-primary" />{store.whatsapp_number}</p>
-              ) : null}
-              {!store.contact_phone && !store.contact_email && !store.whatsapp_number ? (
-                <p className="text-muted-foreground">Contact details not provided.</p>
-              ) : null}
-            </CardContent>
-          </Card>
-        </aside>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="rounded-lg bg-muted p-3 text-sm">
+                  <p className="text-muted-foreground">Selected item</p>
+                  <p className="font-semibold">
+                    {selectedData
+                      ? `${selectedData.data_packages?.network} ${selectedData.data_packages?.name}`
+                      : selectedService
+                      ? selectedService.online_services?.name
+                      : 'None selected'}
+                  </p>
+                  <p className="mt-2 text-muted-foreground">Quantity</p>
+                  <p className="font-medium">{quantityNum}</p>
+                  <p className="mt-2 text-muted-foreground">Total</p>
+                  <p className="text-xl font-bold" style={{ color: accent }}>GHc {totalPrice.toFixed(2)}</p>
+                </div>
+
+                <Button className="w-full" onClick={submitOrder} disabled={submitting} style={{ backgroundColor: accent }}>
+                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Submit Order
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card id="contact">
+              <CardHeader>
+                <CardTitle className="text-base">Contact This Store</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {store.contact_phone ? (
+                  <p className="flex items-center gap-2"><Phone className="h-4 w-4" style={{ color: accent }} />{store.contact_phone}</p>
+                ) : null}
+                {store.contact_email ? (
+                  <p className="flex items-center gap-2"><Mail className="h-4 w-4" style={{ color: accent }} />{store.contact_email}</p>
+                ) : null}
+                {store.whatsapp_number ? (
+                  <p className="flex items-center gap-2"><MessageCircle className="h-4 w-4" style={{ color: accent }} />{store.whatsapp_number}</p>
+                ) : null}
+                {!store.contact_phone && !store.contact_email && !store.whatsapp_number ? (
+                  <p className="text-muted-foreground">Contact details are not provided yet.</p>
+                ) : null}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       </main>
+
+      <footer className="border-t border-border bg-background/80">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between lg:px-6">
+          <p>{store.brand_name} storefront</p>
+          <p>Secure ordering powered by FlashData GH</p>
+        </div>
+      </footer>
     </div>
   )
 }

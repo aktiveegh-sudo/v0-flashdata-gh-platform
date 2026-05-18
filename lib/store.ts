@@ -69,7 +69,7 @@ interface WalletState {
 export const useWalletStore = create<WalletState>()(
   persist(
     (set, get) => ({
-      balance: 248.75,
+      balance: 0,
       addFunds: (amount) => set((state) => ({ balance: state.balance + amount })),
       deductFunds: (amount) => {
         const currentBalance = get().balance
@@ -81,7 +81,7 @@ export const useWalletStore = create<WalletState>()(
       },
     }),
     {
-      name: 'flashdata-wallet',
+      name: 'flashdata-wallet-v2',
     }
   )
 )
@@ -103,61 +103,7 @@ interface TransactionState {
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void
 }
 
-const initialTransactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'data',
-    network: 'MTN',
-    amount: 10.00,
-    phone: '0241234567',
-    status: 'success',
-    reference: 'FD-MTN-001234',
-    date: '2024-01-15T10:30:00',
-    description: '2GB MTN Data Bundle',
-  },
-  {
-    id: '2',
-    type: 'data',
-    network: 'Airtel-Tigo',
-    amount: 5.00,
-    phone: '0261234567',
-    status: 'success',
-    reference: 'FD-AT-001235',
-    date: '2024-01-14T14:20:00',
-    description: '1GB Airtel-Tigo Data',
-  },
-  {
-    id: '3',
-    type: 'wallet',
-    amount: 100.00,
-    status: 'success',
-    reference: 'FD-WAL-001236',
-    date: '2024-01-13T09:00:00',
-    description: 'Wallet Top-up via MTN MoMo',
-  },
-  {
-    id: '4',
-    type: 'data',
-    network: 'Telecel',
-    amount: 15.00,
-    phone: '0201234567',
-    status: 'pending',
-    reference: 'FD-TEL-001237',
-    date: '2024-01-12T16:45:00',
-    description: '5GB Telecel Data Bundle',
-  },
-  {
-    id: '5',
-    type: 'airtime',
-    network: 'MTN',
-    amount: 20.00,
-    phone: '0241234567',
-    status: 'failed',
-    reference: 'FD-AIR-001238',
-    date: '2024-01-11T11:15:00',
-    description: 'MTN Airtime Recharge',
-  },
-]
+const initialTransactions: Transaction[] = []
 
 export const useTransactionStore = create<TransactionState>()(
   persist(
@@ -176,7 +122,7 @@ export const useTransactionStore = create<TransactionState>()(
         })),
     }),
     {
-      name: 'flashdata-transactions',
+      name: 'flashdata-transactions-v2',
     }
   )
 )
@@ -197,13 +143,7 @@ interface StoreState {
   deletePackage: (id: string) => void
 }
 
-const initialPackages: StorePackage[] = [
-  { id: '1', network: 'MTN', dataAmount: '1GB', costPrice: 4.50, sellingPrice: 5.00, active: true },
-  { id: '2', network: 'MTN', dataAmount: '2GB', costPrice: 8.50, sellingPrice: 10.00, active: true },
-  { id: '3', network: 'MTN', dataAmount: '5GB', costPrice: 20.00, sellingPrice: 25.00, active: true },
-  { id: '4', network: 'Airtel-Tigo', dataAmount: '1GB', costPrice: 4.00, sellingPrice: 5.00, active: true },
-  { id: '5', network: 'Telecel', dataAmount: '2GB', costPrice: 7.50, sellingPrice: 9.00, active: false },
-]
+const initialPackages: StorePackage[] = []
 
 export const useStorePackageStore = create<StoreState>()(
   persist(
@@ -228,7 +168,7 @@ export const useStorePackageStore = create<StoreState>()(
         })),
     }),
     {
-      name: 'flashdata-store-packages',
+      name: 'flashdata-store-packages-v2',
     }
   )
 )
@@ -249,12 +189,7 @@ interface StoreOrderState {
   updateOrderStatus: (id: string, status: StoreOrder['status']) => void
 }
 
-const initialOrders: StoreOrder[] = [
-  { id: '1', customerName: 'Kwame Asante', customerPhone: '0241234567', network: 'MTN', dataAmount: '2GB', amount: 10.00, status: 'pending', date: '2024-01-15T10:30:00' },
-  { id: '2', customerName: 'Ama Serwaa', customerPhone: '0261234567', network: 'Airtel-Tigo', dataAmount: '1GB', amount: 5.00, status: 'pending', date: '2024-01-15T09:15:00' },
-  { id: '3', customerName: 'Kofi Mensah', customerPhone: '0201234567', network: 'Telecel', dataAmount: '5GB', amount: 25.00, status: 'completed', date: '2024-01-14T16:45:00' },
-  { id: '4', customerName: 'Yaa Asantewaa', customerPhone: '0551234567', network: 'MTN', dataAmount: '1GB', amount: 5.00, status: 'accepted', date: '2024-01-14T14:20:00' },
-]
+const initialOrders: StoreOrder[] = []
 
 export const useStoreOrderStore = create<StoreOrderState>()(
   persist(
@@ -268,7 +203,7 @@ export const useStoreOrderStore = create<StoreOrderState>()(
         })),
     }),
     {
-      name: 'flashdata-store-orders',
+      name: 'flashdata-store-orders-v2',
     }
   )
 )

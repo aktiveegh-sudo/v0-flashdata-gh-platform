@@ -15,9 +15,11 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useAuthStore } from '@/lib/store'
+import { useTransactionStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { formatDistanceToNow } from 'date-fns'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -44,6 +46,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
+  const { transactions } = useTransactionStore()
   const [searchQuery, setSearchQuery] = useState('')
 
   const pageTitle = pageLabels[pathname] ?? pageLabels[Object.keys(pageLabels).find((k) => pathname.startsWith(k)) ?? ''] ?? 'Dashboard'
@@ -78,11 +81,12 @@ export function Header({ onMenuClick }: HeaderProps) {
       .slice(0, 2)
   }
 
-  const notifications = [
-    { id: 1, title: 'Data purchase successful', message: '2GB MTN data sent to 024XXXXXXX', time: '2 min ago' },
-    { id: 2, title: 'Wallet funded', message: 'GH₵100.00 added to your wallet', time: '1 hour ago' },
-    { id: 3, title: 'New store order', message: 'Kwame ordered 5GB MTN data', time: '3 hours ago' },
-  ]
+  const notifications = transactions.slice(0, 5).map((tx) => ({
+    id: tx.id,
+    title: tx.type === 'wallet' ? 'Wallet activity' : 'Transaction update',
+    message: tx.description,
+    time: formatDistanceToNow(new Date(tx.date), { addSuffix: true }),
+  }))
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/95 px-4 backdrop-blur-sm lg:px-6">
@@ -133,7 +137,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
               <Bell className="h-5 w-5" />
               <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                3
+                {notifications.length}
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-50" />
               </span>
             </Button>
@@ -146,15 +150,19 @@ export function Header({ onMenuClick }: HeaderProps) {
               </Button>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {notifications.map((notification) => (
-              <DropdownMenuItem key={notification.id} className="flex flex-col items-start gap-1 p-3">
-                <div className="flex w-full items-start justify-between">
-                  <span className="font-medium">{notification.title}</span>
-                  <span className="text-xs text-muted-foreground">{notification.time}</span>
-                </div>
-                <span className="text-sm text-muted-foreground">{notification.message}</span>
-              </DropdownMenuItem>
-            ))}
+            {notifications.length === 0 ? (
+              <DropdownMenuItem className="justify-center text-muted-foreground">No notifications yet</DropdownMenuItem>
+            ) : (
+              notifications.map((notification) => (
+                <DropdownMenuItem key={notification.id} className="flex flex-col items-start gap-1 p-3">
+                  <div className="flex w-full items-start justify-between">
+                    <span className="font-medium">{notification.title}</span>
+                    <span className="text-xs text-muted-foreground">{notification.time}</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">{notification.message}</span>
+                </DropdownMenuItem>
+              ))
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="justify-center text-primary">
               View all notifications

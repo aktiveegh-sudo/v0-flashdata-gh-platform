@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { DollarSign, Search, Filter, TrendingUp, ArrowUpRight } from 'lucide-react'
+import { DollarSign, Search, Filter, TrendingUp, ArrowUpRight, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -14,17 +14,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { format } from 'date-fns'
+import { supabase } from '@/lib/supabase/client'
+import toast from 'react-hot-toast'
 
-const storeTransactions = [
-  { id: '1', customer: 'Kwame Asante', network: 'MTN', dataAmount: '2GB', amount: 10.00, profit: 1.50, date: '2024-01-15T10:30:00' },
-  { id: '2', customer: 'Ama Serwaa', network: 'Airtel-Tigo', dataAmount: '1GB', amount: 5.00, profit: 1.00, date: '2024-01-15T09:15:00' },
-  { id: '3', customer: 'Kofi Mensah', network: 'MTN', dataAmount: '5GB', amount: 25.00, profit: 5.00, date: '2024-01-14T16:45:00' },
-  { id: '4', customer: 'Yaa Asantewaa', network: 'Telecel', dataAmount: '2GB', amount: 9.00, profit: 1.50, date: '2024-01-14T14:20:00' },
-  { id: '5', customer: 'Akua Mensah', network: 'MTN', dataAmount: '10GB', amount: 40.00, profit: 5.00, date: '2024-01-13T11:00:00' },
-  { id: '6', customer: 'Kwesi Boateng', network: 'Airtel-Tigo', dataAmount: '5GB', amount: 20.00, profit: 3.00, date: '2024-01-13T09:30:00' },
-  { id: '7', customer: 'Abena Poku', network: 'MTN', dataAmount: '1GB', amount: 5.00, profit: 0.50, date: '2024-01-12T15:20:00' },
-  { id: '8', customer: 'Kofi Annan', network: 'Telecel', dataAmount: '3GB', amount: 12.00, profit: 2.00, date: '2024-01-12T10:45:00' },
-]
+type StoreTransactionRow = {
+  id: string
+  customer_name: string
+  customer_phone: string
+  total_price: number
+  created_at: string
+  status: 'pending' | 'accepted' | 'declined' | 'completed'
+  data_packages: {
+    network: string
+    amount: string
+  } | null
+}
 
 const networkColors: Record<string, string> = {
   MTN: 'bg-yellow-500 text-black',
@@ -33,20 +37,79 @@ const networkColors: Record<string, string> = {
 }
 
 export default function StoreTransactionsPage() {
+  const [loading, setLoading] = useState(true)
+  const [storeTransactions, setStoreTransactions] = useState<StoreTransactionRow[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterNetwork, setFilterNetwork] = useState('all')
 
+  useEffect(() => {
+    const loadTransactions = async () => {
+      setLoading(true)
+
+      const { data: authData, error: authError } = await supabase.auth.getUser()
+      if (authError || !authData.user) {
+        toast.error('Please login again')
+        setLoading(false)
+        return
+      }
+
+      const { data: store, error: storeError } = await supabase.client
+        .from('agent_stores')
+        .select('id')
+        .eq('agent_id', authData.user.id)
+        .maybeSingle()
+
+      if (storeError) {
+        toast.error(storeError.message)
+        setLoading(false)
+        return
+      }
+
+      if (!store) {
+        setStoreTransactions([])
+        setLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase.client
+        .from('agent_store_orders')
+        .select('id,customer_name,customer_phone,total_price,created_at,status,data_packages(network,amount)')
+        .eq('store_id', store.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        toast.error(error.message)
+        setLoading(false)
+        return
+      }
+
+      setStoreTransactions((data as StoreTransactionRow[]) || [])
+      setLoading(false)
+    }
+
+    void loadTransactions()
+  }, [])
+
   const filteredTransactions = storeTransactions.filter((tx) => {
-    const matchesSearch = tx.customer.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesNetwork = filterNetwork === 'all' || tx.network === filterNetwork
+    const matchesSearch = tx.customer_name.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesNetwork = filterNetwork === 'all' || tx.data_packages?.network === filterNetwork
     return matchesSearch && matchesNetwork
   })
 
-  const totalEarnings = storeTransactions.reduce((sum, tx) => sum + tx.amount, 0)
-  const totalProfit = storeTransactions.reduce((sum, tx) => sum + tx.profit, 0)
+  const totalEarnings = storeTransactions.reduce((sum, tx) => sum + Number(tx.total_price), 0)
+  const totalProfit = 0
   const todaysEarnings = storeTransactions
-    .filter((tx) => new Date(tx.date).toDateString() === new Date().toDateString())
-    .reduce((sum, tx) => sum + tx.amount, 0)
+    .filter((tx) => new Date(tx.created_at).toDateString() === new Date().toDateString())
+    .reduce((sum, tx) => sum + tx.total_price, 0)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        Loading store transactions...
+      </div>
+    )
+  }
 
   return (
     <motion.div
@@ -70,13 +133,13 @@ export default function StoreTransactionsPage() {
               </div>
               <Badge
                 variant="secondary"
-                className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                className="bg-muted text-muted-foreground"
               >
-                +15%
+                Live
               </Badge>
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-bold text-foreground">GH₵ {totalEarnings.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-foreground">GHc {totalEarnings.toFixed(2)}</p>
               <p className="text-sm text-muted-foreground">Total Earnings</p>
             </div>
           </CardContent>
@@ -89,14 +152,14 @@ export default function StoreTransactionsPage() {
               </div>
               <Badge
                 variant="secondary"
-                className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                className="bg-muted text-muted-foreground"
               >
-                +12%
+                Live
               </Badge>
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-bold text-foreground">GH₵ {totalProfit.toFixed(2)}</p>
-              <p className="text-sm text-muted-foreground">Total Profit</p>
+              <p className="text-2xl font-bold text-foreground">GHc {totalProfit.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">Profit (calculation pending)</p>
             </div>
           </CardContent>
         </Card>
@@ -108,7 +171,7 @@ export default function StoreTransactionsPage() {
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-bold text-foreground">GH₵ {todaysEarnings.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-foreground">GHc {todaysEarnings.toFixed(2)}</p>
               <p className="text-sm text-muted-foreground">Today&apos;s Earnings</p>
             </div>
           </CardContent>
@@ -162,25 +225,23 @@ export default function StoreTransactionsPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                      {tx.customer.split(' ').map((n) => n[0]).join('')}
+                      {tx.customer_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{tx.customer}</p>
+                      <p className="font-medium text-foreground">{tx.customer_name}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Badge className={networkColors[tx.network] || 'bg-primary'} variant="secondary">
-                          {tx.network}
+                        <Badge className={networkColors[tx.data_packages?.network || ''] || 'bg-primary'} variant="secondary">
+                          {tx.data_packages?.network || 'N/A'}
                         </Badge>
-                        <span>{tx.dataAmount}</span>
+                        <span>{tx.data_packages?.amount || '-'}</span>
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-foreground">GH₵ {tx.amount.toFixed(2)}</p>
-                    <p className="text-sm text-green-600 dark:text-green-400">
-                      +GH₵ {tx.profit.toFixed(2)} profit
-                    </p>
+                    <p className="font-semibold text-foreground">GHc {Number(tx.total_price).toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground capitalize">{tx.status}</p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(tx.date), 'MMM d, h:mm a')}
+                      {format(new Date(tx.created_at), 'MMM d, h:mm a')}
                     </p>
                   </div>
                 </div>
