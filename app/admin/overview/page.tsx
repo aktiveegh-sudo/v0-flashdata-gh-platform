@@ -64,7 +64,7 @@ export default function AdminOverviewPage() {
       storeOrdersTotalRes,
       ordersSuccessCountRes,
       storeOrdersCompletedCountRes,
-      usersRes,
+      usersRpcRes,
       packagesRes,
       servicesRes,
       apiUsersRes,
@@ -72,7 +72,6 @@ export default function AdminOverviewPage() {
       ordersPendingRes,
       storeOrdersPendingRes,
       activityRes,
-      recentUsersRes,
       directRecentOrdersRes,
       storeRecentOrdersRes,
     ] = await Promise.all([
@@ -88,7 +87,7 @@ export default function AdminOverviewPage() {
       supabase.client.from('agent_store_orders').select('id', { count: 'exact', head: true }),
       supabase.client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'success'),
       supabase.client.from('agent_store_orders').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-      supabase.client.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.client.rpc('admin_list_users'),
       supabase.client.from('data_packages').select('id', { count: 'exact', head: true }).eq('is_active', true),
       supabase.client.from('online_services').select('id', { count: 'exact', head: true }).eq('is_active', true),
       supabase.client.from('api_users').select('id', { count: 'exact', head: true }).eq('is_active', true),
@@ -96,11 +95,6 @@ export default function AdminOverviewPage() {
       supabase.client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.client.from('agent_store_orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.client.from('admin_activity').select('id,message,entity,created_at').order('created_at', { ascending: false }).limit(8),
-      supabase.client
-        .from('profiles')
-        .select('id,full_name,email,role,status,created_at')
-        .order('created_at', { ascending: false })
-        .limit(6),
       supabase.client
         .from('orders')
         .select('id,created_at,amount,status,profiles(full_name,email)')
@@ -174,7 +168,7 @@ export default function AdminOverviewPage() {
     const allOrdersCount = (ordersTotalRes.count || 0) + (storeOrdersTotalRes.count || 0)
     const pendingAllOrders = (ordersPendingRes.count || 0) + (storeOrdersPendingRes.count || 0)
 
-    const usersRows = (recentUsersRes.data as RecentUserRow[] | null) || []
+    const usersRows = ((usersRpcRes.data as RecentUserRow[] | null) || []).slice(0, 6)
     const directOrders = ((directRecentOrdersRes.data || []) as Array<{ id: string; created_at: string; amount: number; status: string; profiles?: { full_name?: string | null; email?: string | null } | null }>).map((row) => ({
       id: row.id,
       created_at: row.created_at,
@@ -198,7 +192,7 @@ export default function AdminOverviewPage() {
 
     setTodayRevenue(todayRev)
     setTotalRevenue(revenue)
-    setTotalUsers(usersRes.count || 0)
+    setTotalUsers(((usersRpcRes.data as RecentUserRow[] | null) || []).length)
     setTotalSales(salesCount)
     setTotalOrders(allOrdersCount)
     setActivePackages(packagesRes.count || 0)
