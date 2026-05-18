@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
+import { ensureProfileAndWalletForUser } from '@/lib/supabase/profile-bootstrap'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { PageLoader } from '@/components/loader'
@@ -37,6 +38,8 @@ export default function DashboardLayout({
         setCheckingSession(false)
         return
       }
+
+      await ensureProfileAndWalletForUser(data.session.user)
 
       const metadata = data.session.user.user_metadata as { full_name?: string; phone?: string; avatar_url?: string }
 

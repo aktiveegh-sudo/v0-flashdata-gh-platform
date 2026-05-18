@@ -7,6 +7,7 @@ import { AccessDenied } from '@/components/admin/access-denied'
 import { AdminSidebar } from '@/components/admin/admin-sidebar'
 import { AdminHeader } from '@/components/admin/admin-header'
 import { supabase } from '@/lib/supabase/client'
+import { ensureProfileAndWalletForUser } from '@/lib/supabase/profile-bootstrap'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 
@@ -29,6 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
 
       const authUser = data.session.user
+      await ensureProfileAndWalletForUser(authUser)
       const metadata = authUser.user_metadata as { full_name?: string; phone?: string; avatar_url?: string }
 
       setAuthUser({

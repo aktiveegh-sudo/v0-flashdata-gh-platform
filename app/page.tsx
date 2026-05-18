@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label'
 import { GhanaFlagIcon } from '@/components/loader'
 import { useAuthStore, useLoadingStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
+import { ensureProfileAndWalletForUser } from '@/lib/supabase/profile-bootstrap'
 import toast from 'react-hot-toast'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
@@ -160,6 +161,8 @@ export default function AuthPage() {
         return
       }
 
+      await ensureProfileAndWalletForUser(data.session.user)
+
       setAuthUser(mapAuthUser(data.session.user))
     }
 
@@ -167,6 +170,7 @@ export default function AuthPage() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
+        void ensureProfileAndWalletForUser(session.user)
         setAuthUser(mapAuthUser(session.user))
       } else {
         clearAuth()
@@ -225,6 +229,7 @@ export default function AuthPage() {
         }
 
         if (data.session?.user) {
+          await ensureProfileAndWalletForUser(data.session.user)
           setAuthUser(mapAuthUser(data.session.user))
           toast.success('Account created successfully!')
           const nextRoute = await resolvePostAuthRoute(data.session.user)
@@ -247,6 +252,8 @@ export default function AuthPage() {
         toast.error(error?.message || 'Unable to sign in')
         return
       }
+
+      await ensureProfileAndWalletForUser(data.user)
 
       setAuthUser(mapAuthUser(data.user))
       toast.success('Welcome back!')
