@@ -258,7 +258,7 @@ function BuyDataContent() {
                         ) : null}
                         <p className="text-xl font-bold text-foreground">{pkg.amount}</p>
                         <p className="text-lg font-semibold text-primary">GHc {pkg.selling_price.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">{pkg.name} • {pkg.validity}</p>
+                        <p className="text-xs text-muted-foreground">{pkg.name} &middot; {pkg.validity}</p>
                       </button>
                     ))}
                   </div>
