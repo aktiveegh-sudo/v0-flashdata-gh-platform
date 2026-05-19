@@ -67,6 +67,9 @@ export default function PublicAgentStorePage() {
   const [selectedPackage, setSelectedPackage] = useState<StorePackage | null>(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [recipientPhone, setRecipientPhone] = useState('')
+  const [afaFullName, setAfaFullName] = useState('')
+  const [afaGhanaCardNumber, setAfaGhanaCardNumber] = useState('')
+  const [afaLocation, setAfaLocation] = useState('')
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
@@ -156,8 +159,16 @@ export default function PublicAgentStorePage() {
   const startCheckout = (item: StorePackage) => {
     setSelectedPackage(item)
     setRecipientPhone('')
+    setAfaFullName('')
+    setAfaGhanaCardNumber('')
+    setAfaLocation('')
     setCheckoutOpen(true)
   }
+
+  const isAfaRegistration = useMemo(
+    () => (selectedPackage?.data_packages?.network || '').trim().toUpperCase() === 'AFA',
+    [selectedPackage?.data_packages?.network]
+  )
 
   const submitDataOrder = async () => {
     if (!store || !selectedPackage?.data_packages) return
@@ -172,7 +183,35 @@ export default function PublicAgentStorePage() {
       return
     }
 
+    if (isAfaRegistration) {
+      if (!afaFullName.trim()) {
+        toast.error('Full name is required for AFA registration')
+        return
+      }
+
+      const ghanaCardPattern = /^GHA-\d{9}-\d$/i
+      if (!ghanaCardPattern.test(afaGhanaCardNumber.trim())) {
+        toast.error('Enter a valid Ghana Card Number (e.g. GHA-123456789-1)')
+        return
+      }
+
+      if (!afaLocation.trim()) {
+        toast.error('Location is required for AFA registration')
+        return
+      }
+    }
+
     setSubmitting(true)
+
+    const customerNote = isAfaRegistration
+      ? [
+          `AFA Registration`,
+          `Phone: ${recipientPhone.trim()}`,
+          `Full Name: ${afaFullName.trim()}`,
+          `Ghana Card: ${afaGhanaCardNumber.trim().toUpperCase()}`,
+          `Location: ${afaLocation.trim()}`,
+        ].join(' | ')
+      : `Recipient: ${recipientPhone.trim()}`
 
     const { error } = await supabase.client.from('agent_store_orders').insert({
       store_id: store.id,
@@ -182,7 +221,7 @@ export default function PublicAgentStorePage() {
       customer_name: customerName.trim(),
       customer_phone: customerPhone.trim(),
       customer_email: customerEmail.trim() || null,
-      customer_note: `Recipient: ${recipientPhone.trim()}`,
+      customer_note: customerNote,
       quantity: 1,
       total_price: Number(selectedPackage.selling_price || 0),
       status: 'pending',
@@ -199,6 +238,9 @@ export default function PublicAgentStorePage() {
     setCheckoutOpen(false)
     setSelectedPackage(null)
     setRecipientPhone('')
+    setAfaFullName('')
+    setAfaGhanaCardNumber('')
+    setAfaLocation('')
   }
 
   if (loading) {
@@ -394,7 +436,7 @@ export default function PublicAgentStorePage() {
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Complete your data purchase</DialogTitle>
+            <DialogTitle>{isAfaRegistration ? 'Complete your AFA registration' : 'Complete your data purchase'}</DialogTitle>
             <DialogDescription>
               {selectedPackage?.data_packages?.network} {selectedPackage?.data_packages?.amount} - {formatGhs(selectedPackage?.selling_price || 0)}
             </DialogDescription>
@@ -402,7 +444,7 @@ export default function PublicAgentStorePage() {
 
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="recipient">Recipient Number</Label>
+              <Label htmlFor="recipient">{isAfaRegistration ? 'Phone Number' : 'Recipient Number'}</Label>
               <Input
                 id="recipient"
                 placeholder="e.g. 024XXXXXXX"
@@ -410,6 +452,40 @@ export default function PublicAgentStorePage() {
                 onChange={(e) => setRecipientPhone(e.target.value)}
               />
             </div>
+
+            {isAfaRegistration ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="afa-full-name">Full Name</Label>
+                  <Input
+                    id="afa-full-name"
+                    value={afaFullName}
+                    onChange={(e) => setAfaFullName(e.target.value)}
+                    placeholder="As it appears on Ghana Card"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="afa-ghana-card">Ghana Card Number</Label>
+                  <Input
+                    id="afa-ghana-card"
+                    value={afaGhanaCardNumber}
+                    onChange={(e) => setAfaGhanaCardNumber(e.target.value.toUpperCase())}
+                    placeholder="GHA-123456789-1"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="afa-location">Location</Label>
+                  <Input
+                    id="afa-location"
+                    value={afaLocation}
+                    onChange={(e) => setAfaLocation(e.target.value)}
+                    placeholder="Town / Area"
+                  />
+                </div>
+              </>
+            ) : null}
 
             <div className="space-y-1.5">
               <Label htmlFor="buyer-name">Your Name</Label>

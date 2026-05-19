@@ -32,6 +32,7 @@ const networkColors: Record<string, string> = {
   MTN: 'bg-yellow-500 text-black',
   'Airtel-Tigo': 'bg-red-500 text-white',
   Telecel: 'bg-blue-600 text-white',
+  AFA: 'bg-emerald-600 text-white',
 }
 
 type BasePackage = {
@@ -61,9 +62,14 @@ const networkOrder: Record<string, number> = {
 export default function StorePackagesPage() {
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState('')
+  const [savingAfa, setSavingAfa] = useState(false)
 
   const [basePackages, setBasePackages] = useState<BasePackage[]>([])
   const [storePackages, setStorePackages] = useState<StorePackage[]>([])
+  const [afaBasePackage, setAfaBasePackage] = useState<BasePackage | null>(null)
+  const [afaStorePackage, setAfaStorePackage] = useState<StorePackage | null>(null)
+  const [afaProfit, setAfaProfit] = useState('')
+  const [afaActive, setAfaActive] = useState(true)
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingPackage, setEditingPackage] = useState<StorePackage | null>(null)
@@ -76,12 +82,17 @@ export default function StorePackagesPage() {
 
   const availableBasePackages = useMemo(() => {
     if (editingPackage) {
-      return basePackages
+      return basePackages.filter((pkg) => pkg.network !== 'AFA')
     }
 
     const selectedIds = new Set(storePackages.map((pkg) => pkg.data_packages?.id).filter(Boolean))
-    return basePackages.filter((pkg) => !selectedIds.has(pkg.id))
+    return basePackages.filter((pkg) => pkg.network !== 'AFA' && !selectedIds.has(pkg.id))
   }, [basePackages, editingPackage, storePackages])
+
+  const nonAfaStorePackages = useMemo(
+    () => storePackages.filter((pkg) => pkg.data_packages?.network !== 'AFA'),
+    [storePackages]
+  )
 
   const selectedBasePackage = useMemo(
     () => basePackages.find((pkg) => pkg.id === formData.basePackageId) || null,
@@ -158,8 +169,24 @@ export default function StorePackagesPage() {
       return Number(a.data_packages?.cost_price || 0) - Number(b.data_packages?.cost_price || 0)
     })
 
+    const afaBase =
+      sortedBasePackages.find((pkg) => pkg.network === 'AFA' && pkg.name === 'AFA Registration') ||
+      sortedBasePackages.find((pkg) => pkg.network === 'AFA') ||
+      null
+    const afaStore =
+      sortedStorePackages.find((pkg) => pkg.data_packages?.network === 'AFA' && pkg.data_packages?.name === 'AFA Registration') ||
+      sortedStorePackages.find((pkg) => pkg.data_packages?.network === 'AFA') ||
+      null
+    const currentAfaProfit = afaStore
+      ? Number(afaStore.selling_price || 0) - Number(afaStore.data_packages?.cost_price || 0)
+      : 0
+
     setBasePackages(sortedBasePackages)
     setStorePackages(sortedStorePackages)
+    setAfaBasePackage(afaBase)
+    setAfaStorePackage(afaStore)
+    setAfaProfit(currentAfaProfit.toFixed(2))
+    setAfaActive(afaStore?.is_active ?? true)
     setLoading(false)
   }
 
@@ -273,6 +300,59 @@ export default function StorePackagesPage() {
     }
 
     toast.success(`Package ${active ? 'activated' : 'deactivated'}`)
+    await loadData()
+  }
+
+  const handleSaveAfaPricing = async () => {
+    if (!storeId || !afaBasePackage) {
+      toast.error('AFA base package is not configured by admin yet')
+      return
+    }
+
+    const profitValue = Number.parseFloat(afaProfit)
+    if (!Number.isFinite(profitValue) || profitValue < 0) {
+      toast.error('Profit must be a valid non-negative number')
+      return
+    }
+
+    const sellingPrice = Number(afaBasePackage.cost_price || 0) + profitValue
+
+    setSavingAfa(true)
+
+    if (afaStorePackage) {
+      const { error } = await supabase.client
+        .from('agent_store_packages')
+        .update({
+          selling_price: sellingPrice,
+          is_active: afaActive,
+        })
+        .eq('id', afaStorePackage.id)
+
+      setSavingAfa(false)
+
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+    } else {
+      const { error } = await supabase.client
+        .from('agent_store_packages')
+        .insert({
+          store_id: storeId,
+          data_package_id: afaBasePackage.id,
+          selling_price: sellingPrice,
+          is_active: afaActive,
+        })
+
+      setSavingAfa(false)
+
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+    }
+
+    toast.success('AFA store pricing saved')
     await loadData()
   }
 
@@ -403,9 +483,63 @@ export default function StorePackagesPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>AFA Registration Pricing</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!afaBasePackage ? (
+            <p className="text-sm text-muted-foreground">Admin has not configured AFA base pricing yet.</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-sm text-muted-foreground">
+                  Base AFA Price:{' '}
+                  <span className="font-semibold text-foreground">GHc {Number(afaBasePackage.cost_price || 0).toFixed(2)}</span>
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="afaProfit">Your Profit (GHc)</Label>
+                  <Input
+                    id="afaProfit"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={afaProfit}
+                    onChange={(e) => setAfaProfit(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Final Store Price (GHc)</Label>
+                  <div className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground">
+                    GHc {(Number(afaBasePackage.cost_price || 0) + Number.parseFloat(afaProfit || '0')).toFixed(2)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium">Active</p>
+                  <p className="text-xs text-muted-foreground">Visible on your public store</p>
+                </div>
+                <Switch checked={afaActive} onCheckedChange={setAfaActive} />
+              </div>
+
+              <Button onClick={() => void handleSaveAfaPricing()} disabled={savingAfa}>
+                {savingAfa ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save AFA Pricing
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
-            All Packages ({storePackages.length})
+            All Packages ({nonAfaStorePackages.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -423,14 +557,14 @@ export default function StorePackagesPage() {
                 </tr>
               </thead>
               <tbody>
-                {storePackages.length === 0 ? (
+                {nonAfaStorePackages.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-muted-foreground">
                       No packages yet. Add your first package.
                     </td>
                   </tr>
                 ) : (
-                  storePackages.map((pkg) => (
+                  nonAfaStorePackages.map((pkg) => (
                     <tr key={pkg.id} className="border-b border-border transition-colors hover:bg-muted/50">
                       <td className="px-4 py-3">
                         <Badge className={networkColors[pkg.data_packages?.network || ''] || 'bg-primary'}>
@@ -479,10 +613,10 @@ export default function StorePackagesPage() {
           </div>
 
           <div className="space-y-4 md:hidden">
-            {storePackages.length === 0 ? (
+            {nonAfaStorePackages.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">No packages yet. Add your first package.</p>
             ) : (
-              storePackages.map((pkg) => (
+              nonAfaStorePackages.map((pkg) => (
                 <Card key={pkg.id} className="border-border">
                   <CardContent className="p-4">
                     <div className="space-y-3">
