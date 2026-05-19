@@ -51,6 +51,13 @@ type StorePackage = {
   data_packages: BasePackage | null
 }
 
+const networkOrder: Record<string, number> = {
+  MTN: 0,
+  'Airtel-Tigo': 1,
+  Telecel: 2,
+  AFA: 3,
+}
+
 export default function StorePackagesPage() {
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState('')
@@ -75,6 +82,11 @@ export default function StorePackagesPage() {
     const selectedIds = new Set(storePackages.map((pkg) => pkg.data_packages?.id).filter(Boolean))
     return basePackages.filter((pkg) => !selectedIds.has(pkg.id))
   }, [basePackages, editingPackage, storePackages])
+
+  const selectedBasePackage = useMemo(
+    () => basePackages.find((pkg) => pkg.id === formData.basePackageId) || null,
+    [basePackages, formData.basePackageId]
+  )
 
   const loadData = async () => {
     setLoading(true)
@@ -132,8 +144,22 @@ export default function StorePackagesPage() {
       return
     }
 
-    setBasePackages((allBase as BasePackage[] | null) ?? [])
-    setStorePackages((configured as StorePackage[] | null) ?? [])
+    const sortedBasePackages = ((allBase as BasePackage[] | null) ?? []).sort((a, b) => {
+      const networkDiff = (networkOrder[a.network] ?? 99) - (networkOrder[b.network] ?? 99)
+      if (networkDiff !== 0) return networkDiff
+      return Number(a.cost_price || 0) - Number(b.cost_price || 0)
+    })
+
+    const sortedStorePackages = ((configured as StorePackage[] | null) ?? []).sort((a, b) => {
+      const networkA = a.data_packages?.network || ''
+      const networkB = b.data_packages?.network || ''
+      const networkDiff = (networkOrder[networkA] ?? 99) - (networkOrder[networkB] ?? 99)
+      if (networkDiff !== 0) return networkDiff
+      return Number(a.data_packages?.cost_price || 0) - Number(b.data_packages?.cost_price || 0)
+    })
+
+    setBasePackages(sortedBasePackages)
+    setStorePackages(sortedStorePackages)
     setLoading(false)
   }
 
@@ -173,6 +199,12 @@ export default function StorePackagesPage() {
     const sellingPrice = Number.parseFloat(formData.sellingPrice)
     if (!Number.isFinite(sellingPrice) || sellingPrice <= 0) {
       toast.error('Selling price must be greater than zero')
+      return
+    }
+
+    const basePrice = Number(selectedBasePackage?.cost_price || 0)
+    if (basePrice > 0 && sellingPrice < basePrice) {
+      toast.error(`Selling price cannot be below base price (GHc ${basePrice.toFixed(2)})`)
       return
     }
 
@@ -295,12 +327,23 @@ export default function StorePackagesPage() {
                   <SelectContent>
                     {availableBasePackages.map((pkg) => (
                       <SelectItem key={pkg.id} value={pkg.id}>
-                        {pkg.network} - {pkg.name} ({pkg.amount})
+                        {pkg.network} - {pkg.name} ({pkg.amount}) - Base GHc {Number(pkg.cost_price || 0).toFixed(2)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {selectedBasePackage ? (
+                <div className="rounded-lg border border-border bg-muted/40 p-3">
+                  <p className="text-sm font-medium text-foreground">
+                    Base Price: GHc {Number(selectedBasePackage.cost_price || 0).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Set your selling price above this amount to add your profit.
+                  </p>
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label htmlFor="sellingPrice">Selling Price (GHc)</Label>
@@ -308,7 +351,7 @@ export default function StorePackagesPage() {
                   id="sellingPrice"
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  placeholder={selectedBasePackage ? `Min ${Number(selectedBasePackage.cost_price || 0).toFixed(2)}` : '0.00'}
                   value={formData.sellingPrice}
                   onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
                 />
@@ -328,12 +371,18 @@ export default function StorePackagesPage() {
               {formData.basePackageId && formData.sellingPrice && (
                 <div className="rounded-lg bg-muted p-3">
                   <p className="text-sm text-muted-foreground">
+                    Base price:{' '}
+                    <span className="font-semibold text-foreground">
+                      GHc {Number(selectedBasePackage?.cost_price || 0).toFixed(2)}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Profit per sale:{' '}
                     <span className="font-semibold text-green-600 dark:text-green-400">
                       GHc{' '}
                       {profit(
                         parseFloat(formData.sellingPrice),
-                        basePackages.find((pkg) => pkg.id === formData.basePackageId)?.cost_price || 0
+                        selectedBasePackage?.cost_price || 0
                       ).toFixed(2)}
                     </span>
                   </p>

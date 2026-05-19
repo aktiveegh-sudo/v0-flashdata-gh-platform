@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase/client'
 import { useWalletStore, useTransactionStore, useLoadingStore } from '@/lib/store'
 import toast from 'react-hot-toast'
@@ -24,8 +25,8 @@ type DataPackageRow = {
 
 const networkPalette: Record<string, { color: string; textColor: string; borderColor: string }> = {
   MTN: { color: 'bg-yellow-500', textColor: 'text-black', borderColor: 'border-yellow-500' },
-  'Airtel-Tigo': { color: 'bg-red-500', textColor: 'text-white', borderColor: 'border-red-500' },
-  Telecel: { color: 'bg-blue-600', textColor: 'text-white', borderColor: 'border-blue-600' },
+  'Airtel-Tigo': { color: 'bg-blue-600', textColor: 'text-white', borderColor: 'border-blue-600' },
+  Telecel: { color: 'bg-red-500', textColor: 'text-white', borderColor: 'border-red-500' },
 }
 
 function BuyDataContent() {
@@ -37,6 +38,7 @@ function BuyDataContent() {
   const [selectedNetwork, setSelectedNetwork] = useState('')
   const [selectedPackageId, setSelectedPackageId] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
 
   const { balance, deductFunds } = useWalletStore()
   const { addTransaction } = useTransactionStore()
@@ -183,7 +185,14 @@ function BuyDataContent() {
 
     setPhoneNumber('')
     setSelectedPackageId('')
+    setIsCheckoutOpen(false)
     setLoading(false)
+  }
+
+  const handleStartCheckout = (packageId: string) => {
+    setSelectedPackageId(packageId)
+    setPhoneNumber('')
+    setIsCheckoutOpen(true)
   }
 
   return (
@@ -244,21 +253,22 @@ function BuyDataContent() {
                     {currentPackages.map((pkg) => (
                       <button
                         key={pkg.id}
-                        onClick={() => setSelectedPackageId(pkg.id)}
+                        onClick={() => handleStartCheckout(pkg.id)}
+                        type="button"
                         className={`relative rounded-xl border-2 p-4 text-left transition-all ${
                           selectedPackageId === pkg.id
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
+                            ? `${networkPalette[pkg.network]?.borderColor || 'border-primary'} ${networkPalette[pkg.network]?.color || 'bg-primary'} ${networkPalette[pkg.network]?.textColor || 'text-white'}`
+                            : `${networkPalette[pkg.network]?.borderColor || 'border-border'} ${networkPalette[pkg.network]?.color || 'bg-card'} ${networkPalette[pkg.network]?.textColor || 'text-foreground'} opacity-90 hover:opacity-100`
                         }`}
                       >
                         {selectedPackageId === pkg.id ? (
                           <div className="absolute right-2 top-2">
-                            <Check className="h-5 w-5 text-primary" />
+                            <Check className={`h-5 w-5 ${networkPalette[pkg.network]?.textColor || 'text-primary'}`} />
                           </div>
                         ) : null}
-                        <p className="text-xl font-bold text-foreground">{pkg.amount}</p>
-                        <p className="text-lg font-semibold text-primary">GHc {pkg.selling_price.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">{pkg.name} &middot; {pkg.validity}</p>
+                        <p className="text-xl font-bold">{pkg.amount}</p>
+                        <p className="text-lg font-semibold">GHc {pkg.selling_price.toFixed(2)}</p>
+                        <p className="text-xs opacity-90">{pkg.name} &middot; {pkg.validity}</p>
                       </button>
                     ))}
                   </div>
@@ -268,9 +278,30 @@ function BuyDataContent() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Complete Purchase</CardTitle>
+                <CardTitle>How It Works</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>1. Pick your network</p>
+                <p>2. Tap a package card</p>
+                <p>3. Enter recipient number in popup</p>
+                <p>4. Confirm and pay</p>
+                <p className="pt-2 text-xs">Packages are managed by admins only.</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Complete Data Purchase</DialogTitle>
+                <DialogDescription>
+                  {selectedPackage
+                    ? `${selectedPackage.network} ${selectedPackage.amount} (${selectedPackage.name})`
+                    : 'Select a package to continue'}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Recipient Phone Number</Label>
                   <div className="relative">
@@ -289,7 +320,7 @@ function BuyDataContent() {
                 <div className="rounded-lg bg-muted/50 p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Network</span>
-                    <Badge>{selectedPackage?.network || selectedNetwork || 'Not selected'}</Badge>
+                    <Badge>{selectedPackage?.network || 'Not selected'}</Badge>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-muted-foreground">Package</span>
@@ -314,13 +345,11 @@ function BuyDataContent() {
                   size="lg"
                   disabled={!phoneNumber || !selectedPackage || balance < (selectedPackage?.selling_price || 0)}
                 >
-                  Buy Data Now
+                  Pay Now
                 </Button>
-
-                <p className="text-center text-xs text-muted-foreground">Packages are managed by admins only.</p>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </motion.div>

@@ -23,6 +23,13 @@ type PackageRow = {
   is_active: boolean
 }
 
+const networkOrder: Record<string, number> = {
+  MTN: 0,
+  'Airtel-Tigo': 1,
+  Telecel: 2,
+  AFA: 3,
+}
+
 const emptyForm = {
   network: 'MTN',
   name: '',
@@ -49,7 +56,17 @@ export default function AdminPackagesPage() {
       return
     }
 
-    setRows((data as PackageRow[]) || [])
+    const sortedRows = ((data as PackageRow[]) || []).sort((a, b) => {
+      const networkDiff = (networkOrder[a.network] ?? 99) - (networkOrder[b.network] ?? 99)
+      if (networkDiff !== 0) return networkDiff
+
+      const amountDiff = a.amount.localeCompare(b.amount, undefined, { numeric: true, sensitivity: 'base' })
+      if (amountDiff !== 0) return amountDiff
+
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+    })
+
+    setRows(sortedRows)
     setLoading(false)
   }
 
