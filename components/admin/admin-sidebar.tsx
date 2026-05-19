@@ -12,6 +12,7 @@ const links = [
   { href: '/admin/overview', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/packages', label: 'Packages', icon: Package },
+  { href: '/admin/afa', label: 'AFA Control', icon: Package },
   { href: '/admin/orders', label: 'Orders', icon: ClipboardList },
   { href: '/admin/add-service', label: 'Add Service', icon: PlusSquare },
   { href: '/admin/withdrawals', label: 'Withdrawals', icon: Landmark },

@@ -39,6 +39,7 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { label: 'Overview', href: '/dashboard/overview', icon: Home },
   { label: 'Wallet', href: '/dashboard/wallet', icon: Wallet },
+  { label: 'AFA Registration', href: '/dashboard/afa', icon: Wifi },
   {
     label: 'Buy Data',
     href: '/dashboard/buy-data',
@@ -47,7 +48,6 @@ const mainNavItems: NavItem[] = [
       { label: 'MTN', href: '/dashboard/buy-data?network=mtn' },
       { label: 'Airtel-Tigo', href: '/dashboard/buy-data?network=airtel-tigo' },
       { label: 'Telecel', href: '/dashboard/buy-data?network=telecel' },
-      { label: 'AFA Registration', href: '/dashboard/buy-data?network=afa' },
     ],
   },
   { label: 'Transactions', href: '/dashboard/transactions', icon: Receipt },

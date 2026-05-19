@@ -36,6 +36,9 @@ function BuyDataContent() {
   const [selectedNetwork, setSelectedNetwork] = useState('')
   const [selectedPackageId, setSelectedPackageId] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [afaFullName, setAfaFullName] = useState('')
+  const [afaGhanaCardNumber, setAfaGhanaCardNumber] = useState('')
+  const [afaLocation, setAfaLocation] = useState('')
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
 
   const { balance, deductFunds } = useWalletStore()
@@ -94,6 +97,11 @@ function BuyDataContent() {
     [packages, selectedPackageId]
   )
 
+  const isAfaRegistration = useMemo(
+    () => (selectedPackage?.network || '').trim().toUpperCase() === 'AFA',
+    [selectedPackage?.network]
+  )
+
   const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, '')
     if (digits.length <= 3) return digits
@@ -131,6 +139,24 @@ function BuyDataContent() {
       return
     }
 
+    if (isAfaRegistration) {
+      if (!afaFullName.trim()) {
+        toast.error('Full name is required for AFA registration')
+        return
+      }
+
+      const ghanaCardPattern = /^GHA-\d{9}-\d$/i
+      if (!ghanaCardPattern.test(afaGhanaCardNumber.trim())) {
+        toast.error('Enter a valid Ghana Card Number (e.g. GHA-123456789-1)')
+        return
+      }
+
+      if (!afaLocation.trim()) {
+        toast.error('Location is required for AFA registration')
+        return
+      }
+    }
+
     if (balance < selectedPackage.selling_price) {
       toast.error('Insufficient wallet balance. Please top up your wallet.')
       return
@@ -153,6 +179,15 @@ function BuyDataContent() {
       amount: selectedPackage.selling_price,
       status: 'pending',
       reference,
+      metadata: isAfaRegistration
+        ? {
+            registration_type: 'AFA',
+            full_name: afaFullName.trim(),
+            phone_number: normalizedPhone,
+            ghana_card_number: afaGhanaCardNumber.trim().toUpperCase(),
+            location: afaLocation.trim(),
+          }
+        : {},
     })
 
     if (error) {
@@ -182,6 +217,9 @@ function BuyDataContent() {
     )
 
     setPhoneNumber('')
+    setAfaFullName('')
+    setAfaGhanaCardNumber('')
+    setAfaLocation('')
     setSelectedPackageId('')
     setIsCheckoutOpen(false)
     setLoading(false)
@@ -190,6 +228,9 @@ function BuyDataContent() {
   const handleStartCheckout = (packageId: string) => {
     setSelectedPackageId(packageId)
     setPhoneNumber('')
+    setAfaFullName('')
+    setAfaGhanaCardNumber('')
+    setAfaLocation('')
     setIsCheckoutOpen(true)
   }
 
@@ -281,7 +322,7 @@ function BuyDataContent() {
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p>1. Pick your network</p>
                 <p>2. Tap a package card</p>
-                <p>3. Enter recipient number in popup</p>
+                <p>3. Enter required details in popup</p>
                 <p>4. Confirm and pay</p>
                 <p className="pt-2 text-xs">Packages are managed by admins only.</p>
               </CardContent>
@@ -301,7 +342,7 @@ function BuyDataContent() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Recipient Phone Number</Label>
+                  <Label htmlFor="phone">{isAfaRegistration ? 'Phone Number' : 'Recipient Phone Number'}</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -314,6 +355,38 @@ function BuyDataContent() {
                     />
                   </div>
                 </div>
+
+                {isAfaRegistration ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="afa-full-name">Full Name</Label>
+                      <Input
+                        id="afa-full-name"
+                        value={afaFullName}
+                        onChange={(e) => setAfaFullName(e.target.value)}
+                        placeholder="Enter full name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="afa-ghana-card">Ghana Card Number</Label>
+                      <Input
+                        id="afa-ghana-card"
+                        value={afaGhanaCardNumber}
+                        onChange={(e) => setAfaGhanaCardNumber(e.target.value.toUpperCase())}
+                        placeholder="GHA-123456789-1"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="afa-location">Location</Label>
+                      <Input
+                        id="afa-location"
+                        value={afaLocation}
+                        onChange={(e) => setAfaLocation(e.target.value)}
+                        placeholder="Enter your location"
+                      />
+                    </div>
+                  </>
+                ) : null}
 
                 <div className="rounded-lg bg-muted/50 p-4">
                   <div className="flex items-center justify-between">
@@ -341,7 +414,12 @@ function BuyDataContent() {
                   onClick={handleBuyData}
                   className="w-full"
                   size="lg"
-                  disabled={!phoneNumber || !selectedPackage || balance < (selectedPackage?.selling_price || 0)}
+                  disabled={
+                    !phoneNumber ||
+                    !selectedPackage ||
+                    balance < (selectedPackage?.selling_price || 0) ||
+                    (isAfaRegistration && (!afaFullName.trim() || !afaGhanaCardNumber.trim() || !afaLocation.trim()))
+                  }
                 >
                   Pay Now
                 </Button>
