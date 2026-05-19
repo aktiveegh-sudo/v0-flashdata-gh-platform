@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Edit2, Trash2, Package, Loader2 } from 'lucide-react'
+import { Edit2, Trash2, Package, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -93,6 +92,22 @@ export default function StorePackagesPage() {
     () => storePackages.filter((pkg) => pkg.data_packages?.network !== 'AFA'),
     [storePackages]
   )
+
+  const listedBasePackages = useMemo(
+    () => basePackages.filter((pkg) => pkg.network !== 'AFA'),
+    [basePackages]
+  )
+
+  const storePackageByBaseId = useMemo(() => {
+    const map = new Map<string, StorePackage>()
+    for (const pkg of nonAfaStorePackages) {
+      const baseId = pkg.data_packages?.id
+      if (baseId) {
+        map.set(baseId, pkg)
+      }
+    }
+    return map
+  }, [nonAfaStorePackages])
 
   const selectedBasePackage = useMemo(
     () => basePackages.find((pkg) => pkg.id === formData.basePackageId) || null,
@@ -214,6 +229,23 @@ export default function StorePackagesPage() {
     } else {
       resetForm()
     }
+    setIsDialogOpen(true)
+  }
+
+  const handleOpenDialogForBase = (pkg: BasePackage) => {
+    const existing = storePackageByBaseId.get(pkg.id)
+
+    if (existing) {
+      handleOpenDialog(existing)
+      return
+    }
+
+    setEditingPackage(null)
+    setFormData({
+      basePackageId: pkg.id,
+      sellingPrice: '',
+      active: true,
+    })
     setIsDialogOpen(true)
   }
 
@@ -376,15 +408,9 @@ export default function StorePackagesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Store Data Packages</h1>
-          <p className="text-muted-foreground">Choose packages and set your own selling prices</p>
+          <p className="text-muted-foreground">All available packages are listed below. Set your price and publish.</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" onClick={() => handleOpenDialog()}>
-              <Plus className="h-4 w-4" />
-              Add Package
-            </Button>
-          </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingPackage ? 'Edit Package' : 'Add New Package'}</DialogTitle>
@@ -539,7 +565,7 @@ export default function StorePackagesPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
-            All Packages ({nonAfaStorePackages.length})
+            All Available Packages ({listedBasePackages.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -557,118 +583,148 @@ export default function StorePackagesPage() {
                 </tr>
               </thead>
               <tbody>
-                {nonAfaStorePackages.length === 0 ? (
+                {listedBasePackages.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                      No packages yet. Add your first package.
+                      No packages available yet.
                     </td>
                   </tr>
                 ) : (
-                  nonAfaStorePackages.map((pkg) => (
-                    <tr key={pkg.id} className="border-b border-border transition-colors hover:bg-muted/50">
+                  listedBasePackages.map((basePkg) => {
+                    const configured = storePackageByBaseId.get(basePkg.id)
+
+                    return (
+                    <tr key={basePkg.id} className="border-b border-border transition-colors hover:bg-muted/50">
                       <td className="px-4 py-3">
-                        <Badge className={networkColors[pkg.data_packages?.network || ''] || 'bg-primary'}>
-                          {pkg.data_packages?.network || 'N/A'}
+                        <Badge className={networkColors[basePkg.network || ''] || 'bg-primary'}>
+                          {basePkg.network || 'N/A'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 font-medium">{pkg.data_packages?.name} ({pkg.data_packages?.amount})</td>
-                      <td className="px-4 py-3">GHc {Number(pkg.data_packages?.cost_price || 0).toFixed(2)}</td>
-                      <td className="px-4 py-3 font-semibold">GHc {Number(pkg.selling_price).toFixed(2)}</td>
-                      <td className="px-4 py-3">
-                        <span className="font-semibold text-green-600 dark:text-green-400">
-                          GHc {profit(Number(pkg.selling_price), Number(pkg.data_packages?.cost_price || 0)).toFixed(2)}
-                        </span>
+                      <td className="px-4 py-3 font-medium">{basePkg.name} ({basePkg.amount})</td>
+                      <td className="px-4 py-3">GHc {Number(basePkg.cost_price || 0).toFixed(2)}</td>
+                      <td className="px-4 py-3 font-semibold">
+                        {configured ? `GHc ${Number(configured.selling_price).toFixed(2)}` : <span className="text-muted-foreground">Not set</span>}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={pkg.is_active}
-                            onCheckedChange={(checked) => void handleToggleActive(pkg.id, checked)}
-                          />
-                          <span className={pkg.is_active ? 'text-green-600' : 'text-muted-foreground'}>
-                            {pkg.is_active ? 'Active' : 'Inactive'}
+                        {configured ? (
+                          <span className="font-semibold text-green-600 dark:text-green-400">
+                            GHc {profit(Number(configured.selling_price), Number(basePkg.cost_price || 0)).toFixed(2)}
                           </span>
-                        </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {configured ? (
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={configured.is_active}
+                              onCheckedChange={(checked) => void handleToggleActive(configured.id, checked)}
+                            />
+                            <span className={configured.is_active ? 'text-green-600' : 'text-muted-foreground'}>
+                              {configured.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Not added</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(pkg)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenDialogForBase(basePkg)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive"
-                            onClick={() => void handleDelete(pkg.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {configured ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={() => void handleDelete(configured.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
-                  ))
+                    )
+                  })
                 )}
               </tbody>
             </table>
           </div>
 
           <div className="space-y-4 md:hidden">
-            {nonAfaStorePackages.length === 0 ? (
-              <p className="py-8 text-center text-muted-foreground">No packages yet. Add your first package.</p>
+            {listedBasePackages.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">No packages available yet.</p>
             ) : (
-              nonAfaStorePackages.map((pkg) => (
-                <Card key={pkg.id} className="border-border">
+              listedBasePackages.map((basePkg) => {
+                const configured = storePackageByBaseId.get(basePkg.id)
+
+                return (
+                <Card key={basePkg.id} className="border-border">
                   <CardContent className="p-4">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Badge className={networkColors[pkg.data_packages?.network || ''] || 'bg-primary'}>
-                            {pkg.data_packages?.network || 'N/A'}
+                          <Badge className={networkColors[basePkg.network || ''] || 'bg-primary'}>
+                            {basePkg.network || 'N/A'}
                           </Badge>
-                          <span className="font-semibold text-foreground">{pkg.data_packages?.name} ({pkg.data_packages?.amount})</span>
+                          <span className="font-semibold text-foreground">{basePkg.name} ({basePkg.amount})</span>
                         </div>
-                        <Switch
-                          checked={pkg.is_active}
-                          onCheckedChange={(checked) => void handleToggleActive(pkg.id, checked)}
-                        />
+                        {configured ? (
+                          <Switch
+                            checked={configured.is_active}
+                            onCheckedChange={(checked) => void handleToggleActive(configured.id, checked)}
+                          />
+                        ) : null}
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 text-sm">
                         <div>
                           <p className="text-muted-foreground">Cost</p>
-                          <p className="font-medium">GHc {Number(pkg.data_packages?.cost_price || 0).toFixed(2)}</p>
+                          <p className="font-medium">GHc {Number(basePkg.cost_price || 0).toFixed(2)}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Selling</p>
-                          <p className="font-semibold">GHc {Number(pkg.selling_price).toFixed(2)}</p>
+                          <p className="font-semibold">
+                            {configured ? `GHc ${Number(configured.selling_price).toFixed(2)}` : 'Not set'}
+                          </p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Profit</p>
-                          <p className="font-semibold text-green-600 dark:text-green-400">
-                            GHc {profit(Number(pkg.selling_price), Number(pkg.data_packages?.cost_price || 0)).toFixed(2)}
-                          </p>
+                          {configured ? (
+                            <p className="font-semibold text-green-600 dark:text-green-400">
+                              GHc {profit(Number(configured.selling_price), Number(basePkg.cost_price || 0)).toFixed(2)}
+                            </p>
+                          ) : (
+                            <p className="font-semibold text-muted-foreground">-</p>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenDialog(pkg)}>
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenDialogForBase(basePkg)}>
                           <Edit2 className="mr-2 h-4 w-4" />
-                          Edit
+                          {configured ? 'Edit' : 'Set Price'}
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 text-destructive"
-                          onClick={() => void handleDelete(pkg.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </Button>
+                        {configured ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-destructive"
+                            onClick={() => void handleDelete(configured.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        ) : null}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              ))
+                )
+              })
             )}
           </div>
         </CardContent>
