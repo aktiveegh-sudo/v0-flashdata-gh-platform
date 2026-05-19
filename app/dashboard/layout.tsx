@@ -3,12 +3,23 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { MessageCircle } from 'lucide-react'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, useTransactionStore, useWalletStore, type Transaction } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { ensureProfileAndWalletForUser } from '@/lib/supabase/profile-bootstrap'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { PageLoader } from '@/components/loader'
+
+type DbTransaction = {
+  id: string
+  type: 'data_purchase' | 'airtime' | 'online_service' | 'withdrawal' | 'funding' | 'store_sale'
+  amount: number
+  description: string | null
+  status: 'pending' | 'success' | 'failed'
+  reference: string
+  created_at: string
+  metadata: Record<string, unknown> | null
+}
 
 export default function DashboardLayout({
   children,
@@ -17,10 +28,54 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const { isAuthenticated, setAuthUser, clearAuth } = useAuthStore()
+  const { setBalance } = useWalletStore()
+  const { setTransactions } = useTransactionStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
   const [whatsappChannelUrl, setWhatsappChannelUrl] = useState('')
+
+  const mapTransactionType = (type: DbTransaction['type']): Transaction['type'] => {
+    switch (type) {
+      case 'funding':
+      case 'store_sale':
+        return 'wallet'
+      case 'data_purchase':
+        return 'data'
+      case 'withdrawal':
+        return 'withdrawal'
+      default:
+        return 'bill'
+    }
+  }
+
+  const syncFinancialState = async (userId: string) => {
+    const [{ data: wallet }, { data: txRows }] = await Promise.all([
+      supabase.client.from('wallets').select('balance').eq('user_id', userId).maybeSingle(),
+      supabase.client
+        .from('transactions')
+        .select('id,type,amount,description,status,reference,created_at,metadata')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50),
+    ])
+
+    setBalance(Number((wallet as { balance?: number } | null)?.balance || 0))
+
+    const mapped = (((txRows as DbTransaction[] | null) || []).map((row) => ({
+      id: row.id,
+      type: mapTransactionType(row.type),
+      amount: Number(row.amount || 0),
+      phone: typeof row.metadata?.phone === 'string' ? row.metadata.phone : undefined,
+      network: typeof row.metadata?.network === 'string' ? row.metadata.network : undefined,
+      status: row.status,
+      reference: row.reference,
+      date: row.created_at,
+      description: row.description || 'Transaction',
+    })) satisfies Transaction[])
+
+    setTransactions(mapped)
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -76,11 +131,12 @@ export default function DashboardLayout({
         phone: metadata?.phone || '',
         avatar: metadata?.avatar_url,
       })
+      await syncFinancialState(data.session.user.id)
       setCheckingSession(false)
     }
 
     void ensureSession()
-  }, [clearAuth, mounted, router, setAuthUser])
+  }, [clearAuth, mounted, router, setAuthUser, setBalance, setTransactions])
 
   useEffect(() => {
     if (!mounted) {

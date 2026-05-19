@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase } from '@/lib/supabase/client'
 import { useWalletStore, useTransactionStore, useLoadingStore } from '@/lib/store'
+import { startPaystackCheckout } from '@/lib/paystack/client'
 import toast from 'react-hot-toast'
 
 type AfaSettings = {
@@ -48,6 +49,7 @@ export default function AfaPage() {
   const [phone, setPhone] = useState('')
   const [ghanaCardNumber, setGhanaCardNumber] = useState('')
   const [location, setLocation] = useState('')
+  const [paystackLoading, setPaystackLoading] = useState(false)
 
   const { balance, deductFunds } = useWalletStore()
   const { addTransaction } = useTransactionStore()
@@ -191,6 +193,48 @@ export default function AfaPage() {
     await loadData()
   }
 
+  const payWithPaystack = async () => {
+    if (!settings.is_active) {
+      toast.error('AFA registration is currently disabled')
+      return
+    }
+
+    const normalizedPhone = normalizePhone(phone)
+    if (!normalizedPhone) {
+      toast.error('Enter a valid Ghana phone number')
+      return
+    }
+
+    if (!fullName.trim() || !location.trim()) {
+      toast.error('Full name and location are required')
+      return
+    }
+
+    const ghanaCardPattern = /^GHA-\d{9}-\d$/i
+    if (!ghanaCardPattern.test(ghanaCardNumber.trim())) {
+      toast.error('Use Ghana Card format: GHA-123456789-1')
+      return
+    }
+
+    setPaystackLoading(true)
+    setGlobalLoading(true)
+
+    try {
+      await startPaystackCheckout({
+        flow: 'dashboard_afa',
+        phone: normalizedPhone,
+        fullName: fullName.trim(),
+        ghanaCardNumber: ghanaCardNumber.trim().toUpperCase(),
+        location: location.trim(),
+        redirectPath: '/dashboard/afa',
+      })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to start Paystack payment')
+      setPaystackLoading(false)
+      setGlobalLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground">
@@ -254,10 +298,16 @@ export default function AfaPage() {
             </div>
           </div>
 
-          <Button onClick={() => void submitRegistration()} className="w-full" disabled={submitting || !settings.is_active || !canPay}>
-            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Submit and Pay
-          </Button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button onClick={() => void submitRegistration()} className="w-full" disabled={submitting || paystackLoading || !settings.is_active || !canPay}>
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Pay with Wallet
+            </Button>
+            <Button variant="outline" onClick={() => void payWithPaystack()} className="w-full" disabled={submitting || paystackLoading || !settings.is_active}>
+              {paystackLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Pay with Paystack
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

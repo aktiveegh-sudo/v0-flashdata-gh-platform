@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useWalletStore, useTransactionStore, useLoadingStore } from '@/lib/store'
+import { startPaystackCheckout } from '@/lib/paystack/client'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -43,8 +44,8 @@ const paymentMethods = [
 ]
 
 export default function WalletPage() {
-  const { balance, addFunds } = useWalletStore()
-  const { transactions, addTransaction } = useTransactionStore()
+  const { balance } = useWalletStore()
+  const { transactions } = useTransactionStore()
   const { setLoading } = useLoadingStore()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [amount, setAmount] = useState('')
@@ -52,6 +53,7 @@ export default function WalletPage() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [initializing, setInitializing] = useState(false)
 
   const walletTransactions = transactions.filter(
     (tx) =>
@@ -92,26 +94,27 @@ export default function WalletPage() {
       return
     }
 
+    if ((paymentMethod === 'mtn-momo' || paymentMethod === 'telecel-cash') && !phoneNumber.trim()) {
+      toast.error('Phone number is required for mobile money payments')
+      return
+    }
+
     setLoading(true)
-    setIsDialogOpen(false)
+    setInitializing(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    addFunds(amountNum)
-    addTransaction({
-      type: 'wallet',
-      amount: amountNum,
-      status: 'success',
-      reference: `FD-WAL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      description: `Wallet Top-up via ${paymentMethods.find((m) => m.id === paymentMethod)?.name}`,
-    })
-
-    setLoading(false)
-    toast.success(`GH₵ ${amountNum.toFixed(2)} added to your wallet!`)
-    setAmount('')
-    setPaymentMethod('')
-    setPhoneNumber('')
+    try {
+      await startPaystackCheckout({
+        flow: 'wallet_topup',
+        amount: amountNum,
+        paymentMethod,
+        redirectPath: '/dashboard/wallet',
+      })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to start Paystack payment')
+      setLoading(false)
+      setInitializing(false)
+      return
+    }
   }
 
   const quickAmounts = [10, 20, 50, 100, 200, 500]
@@ -209,8 +212,9 @@ export default function WalletPage() {
                 </div>
               )}
 
-              <Button className="w-full" onClick={handleAddMoney}>
-                Add GH₵ {amount || '0.00'} to Wallet
+              <Button className="w-full" onClick={handleAddMoney} disabled={initializing}>
+                {initializing ? 'Redirecting to Paystack...' : null}
+                {!initializing ? `Add GH₵ ${amount || '0.00'} to Wallet` : null}
               </Button>
             </div>
           </DialogContent>

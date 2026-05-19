@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase/client'
 import { useWalletStore, useTransactionStore, useLoadingStore } from '@/lib/store'
+import { startPaystackCheckout } from '@/lib/paystack/client'
 import toast from 'react-hot-toast'
 
 type DataPackageRow = {
@@ -40,6 +41,7 @@ function BuyDataContent() {
   const [afaGhanaCardNumber, setAfaGhanaCardNumber] = useState('')
   const [afaLocation, setAfaLocation] = useState('')
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [paystackLoading, setPaystackLoading] = useState(false)
 
   const { balance, deductFunds } = useWalletStore()
   const { addTransaction } = useTransactionStore()
@@ -234,6 +236,54 @@ function BuyDataContent() {
     setIsCheckoutOpen(true)
   }
 
+  const handlePaystackCheckout = async () => {
+    const normalizedPhone = normalizeToGhanaPhone(phoneNumber)
+    if (!normalizedPhone) {
+      toast.error('Enter a valid Ghana phone number')
+      return
+    }
+
+    if (!selectedPackage) {
+      toast.error('Please select a data package')
+      return
+    }
+
+    setPaystackLoading(true)
+    setLoading(true)
+
+    try {
+      if (isAfaRegistration) {
+        if (!afaFullName.trim() || !afaGhanaCardNumber.trim() || !afaLocation.trim()) {
+          toast.error('Complete all AFA registration fields')
+          setPaystackLoading(false)
+          setLoading(false)
+          return
+        }
+
+        await startPaystackCheckout({
+          flow: 'dashboard_afa',
+          phone: normalizedPhone,
+          fullName: afaFullName.trim(),
+          ghanaCardNumber: afaGhanaCardNumber.trim().toUpperCase(),
+          location: afaLocation.trim(),
+          redirectPath: '/dashboard/afa',
+        })
+        return
+      }
+
+      await startPaystackCheckout({
+        flow: 'dashboard_data',
+        packageId: selectedPackage.id,
+        phone: normalizedPhone,
+        redirectPath: '/dashboard/buy-data',
+      })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to start Paystack payment')
+      setPaystackLoading(false)
+      setLoading(false)
+    }
+  }
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
@@ -410,19 +460,36 @@ function BuyDataContent() {
                   </div>
                 ) : null}
 
-                <Button
-                  onClick={handleBuyData}
-                  className="w-full"
-                  size="lg"
-                  disabled={
-                    !phoneNumber ||
-                    !selectedPackage ||
-                    balance < (selectedPackage?.selling_price || 0) ||
-                    (isAfaRegistration && (!afaFullName.trim() || !afaGhanaCardNumber.trim() || !afaLocation.trim()))
-                  }
-                >
-                  Pay Now
-                </Button>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button
+                    onClick={handleBuyData}
+                    className="w-full"
+                    size="lg"
+                    disabled={
+                      !phoneNumber ||
+                      !selectedPackage ||
+                      balance < (selectedPackage?.selling_price || 0) ||
+                      paystackLoading ||
+                      (isAfaRegistration && (!afaFullName.trim() || !afaGhanaCardNumber.trim() || !afaLocation.trim()))
+                    }
+                  >
+                    Pay with Wallet
+                  </Button>
+                  <Button
+                    onClick={() => void handlePaystackCheckout()}
+                    className="w-full"
+                    size="lg"
+                    variant="outline"
+                    disabled={
+                      !phoneNumber ||
+                      !selectedPackage ||
+                      paystackLoading ||
+                      (isAfaRegistration && (!afaFullName.trim() || !afaGhanaCardNumber.trim() || !afaLocation.trim()))
+                    }
+                  >
+                    {paystackLoading ? 'Redirecting...' : 'Pay with Paystack'}
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>

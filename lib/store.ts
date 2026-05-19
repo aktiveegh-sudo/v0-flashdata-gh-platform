@@ -64,6 +64,7 @@ interface WalletState {
   balance: number
   addFunds: (amount: number) => void
   deductFunds: (amount: number) => boolean
+  setBalance: (amount: number) => void
 }
 
 export const useWalletStore = create<WalletState>()(
@@ -71,6 +72,7 @@ export const useWalletStore = create<WalletState>()(
     (set, get) => ({
       balance: 0,
       addFunds: (amount) => set((state) => ({ balance: state.balance + amount })),
+      setBalance: (amount) => set({ balance: Number(amount || 0) }),
       deductFunds: (amount) => {
         const currentBalance = get().balance
         if (currentBalance >= amount) {
@@ -101,6 +103,7 @@ export interface Transaction {
 interface TransactionState {
   transactions: Transaction[]
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void
+  setTransactions: (transactions: Transaction[]) => void
 }
 
 const initialTransactions: Transaction[] = []
@@ -109,6 +112,7 @@ export const useTransactionStore = create<TransactionState>()(
   persist(
     (set) => ({
       transactions: initialTransactions,
+      setTransactions: (transactions) => set({ transactions }),
       addTransaction: (transaction) =>
         set((state) => ({
           transactions: [

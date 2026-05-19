@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
+import { startPaystackCheckout } from '@/lib/paystack/client'
 import toast from 'react-hot-toast'
 
 type StoreProfile = {
@@ -65,6 +66,7 @@ export default function PublicAgentStorePage() {
 
   const [activeNetwork, setActiveNetwork] = useState('')
   const [selectedPackage, setSelectedPackage] = useState<StorePackage | null>(null)
+  const [selectedService, setSelectedService] = useState<StoreService | null>(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [recipientPhone, setRecipientPhone] = useState('')
   const [afaFullName, setAfaFullName] = useState('')
@@ -158,6 +160,7 @@ export default function PublicAgentStorePage() {
 
   const startCheckout = (item: StorePackage) => {
     setSelectedPackage(item)
+    setSelectedService(null)
     setRecipientPhone('')
     setAfaFullName('')
     setAfaGhanaCardNumber('')
@@ -165,21 +168,38 @@ export default function PublicAgentStorePage() {
     setCheckoutOpen(true)
   }
 
+  const startServiceCheckout = (item: StoreService) => {
+    setSelectedService(item)
+    setSelectedPackage(null)
+    setRecipientPhone('')
+    setAfaFullName('')
+    setAfaGhanaCardNumber('')
+    setAfaLocation('')
+    setCheckoutOpen(true)
+  }
+
+  const checkoutType = selectedService ? 'service' : 'data'
+
   const isAfaRegistration = useMemo(
-    () => (selectedPackage?.data_packages?.network || '').trim().toUpperCase() === 'AFA',
-    [selectedPackage?.data_packages?.network]
+    () => checkoutType === 'data' && (selectedPackage?.data_packages?.network || '').trim().toUpperCase() === 'AFA',
+    [checkoutType, selectedPackage?.data_packages?.network]
   )
 
-  const submitDataOrder = async () => {
-    if (!store || !selectedPackage?.data_packages) return
+  const submitStoreOrder = async () => {
+    if (!store) return
 
-    if (!recipientPhone.trim()) {
+    if (checkoutType === 'data' && !recipientPhone.trim()) {
       toast.error('Please enter recipient number')
       return
     }
 
     if (!customerName.trim() || !customerPhone.trim()) {
       toast.error('Please add your name and phone number')
+      return
+    }
+
+    if (!customerEmail.trim()) {
+      toast.error('Email is required for Paystack payment')
       return
     }
 
@@ -203,44 +223,45 @@ export default function PublicAgentStorePage() {
 
     setSubmitting(true)
 
-    const customerNote = isAfaRegistration
-      ? [
-          `AFA Registration`,
-          `Phone: ${recipientPhone.trim()}`,
-          `Full Name: ${afaFullName.trim()}`,
-          `Ghana Card: ${afaGhanaCardNumber.trim().toUpperCase()}`,
-          `Location: ${afaLocation.trim()}`,
-        ].join(' | ')
-      : `Recipient: ${recipientPhone.trim()}`
+    try {
+      if (checkoutType === 'service') {
+        if (!selectedService?.online_services) {
+          throw new Error('No store service selected')
+        }
 
-    const { error } = await supabase.client.from('agent_store_orders').insert({
-      store_id: store.id,
-      item_type: 'data',
-      package_id: selectedPackage.data_packages.id,
-      service_id: null,
-      customer_name: customerName.trim(),
-      customer_phone: customerPhone.trim(),
-      customer_email: customerEmail.trim() || null,
-      customer_note: customerNote,
-      quantity: 1,
-      total_price: Number(selectedPackage.selling_price || 0),
-      status: 'pending',
-    })
+        await startPaystackCheckout({
+          flow: 'store_service',
+          storeId: store.id,
+          serviceId: selectedService.online_services.id,
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          customerEmail: customerEmail.trim(),
+          redirectPath: `/store/${store.slug}`,
+        })
+        return
+      }
 
-    setSubmitting(false)
+      if (!selectedPackage?.data_packages) {
+        throw new Error('No store package selected')
+      }
 
-    if (error) {
-      toast.error(error.message || 'Could not place order')
-      return
+      await startPaystackCheckout({
+        flow: isAfaRegistration ? 'store_afa' : 'store_data',
+        storeId: store.id,
+        packageId: selectedPackage.data_packages.id,
+        phone: recipientPhone.trim(),
+        fullName: isAfaRegistration ? afaFullName.trim() : undefined,
+        ghanaCardNumber: isAfaRegistration ? afaGhanaCardNumber.trim().toUpperCase() : undefined,
+        location: isAfaRegistration ? afaLocation.trim() : undefined,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        customerEmail: customerEmail.trim(),
+        redirectPath: `/store/${store.slug}`,
+      })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not initialize Paystack payment')
+      setSubmitting(false)
     }
-
-    toast.success('Order received. The store will confirm payment shortly.')
-    setCheckoutOpen(false)
-    setSelectedPackage(null)
-    setRecipientPhone('')
-    setAfaFullName('')
-    setAfaGhanaCardNumber('')
-    setAfaLocation('')
   }
 
   if (loading) {
@@ -338,6 +359,9 @@ export default function PublicAgentStorePage() {
                     <p className="text-sm font-semibold text-slate-900">{service.online_services?.name}</p>
                     <p className="mt-1 text-xs text-slate-600">{service.online_services?.category}</p>
                     <p className="mt-2 text-sm font-bold" style={{ color: accent }}>{formatGhs(service.selling_price)}</p>
+                    <Button size="sm" className="mt-3 w-full" onClick={() => startServiceCheckout(service)}>
+                      Pay Now
+                    </Button>
                   </div>
                 ))
               )}
@@ -436,22 +460,32 @@ export default function PublicAgentStorePage() {
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{isAfaRegistration ? 'Complete your AFA registration' : 'Complete your data purchase'}</DialogTitle>
+            <DialogTitle>
+              {checkoutType === 'service'
+                ? 'Complete your service purchase'
+                : isAfaRegistration
+                  ? 'Complete your AFA registration'
+                  : 'Complete your data purchase'}
+            </DialogTitle>
             <DialogDescription>
-              {selectedPackage?.data_packages?.network} {selectedPackage?.data_packages?.amount} - {formatGhs(selectedPackage?.selling_price || 0)}
+              {checkoutType === 'service'
+                ? `${selectedService?.online_services?.name || 'Service'} - ${formatGhs(selectedService?.selling_price || 0)}`
+                : `${selectedPackage?.data_packages?.network} ${selectedPackage?.data_packages?.amount} - ${formatGhs(selectedPackage?.selling_price || 0)}`}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="recipient">{isAfaRegistration ? 'Phone Number' : 'Recipient Number'}</Label>
-              <Input
-                id="recipient"
-                placeholder="e.g. 024XXXXXXX"
-                value={recipientPhone}
-                onChange={(e) => setRecipientPhone(e.target.value)}
-              />
-            </div>
+            {checkoutType === 'data' ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="recipient">{isAfaRegistration ? 'Phone Number' : 'Recipient Number'}</Label>
+                <Input
+                  id="recipient"
+                  placeholder="e.g. 024XXXXXXX"
+                  value={recipientPhone}
+                  onChange={(e) => setRecipientPhone(e.target.value)}
+                />
+              </div>
+            ) : null}
 
             {isAfaRegistration ? (
               <>
@@ -498,12 +532,12 @@ export default function PublicAgentStorePage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="buyer-email">Your Email (optional)</Label>
+              <Label htmlFor="buyer-email">Your Email</Label>
               <Input id="buyer-email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
             </div>
 
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-              <p className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> You will be contacted to finalize payment.</p>
+              <p className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> Secure Paystack checkout will open next.</p>
             </div>
           </div>
 
@@ -511,9 +545,9 @@ export default function PublicAgentStorePage() {
             <Button variant="outline" onClick={() => setCheckoutOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={submitDataOrder} disabled={submitting} style={{ backgroundColor: accent }}>
+            <Button onClick={() => void submitStoreOrder()} disabled={submitting} style={{ backgroundColor: accent }}>
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Pay {formatGhs(selectedPackage?.selling_price || 0)}
+              Pay {formatGhs(checkoutType === 'service' ? selectedService?.selling_price || 0 : selectedPackage?.selling_price || 0)}
             </Button>
           </DialogFooter>
         </DialogContent>
