@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Menu, Search, Bell, User, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,6 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useAuthStore } from '@/lib/store'
-import { useTransactionStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -23,6 +22,14 @@ import { formatDistanceToNow } from 'date-fns'
 
 interface HeaderProps {
   onMenuClick: () => void
+}
+
+type NotificationItem = {
+  id: string
+  title: string
+  message: string
+  created_at: string
+  is_read: boolean
 }
 
 const pageLabels: Record<string, string> = {
@@ -46,8 +53,9 @@ export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
-  const { transactions } = useTransactionStore()
   const [searchQuery, setSearchQuery] = useState('')
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
 
   const pageTitle = pageLabels[pathname] ?? pageLabels[Object.keys(pageLabels).find((k) => pathname.startsWith(k)) ?? ''] ?? 'Dashboard'
 
@@ -81,12 +89,70 @@ export function Header({ onMenuClick }: HeaderProps) {
       .slice(0, 2)
   }
 
-  const notifications = transactions.slice(0, 5).map((tx) => ({
-    id: tx.id,
-    title: tx.type === 'wallet' ? 'Wallet activity' : 'Transaction update',
-    message: tx.description,
-    time: formatDistanceToNow(new Date(tx.date), { addSuffix: true }),
-  }))
+  const loadNotifications = async () => {
+    const userId = user?.id
+    if (!userId) {
+      setNotifications([])
+      return
+    }
+
+    setLoadingNotifications(true)
+    const { data, error } = await supabase.client
+      .from('notifications')
+      .select('id,title,message,created_at,is_read')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(8)
+
+    if (error) {
+      setLoadingNotifications(false)
+      return
+    }
+
+    setNotifications((data as NotificationItem[] | null) || [])
+    setLoadingNotifications(false)
+  }
+
+  useEffect(() => {
+    void loadNotifications()
+
+    const userId = user?.id
+    if (!userId) return
+
+    const channel = supabase.client
+      .channel(`user-notifications-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        () => void loadNotifications()
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.client.removeChannel(channel)
+    }
+  }, [user?.id])
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length
+
+  const markAllAsRead = async () => {
+    const userId = user?.id
+    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id)
+    if (!userId || unreadIds.length === 0) return
+
+    const { error } = await supabase.client
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', userId)
+      .in('id', unreadIds)
+
+    if (error) {
+      toast.error('Could not mark notifications as read')
+      return
+    }
+
+    setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })))
+  }
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/95 px-4 backdrop-blur-sm lg:px-6">
@@ -137,7 +203,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
               <Bell className="h-5 w-5" />
               <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                {notifications.length}
+                {unreadCount}
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-50" />
               </span>
             </Button>
@@ -145,19 +211,21 @@ export function Header({ onMenuClick }: HeaderProps) {
           <DropdownMenuContent align="end" className="w-80">
             <DropdownMenuLabel className="flex items-center justify-between">
               <span>Notifications</span>
-              <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary">
+              <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" onClick={() => void markAllAsRead()}>
                 Mark all as read
               </Button>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {notifications.length === 0 ? (
+            {loadingNotifications ? (
+              <DropdownMenuItem className="justify-center text-muted-foreground">Loading...</DropdownMenuItem>
+            ) : notifications.length === 0 ? (
               <DropdownMenuItem className="justify-center text-muted-foreground">No notifications yet</DropdownMenuItem>
             ) : (
               notifications.map((notification) => (
                 <DropdownMenuItem key={notification.id} className="flex flex-col items-start gap-1 p-3">
                   <div className="flex w-full items-start justify-between">
                     <span className="font-medium">{notification.title}</span>
-                    <span className="text-xs text-muted-foreground">{notification.time}</span>
+                    <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}</span>
                   </div>
                   <span className="text-sm text-muted-foreground">{notification.message}</span>
                 </DropdownMenuItem>

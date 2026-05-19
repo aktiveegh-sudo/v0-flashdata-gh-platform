@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BellRing, Send } from 'lucide-react'
+import { BellRing, Pencil, Send, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -34,6 +34,7 @@ export default function AdminSendNotificationPage() {
   const [rows, setRows] = useState<NotificationRow[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const [target, setTarget] = useState<'all' | 'single'>('all')
   const [selectedUserId, setSelectedUserId] = useState('')
@@ -93,6 +94,41 @@ export default function AdminSendNotificationPage() {
 
     setSending(true)
 
+    if (editingId) {
+      const targetUserId = target === 'single' ? selectedUserId : ''
+      if (!targetUserId) {
+        toast.error('Please select a user for this notification')
+        setSending(false)
+        return
+      }
+
+      const { error } = await supabase.client
+        .from('notifications')
+        .update({
+          user_id: targetUserId,
+          title: title.trim(),
+          message: message.trim(),
+          type,
+        })
+        .eq('id', editingId)
+
+      if (error) {
+        toast.error(error.message)
+        setSending(false)
+        return
+      }
+
+      toast.success('Notification updated')
+      setSending(false)
+      setEditingId(null)
+      setTitle('')
+      setMessage('')
+      setSelectedUserId('')
+      setTarget('all')
+      void loadData()
+      return
+    }
+
     const targets = target === 'all' ? users.map((u) => u.id) : [selectedUserId]
     const validTargets = targets.filter(Boolean)
 
@@ -124,6 +160,42 @@ export default function AdminSendNotificationPage() {
     void loadData()
   }
 
+  const editNotification = (row: NotificationRow) => {
+    setEditingId(row.id)
+    setTarget('single')
+    setSelectedUserId(row.user_id)
+    setTitle(row.title)
+    setMessage(row.message)
+    setType(row.type)
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setTarget('all')
+    setSelectedUserId('')
+    setTitle('')
+    setMessage('')
+    setType('info')
+  }
+
+  const deleteNotification = async (id: string) => {
+    if (!window.confirm('Delete this notification?')) {
+      return
+    }
+
+    const { error } = await supabase.client.from('notifications').delete().eq('id', id)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+
+    toast.success('Notification deleted')
+    if (editingId === id) {
+      cancelEdit()
+    }
+    void loadData()
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -133,14 +205,14 @@ export default function AdminSendNotificationPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Create Notification</CardTitle>
+          <CardTitle>{editingId ? 'Edit Notification' : 'Create Notification'}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={sendNotification} className="grid gap-4">
             <div className="grid gap-3 md:grid-cols-3">
               <div className="space-y-2">
                 <Label>Target</Label>
-                <Select value={target} onValueChange={(value) => setTarget(value as typeof target)}>
+                <Select value={target} onValueChange={(value) => setTarget(value as typeof target)} disabled={Boolean(editingId)}>
                   <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
@@ -195,8 +267,13 @@ export default function AdminSendNotificationPage() {
             </div>
 
             <Button type="submit" disabled={sending} className="w-fit min-h-11">
-              <Send className="mr-2 h-4 w-4" /> {sending ? 'Sending...' : 'Send Notification'}
+              <Send className="mr-2 h-4 w-4" /> {sending ? (editingId ? 'Updating...' : 'Sending...') : editingId ? 'Update Notification' : 'Send Notification'}
             </Button>
+            {editingId ? (
+              <Button type="button" variant="outline" className="w-fit" onClick={cancelEdit}>
+                Cancel Edit
+              </Button>
+            ) : null}
           </form>
         </CardContent>
       </Card>
@@ -219,7 +296,15 @@ export default function AdminSendNotificationPage() {
                     <p className="font-medium">{row.title}</p>
                     <Badge variant="outline">{row.type}</Badge>
                   </div>
-                  <span className="text-xs text-muted-foreground">{formatDateTime(row.created_at)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{formatDateTime(row.created_at)}</span>
+                    <Button size="sm" variant="outline" onClick={() => editNotification(row)}>
+                      <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => void deleteNotification(row.id)}>
+                      <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+                    </Button>
+                  </div>
                 </div>
                 <p className="mt-2 text-sm">{row.message}</p>
                 <p className="mt-2 text-xs text-muted-foreground">
