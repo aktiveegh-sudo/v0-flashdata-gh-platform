@@ -18,6 +18,7 @@ type SiteSettingsRow = {
   hero_text: string | null
   contact_email: string | null
   contact_phone: string | null
+  whatsapp_channel_url: string | null
   maintenance_mode: boolean
 }
 
@@ -28,6 +29,7 @@ const defaultState = {
   hero_text: '',
   contact_email: '',
   contact_phone: '',
+  whatsapp_channel_url: '',
   maintenance_mode: false,
 }
 
@@ -41,7 +43,7 @@ export default function AdminSiteSettingsPage() {
 
     const { data, error } = await supabase.client
       .from('site_settings')
-      .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,maintenance_mode')
+      .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode')
       .limit(1)
       .maybeSingle()
 
@@ -61,9 +63,10 @@ export default function AdminSiteSettingsPage() {
           hero_text: 'Welcome to FlashData GH',
           contact_email: 'support@flashdatagh.com',
           contact_phone: null,
+          whatsapp_channel_url: null,
           maintenance_mode: false,
         })
-        .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,maintenance_mode')
+        .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode')
         .single()
 
       if (insertError || !inserted) {
@@ -79,6 +82,7 @@ export default function AdminSiteSettingsPage() {
         hero_text: inserted.hero_text || '',
         contact_email: inserted.contact_email || '',
         contact_phone: inserted.contact_phone || '',
+        whatsapp_channel_url: inserted.whatsapp_channel_url || '',
         maintenance_mode: !!inserted.maintenance_mode,
       })
 
@@ -94,6 +98,7 @@ export default function AdminSiteSettingsPage() {
       hero_text: row.hero_text || '',
       contact_email: row.contact_email || '',
       contact_phone: row.contact_phone || '',
+      whatsapp_channel_url: row.whatsapp_channel_url || '',
       maintenance_mode: !!row.maintenance_mode,
     })
 
@@ -114,6 +119,7 @@ export default function AdminSiteSettingsPage() {
       hero_text: form.hero_text || null,
       contact_email: form.contact_email || null,
       contact_phone: form.contact_phone || null,
+      whatsapp_channel_url: form.whatsapp_channel_url || null,
       maintenance_mode: form.maintenance_mode,
       updated_at: new Date().toISOString(),
     }
@@ -166,6 +172,14 @@ export default function AdminSiteSettingsPage() {
               <div className="space-y-2">
                 <Label>Contact Phone</Label>
                 <Input value={form.contact_phone} onChange={(e) => setForm((prev) => ({ ...prev, contact_phone: e.target.value }))} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>WhatsApp Channel Link</Label>
+                <Input
+                  placeholder="https://whatsapp.com/channel/..."
+                  value={form.whatsapp_channel_url}
+                  onChange={(e) => setForm((prev) => ({ ...prev, whatsapp_channel_url: e.target.value }))}
+                />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Hero Text</Label>

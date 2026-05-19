@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { MessageCircle } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { ensureProfileAndWalletForUser } from '@/lib/supabase/profile-bootstrap'
@@ -19,6 +20,7 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
+  const [whatsappChannelUrl, setWhatsappChannelUrl] = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -80,6 +82,25 @@ export default function DashboardLayout({
     void ensureSession()
   }, [clearAuth, mounted, router, setAuthUser])
 
+  useEffect(() => {
+    if (!mounted) {
+      return
+    }
+
+    const loadWhatsappChannel = async () => {
+      const { data } = await supabase.client
+        .from('site_settings')
+        .select('whatsapp_channel_url')
+        .limit(1)
+        .maybeSingle()
+
+      const raw = (data as { whatsapp_channel_url?: string | null } | null)?.whatsapp_channel_url || ''
+      setWhatsappChannelUrl(raw.trim())
+    }
+
+    void loadWhatsappChannel()
+  }, [mounted])
+
   if (!mounted || checkingSession) {
     return <PageLoader />
   }
@@ -95,6 +116,18 @@ export default function DashboardLayout({
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="p-4 lg:p-6">{children}</main>
       </div>
+      {whatsappChannelUrl ? (
+        <a
+          href={whatsappChannelUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:bg-green-600"
+          aria-label="Open WhatsApp channel"
+        >
+          <MessageCircle className="h-4 w-4" />
+          WhatsApp Channel
+        </a>
+      ) : null}
     </div>
   )
 }
