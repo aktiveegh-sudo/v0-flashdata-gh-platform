@@ -17,10 +17,8 @@ import toast from 'react-hot-toast'
 type DataPackageRow = {
   id: string
   network: string
-  name: string
   amount: string
   selling_price: number
-  validity: string
 }
 
 const networkPalette: Record<string, { color: string; textColor: string; borderColor: string }> = {
@@ -50,7 +48,7 @@ function BuyDataContent() {
 
       const { data, error } = await supabase.client
         .from('data_packages')
-        .select('id,network,name,amount,selling_price,validity')
+        .select('id,network,amount,selling_price')
         .eq('is_active', true)
         .order('network', { ascending: true })
         .order('selling_price', { ascending: true })
@@ -266,9 +264,9 @@ function BuyDataContent() {
                             <Check className={`h-5 w-5 ${networkPalette[pkg.network]?.textColor || 'text-primary'}`} />
                           </div>
                         ) : null}
+                        <p className="text-xs font-semibold uppercase tracking-wide opacity-90">{pkg.network}</p>
                         <p className="text-xl font-bold">{pkg.amount}</p>
                         <p className="text-lg font-semibold">GHc {pkg.selling_price.toFixed(2)}</p>
-                        <p className="text-xs opacity-90">{pkg.name} &middot; {pkg.validity}</p>
                       </button>
                     ))}
                   </div>
@@ -296,7 +294,7 @@ function BuyDataContent() {
                 <DialogTitle>Complete Data Purchase</DialogTitle>
                 <DialogDescription>
                   {selectedPackage
-                    ? `${selectedPackage.network} ${selectedPackage.amount} (${selectedPackage.name})`
+                    ? `${selectedPackage.network} ${selectedPackage.amount} - GHc ${selectedPackage.selling_price.toFixed(2)}`
                     : 'Select a package to continue'}
                 </DialogDescription>
               </DialogHeader>
@@ -324,7 +322,7 @@ function BuyDataContent() {
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-muted-foreground">Package</span>
-                    <span className="font-medium">{selectedPackage ? `${selectedPackage.amount} (${selectedPackage.name})` : 'Not selected'}</span>
+                    <span className="font-medium">{selectedPackage ? selectedPackage.amount : 'Not selected'}</span>
                   </div>
                   <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                     <span className="font-medium">Total</span>

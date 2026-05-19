@@ -344,12 +344,8 @@ export default function PublicAgentStorePage() {
                       onClick={() => startCheckout(item)}
                       className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white"
                     >
-                      <p className="text-sm font-semibold text-slate-900">
-                        {item.data_packages?.network} {item.data_packages?.name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-600">
-                        {item.data_packages?.amount} | {item.data_packages?.validity}
-                      </p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{item.data_packages?.network}</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{item.data_packages?.amount}</p>
                       <p className="mt-3 text-lg font-bold" style={{ color: accent }}>{formatGhs(item.selling_price)}</p>
                     </button>
                   ))}
@@ -400,7 +396,7 @@ export default function PublicAgentStorePage() {
           <DialogHeader>
             <DialogTitle>Complete your data purchase</DialogTitle>
             <DialogDescription>
-              {selectedPackage?.data_packages?.network} {selectedPackage?.data_packages?.name} - {formatGhs(selectedPackage?.selling_price || 0)}
+              {selectedPackage?.data_packages?.network} {selectedPackage?.data_packages?.amount} - {formatGhs(selectedPackage?.selling_price || 0)}
             </DialogDescription>
           </DialogHeader>
 

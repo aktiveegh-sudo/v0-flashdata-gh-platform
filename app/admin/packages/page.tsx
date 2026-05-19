@@ -28,6 +28,10 @@ const networkOrder: Record<string, number> = {
   'Airtel-Tigo': 1,
   Telecel: 2,
   AFA: 3,
+  mtn: 0,
+  airteltigo: 1,
+  telecel: 2,
+  afa: 3,
 }
 
 const emptyForm = {
@@ -48,7 +52,8 @@ export default function AdminPackagesPage() {
     const { data, error } = await supabase.client
       .from('data_packages')
       .select('id,network,name,amount,cost_price,selling_price,validity,is_active')
-      .order('created_at', { ascending: false })
+      .order('network', { ascending: true })
+      .order('cost_price', { ascending: true })
 
     if (error) {
       toast.error(error.message)
@@ -56,8 +61,12 @@ export default function AdminPackagesPage() {
       return
     }
 
+    const toOrderKey = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '')
+
     const sortedRows = ((data as PackageRow[]) || []).sort((a, b) => {
-      const networkDiff = (networkOrder[a.network] ?? 99) - (networkOrder[b.network] ?? 99)
+      const networkA = toOrderKey(a.network)
+      const networkB = toOrderKey(b.network)
+      const networkDiff = (networkOrder[a.network] ?? networkOrder[networkA] ?? 99) - (networkOrder[b.network] ?? networkOrder[networkB] ?? 99)
       if (networkDiff !== 0) return networkDiff
 
       const amountDiff = a.amount.localeCompare(b.amount, undefined, { numeric: true, sensitivity: 'base' })
@@ -208,26 +217,22 @@ export default function AdminPackagesPage() {
             <thead className="bg-muted/60 text-left">
               <tr>
                 <th className="px-3 py-3">Network</th>
-                <th className="px-3 py-3">Name</th>
-                <th className="px-3 py-3">Amount</th>
-                <th className="px-3 py-3">Data Price</th>
-                <th className="px-3 py-3">Selling</th>
+                <th className="px-3 py-3">Data Volume</th>
+                <th className="px-3 py-3">Price</th>
                 <th className="px-3 py-3">Status</th>
                 <th className="px-3 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td className="px-3 py-6 text-muted-foreground" colSpan={7}>Loading packages...</td></tr>
+                <tr><td className="px-3 py-6 text-muted-foreground" colSpan={6}>Loading packages...</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td className="px-3 py-6 text-muted-foreground" colSpan={7}>No packages found.</td></tr>
+                <tr><td className="px-3 py-6 text-muted-foreground" colSpan={6}>No packages found.</td></tr>
               ) : rows.map((pkg) => (
                 <tr key={pkg.id} className="border-t border-border">
                   <td className="px-3 py-3">{pkg.network}</td>
-                  <td className="px-3 py-3 font-medium">{pkg.name}</td>
                   <td className="px-3 py-3">{pkg.amount}</td>
                   <td className="px-3 py-3">{ghanaCurrency(Number(pkg.cost_price || 0))}</td>
-                  <td className="px-3 py-3">{ghanaCurrency(Number(pkg.selling_price || 0))}</td>
                   <td className="px-3 py-3">
                     <Badge variant={pkg.is_active ? 'default' : 'secondary'}>{pkg.is_active ? 'Active' : 'Inactive'}</Badge>
                   </td>
