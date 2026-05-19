@@ -27,4 +27,3 @@ export type AdminActivity = {
   metadata: Record<string, unknown>
   created_at: string
 }
-
