@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { ColorWheel } from '@/components/ui/color-wheel'
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
@@ -312,28 +313,25 @@ export default function StoreSettingsPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="themeColor">Theme Color</Label>
-                <div className="flex items-center gap-3">
-                  <input
-                    id="themeColor"
-                    type="color"
-                    value={previewThemeColor}
-                    onChange={(e) => setThemeColor(e.target.value)}
-                    className="h-10 w-14 cursor-pointer rounded border border-border bg-background p-1"
-                    aria-label="Pick store theme color"
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Theme Color</Label>
+                <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+                  <ColorWheel
+                    color={previewThemeColor}
+                    onChange={(hex) => setThemeColor(hex)}
+                    size={200}
                   />
-                  <Input
-                    value={themeColor}
-                    onChange={(e) => setThemeColor(e.target.value)}
-                    placeholder="#0ea5e9"
-                  />
-                </div>
-                <div className="rounded-lg border border-border bg-muted/30 p-2.5">
-                  <p className="mb-1 text-xs text-muted-foreground">Preview</p>
                   <div className="flex items-center gap-2">
-                    <span className="inline-block h-4 w-4 rounded-full border border-border" style={{ backgroundColor: previewThemeColor }} />
-                    <span className="text-sm font-medium text-foreground">{previewThemeColor}</span>
+                    <span
+                      className="inline-block h-8 w-8 flex-shrink-0 rounded-full border border-border shadow-sm"
+                      style={{ backgroundColor: previewThemeColor }}
+                    />
+                    <Input
+                      value={themeColor}
+                      onChange={(e) => setThemeColor(e.target.value)}
+                      placeholder="#0ea5e9"
+                      className="font-mono text-sm"
+                    />
                   </div>
                 </div>
               </div>
