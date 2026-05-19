@@ -6,6 +6,7 @@ import { ShoppingCart, Check, X, Clock, Phone, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -34,6 +35,7 @@ export default function StoreOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [orders, setOrders] = useState<StoreOrder[]>([])
+  const [statusFilter, setStatusFilter] = useState<'all' | StoreOrder['status']>('all')
 
   const loadOrders = async () => {
     setLoading(true)
@@ -105,6 +107,7 @@ export default function StoreOrdersPage() {
   const pendingOrders = orders.filter((o) => o.status === 'pending')
   const acceptedOrders = orders.filter((o) => o.status === 'accepted')
   const completedOrders = orders.filter((o) => o.status === 'completed' || o.status === 'declined')
+  const filteredOrders = statusFilter === 'all' ? orders : orders.filter((o) => o.status === statusFilter)
 
   const statusClass = (status: StoreOrder['status']) => {
     if (status === 'completed') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
@@ -253,55 +256,33 @@ export default function StoreOrdersPage() {
         </Card>
       </div>
 
-      {pendingOrders.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-yellow-500" />
-              Pending Orders ({pendingOrders.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {pendingOrders.map((order) => (
-                <OrderCard key={order.id} order={order} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {acceptedOrders.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-blue-500" />
-              Processing ({acceptedOrders.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {acceptedOrders.map((order) => (
-                <OrderCard key={order.id} order={order} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Check className="h-5 w-5 text-green-500" />
-            Order History ({completedOrders.length})
-          </CardTitle>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              All Store Orders ({orders.length})
+            </CardTitle>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="accepted">Accepted</SelectItem>
+                <SelectItem value="declined">Declined</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
-          {completedOrders.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground">No completed orders yet</p>
+          {filteredOrders.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">No orders found for this filter</p>
           ) : (
             <div className="space-y-3">
-              {completedOrders.map((order) => (
+              {filteredOrders.map((order) => (
                 <OrderCard key={order.id} order={order} />
               ))}
             </div>
