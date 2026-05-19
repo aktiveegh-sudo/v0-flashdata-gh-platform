@@ -36,7 +36,6 @@ const networkOrder: Record<string, number> = {
 
 const emptyForm = {
   network: 'MTN',
-  name: '',
   amount: '',
   cost_price: '',
 }
@@ -88,14 +87,14 @@ export default function AdminPackagesPage() {
 
     const payload = {
       network: form.network as PackageRow['network'],
-      name: form.name,
+      name: `${form.network} ${form.amount}`.trim(),
       amount: form.amount,
       cost_price: Number(form.cost_price),
       selling_price: editingId ? rows.find((pkg) => pkg.id === editingId)?.selling_price ?? Number(form.cost_price) : Number(form.cost_price),
       validity: 'Non-expiry',
     }
 
-    if (!payload.name || !payload.amount || Number.isNaN(payload.cost_price)) {
+    if (!payload.amount || Number.isNaN(payload.cost_price)) {
       toast.error('Please fill all required fields')
       return
     }
@@ -133,7 +132,6 @@ export default function AdminPackagesPage() {
     setEditingId(pkg.id)
     setForm({
       network: pkg.network,
-      name: pkg.name,
       amount: pkg.amount,
       cost_price: String(pkg.cost_price),
     })
@@ -158,7 +156,7 @@ export default function AdminPackagesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Packages</h1>
-        <p className="text-sm text-muted-foreground">Create and maintain data package pricing and inventory.</p>
+        <p className="text-sm text-muted-foreground">Create packages using Network, Data Volume, and Amount format.</p>
       </div>
 
       <Card>
@@ -180,15 +178,11 @@ export default function AdminPackagesPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Name</Label>
-              <Input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="MTN 5GB Weekly" />
-            </div>
-            <div className="space-y-2">
-              <Label>Amount</Label>
+              <Label>Data Volume</Label>
               <Input value={form.amount} onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))} placeholder="5GB" />
             </div>
             <div className="space-y-2">
-              <Label>Cost Price</Label>
+              <Label>Amount (GHc)</Label>
               <Input type="number" min="0" step="0.01" value={form.cost_price} onChange={(e) => setForm((prev) => ({ ...prev, cost_price: e.target.value }))} />
             </div>
             <div className="md:col-span-2 xl:col-span-5 flex flex-wrap gap-2">

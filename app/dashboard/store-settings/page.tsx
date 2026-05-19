@@ -13,6 +13,23 @@ import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const HEX_COLOR_REGEX = /^#([a-fA-F0-9]{6})$/
+
+const normalizeHexColor = (value: string) => {
+  const cleaned = value.trim()
+  if (!cleaned) return '#0ea5e9'
+
+  if (HEX_COLOR_REGEX.test(cleaned)) {
+    return cleaned.toLowerCase()
+  }
+
+  const withoutHash = cleaned.replace('#', '')
+  if (/^[a-fA-F0-9]{6}$/.test(withoutHash)) {
+    return `#${withoutHash.toLowerCase()}`
+  }
+
+  return '#0ea5e9'
+}
 
 export default function StoreSettingsPage() {
   const [loading, setLoading] = useState(true)
@@ -151,6 +168,8 @@ export default function StoreSettingsPage() {
     return `${window.location.origin}/store/${slug}`
   }, [slug])
 
+  const previewThemeColor = useMemo(() => normalizeHexColor(themeColor), [themeColor])
+
   const handleSave = async () => {
     const normalizedSlug = slug.trim().toLowerCase()
 
@@ -186,7 +205,7 @@ export default function StoreSettingsPage() {
       description: description.trim() || null,
       logo_url: logoUrl.trim() || null,
       cover_url: coverUrl.trim() || null,
-      theme_color: themeColor.trim() || '#0ea5e9',
+      theme_color: normalizeHexColor(themeColor),
       contact_phone: contactPhone.trim() || null,
       contact_email: contactEmail.trim() || null,
       whatsapp_number: whatsappNumber.trim() || null,
@@ -295,7 +314,28 @@ export default function StoreSettingsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="themeColor">Theme Color</Label>
-                <Input id="themeColor" value={themeColor} onChange={(e) => setThemeColor(e.target.value)} placeholder="#0ea5e9" />
+                <div className="flex items-center gap-3">
+                  <input
+                    id="themeColor"
+                    type="color"
+                    value={previewThemeColor}
+                    onChange={(e) => setThemeColor(e.target.value)}
+                    className="h-10 w-14 cursor-pointer rounded border border-border bg-background p-1"
+                    aria-label="Pick store theme color"
+                  />
+                  <Input
+                    value={themeColor}
+                    onChange={(e) => setThemeColor(e.target.value)}
+                    placeholder="#0ea5e9"
+                  />
+                </div>
+                <div className="rounded-lg border border-border bg-muted/30 p-2.5">
+                  <p className="mb-1 text-xs text-muted-foreground">Preview</p>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block h-4 w-4 rounded-full border border-border" style={{ backgroundColor: previewThemeColor }} />
+                    <span className="text-sm font-medium text-foreground">{previewThemeColor}</span>
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contactPhone">Support Phone</Label>
