@@ -3,14 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Store, Phone, Mail, MessageCircle, ShoppingCart, Loader2, Sparkles } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Loader2, MessageCircle, Phone, Mail, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
@@ -53,6 +52,8 @@ type StoreService = {
   } | null
 }
 
+const formatGhs = (value: number) => `GHc ${Number(value || 0).toFixed(2)}`
+
 export default function PublicAgentStorePage() {
   const params = useParams<{ slug: string }>()
   const slug = typeof params.slug === 'string' ? params.slug : ''
@@ -62,14 +63,13 @@ export default function PublicAgentStorePage() {
   const [packages, setPackages] = useState<StorePackage[]>([])
   const [services, setServices] = useState<StoreService[]>([])
 
-  const [selectedData, setSelectedData] = useState<StorePackage | null>(null)
-  const [selectedService, setSelectedService] = useState<StoreService | null>(null)
-
+  const [activeNetwork, setActiveNetwork] = useState('')
+  const [selectedPackage, setSelectedPackage] = useState<StorePackage | null>(null)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [recipientPhone, setRecipientPhone] = useState('')
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
-  const [customerNote, setCustomerNote] = useState('')
-  const [quantity, setQuantity] = useState('1')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -109,56 +109,84 @@ export default function PublicAgentStorePage() {
           .order('selling_price', { ascending: true }),
       ])
 
-      setPackages((pkgData as StorePackage[] | null) ?? [])
-      setServices((serviceData as StoreService[] | null) ?? [])
+      const loadedPackages = (pkgData as StorePackage[] | null) ?? []
+      const loadedServices = (serviceData as StoreService[] | null) ?? []
+
+      setPackages(loadedPackages)
+      setServices(loadedServices)
+
+      const firstNetwork = loadedPackages.find((item) => item.data_packages?.network)?.data_packages?.network || ''
+      setActiveNetwork(firstNetwork)
       setLoading(false)
     }
 
     void loadStore()
   }, [slug])
 
-  const quantityNum = useMemo(() => {
-    const parsed = Number.parseInt(quantity, 10)
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
-  }, [quantity])
+  const accent = store?.theme_color || '#f97316'
 
-  const selectedPrice = selectedData?.selling_price ?? selectedService?.selling_price ?? 0
-  const totalPrice = selectedPrice * quantityNum
+  const networks = useMemo(() => {
+    const set = new Set<string>()
+    for (const item of packages) {
+      if (item.data_packages?.network) {
+        set.add(item.data_packages.network)
+      }
+    }
+    return Array.from(set)
+  }, [packages])
 
-  const resetSelection = () => {
-    setSelectedData(null)
-    setSelectedService(null)
+  const filteredPackages = useMemo(() => {
+    if (!activeNetwork) return packages
+    return packages.filter((item) => item.data_packages?.network === activeNetwork)
+  }, [activeNetwork, packages])
+
+  const whatsappHref = useMemo(() => {
+    const raw = store?.whatsapp_number?.trim()
+    if (!raw) return null
+
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return raw
+    }
+
+    const stripped = raw.replace(/[^\d+]/g, '')
+    const digits = stripped.startsWith('+') ? stripped.slice(1) : stripped
+    return digits ? `https://wa.me/${digits}` : null
+  }, [store?.whatsapp_number])
+
+  const startCheckout = (item: StorePackage) => {
+    setSelectedPackage(item)
+    setRecipientPhone('')
+    setCheckoutOpen(true)
   }
 
-  const submitOrder = async () => {
-    if (!store) return
+  const submitDataOrder = async () => {
+    if (!store || !selectedPackage?.data_packages) return
+
+    if (!recipientPhone.trim()) {
+      toast.error('Please enter recipient number')
+      return
+    }
+
     if (!customerName.trim() || !customerPhone.trim()) {
       toast.error('Please add your name and phone number')
       return
     }
 
-    if (!selectedData && !selectedService) {
-      toast.error('Please select an item')
-      return
-    }
-
     setSubmitting(true)
 
-    const payload = {
+    const { error } = await supabase.client.from('agent_store_orders').insert({
       store_id: store.id,
-      item_type: selectedData ? 'data' : 'service',
-      package_id: selectedData?.data_packages?.id ?? null,
-      service_id: selectedService?.online_services?.id ?? null,
+      item_type: 'data',
+      package_id: selectedPackage.data_packages.id,
+      service_id: null,
       customer_name: customerName.trim(),
       customer_phone: customerPhone.trim(),
       customer_email: customerEmail.trim() || null,
-      customer_note: customerNote.trim() || null,
-      quantity: quantityNum,
-      total_price: totalPrice,
+      customer_note: `Recipient: ${recipientPhone.trim()}`,
+      quantity: 1,
+      total_price: Number(selectedPackage.selling_price || 0),
       status: 'pending',
-    }
-
-    const { error } = await supabase.client.from('agent_store_orders').insert(payload)
+    })
 
     setSubmitting(false)
 
@@ -167,19 +195,16 @@ export default function PublicAgentStorePage() {
       return
     }
 
-    toast.success('Order received. The agent will process it shortly.')
-    setCustomerName('')
-    setCustomerPhone('')
-    setCustomerEmail('')
-    setCustomerNote('')
-    setQuantity('1')
-    resetSelection()
+    toast.success('Order received. The store will confirm payment shortly.')
+    setCheckoutOpen(false)
+    setSelectedPackage(null)
+    setRecipientPhone('')
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/20">
-        <div className="flex items-center gap-2 text-muted-foreground">
+      <div className="flex min-h-screen items-center justify-center bg-[#fff7ed]">
+        <div className="flex items-center gap-2 text-slate-600">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading store...
         </div>
@@ -189,262 +214,238 @@ export default function PublicAgentStorePage() {
 
   if (!store) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/20 p-6">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Store Not Found</CardTitle>
-            <CardDescription>
-              This store link is invalid or currently unavailable.
-            </CardDescription>
-          </CardHeader>
+      <div className="flex min-h-screen items-center justify-center bg-[#fff7ed] p-6">
+        <Card className="w-full max-w-md border-amber-200 bg-white">
+          <CardContent className="p-8 text-center">
+            <p className="text-lg font-semibold text-slate-900">Store not found</p>
+            <p className="mt-2 text-sm text-slate-600">This storefront link is unavailable right now.</p>
+          </CardContent>
         </Card>
       </div>
     )
   }
 
-  const accent = store.theme_color || '#0ea5e9'
-
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(15,23,42,0.08),transparent_40%)]">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 lg:px-6">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-white"
-              style={{ backgroundColor: accent }}
-            >
-              <Store className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-none">{store.brand_name}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Storefront</p>
-            </div>
-          </div>
-          <nav className="hidden items-center gap-5 text-sm text-muted-foreground md:flex">
-            <a href="#catalog" className="hover:text-foreground">Catalog</a>
-            <a href="#order" className="hover:text-foreground">Order</a>
-            <a href="#contact" className="hover:text-foreground">Contact</a>
-          </nav>
-          <Badge variant="outline">/{store.slug}</Badge>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-[#fff7ed] text-slate-900">
       <section
-        className="relative overflow-hidden border-b border-border"
+        className="relative overflow-hidden"
         style={{
           background: store.cover_url
-            ? `linear-gradient(rgba(0,0,0,.48), rgba(0,0,0,.48)), url(${store.cover_url}) center/cover`
-            : `linear-gradient(132deg, ${accent} 0%, #0f172a 64%, #020617 100%)`,
+            ? `linear-gradient(120deg, rgba(15,23,42,.78), rgba(15,23,42,.58)), url(${store.cover_url}) center/cover`
+            : 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #334155 100%)',
         }}
       >
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-14 text-white lg:grid-cols-[1.5fr_1fr] lg:px-6">
-          <div className="space-y-4">
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium">
-              <Sparkles className="h-3.5 w-3.5" />
-              Trusted Digital Shop
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,.22),transparent_42%)]" />
+        <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 lg:px-6 lg:pt-24">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}
+            className="max-w-3xl"
+          >
+            <Badge className="mb-5 border-0 bg-white/20 text-white">
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+              Welcome to {store.brand_name}
+            </Badge>
+            <h1 className="text-4xl font-black leading-tight text-white lg:text-6xl">
+              Your own plug for data and digital essentials.
+            </h1>
+            <p className="mt-4 max-w-2xl text-base text-slate-100 lg:text-lg">
+              {store.tagline || store.description || 'Buy quickly, pay securely, and get served fast from this independent store.'}
             </p>
-            <h1 className="max-w-3xl text-3xl font-bold leading-tight lg:text-5xl">{store.brand_name}</h1>
-            <p className="max-w-2xl text-sm text-white/85 lg:text-base">
-              {store.tagline || store.description || 'Buy data bundles and digital services directly from this verified store.'}
-            </p>
-            <div className="flex flex-wrap gap-3 pt-2">
-              <a href="#catalog">
-                <Button className="bg-white text-slate-900 hover:bg-white/90">Browse Catalog</Button>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a href="#data-section">
+                <Button className="bg-orange-500 text-white hover:bg-orange-600">Buy Data Now</Button>
               </a>
-              <a href="#order">
-                <Button variant="outline" className="border-white/35 bg-white/5 text-white hover:bg-white/15">
-                  Place an Order
+              <a href="#services-banner">
+                <Button variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20">
+                  Explore Services
                 </Button>
               </a>
             </div>
-          </div>
-          <div className="rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur">
-            <p className="text-xs uppercase tracking-wide text-white/70">Store Promise</p>
-            <ul className="mt-3 space-y-2 text-sm text-white/90">
-              <li>No sign-up required</li>
-              <li>Simple order process</li>
-              <li>Fast agent response</li>
-            </ul>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 lg:px-6">
-        <section id="catalog">
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b border-border bg-muted/30">
-              <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5" style={{ color: accent }} />
-                Products and Services
-              </CardTitle>
-              <CardDescription>Choose what you want to buy before submitting your order.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 lg:p-6">
-              <Tabs defaultValue={store.allow_data ? 'data' : 'services'} className="w-full">
-                <TabsList className="mb-5 grid w-full grid-cols-2">
-                  <TabsTrigger value="data" disabled={!store.allow_data}>Data</TabsTrigger>
-                  <TabsTrigger value="services" disabled={!store.allow_online_services}>Services</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="data" className="grid gap-3 md:grid-cols-2">
-                  {packages.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No data packages available right now.</p>
-                  ) : (
-                    packages.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setSelectedService(null)
-                          setSelectedData(item)
-                        }}
-                        className={`rounded-xl border p-4 text-left transition-all ${
-                          selectedData?.id === item.id
-                            ? 'border-primary bg-primary/5 shadow-sm'
-                            : 'border-border hover:border-primary/40'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold">{item.data_packages?.network} {item.data_packages?.name}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              {item.data_packages?.amount} | {item.data_packages?.validity}
-                            </p>
-                          </div>
-                          <Badge className="shrink-0" style={{ backgroundColor: accent }}>
-                            GHc {Number(item.selling_price).toFixed(2)}
-                          </Badge>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </TabsContent>
-
-                <TabsContent value="services" className="grid gap-3 md:grid-cols-2">
-                  {services.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No services available right now.</p>
-                  ) : (
-                    services.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setSelectedData(null)
-                          setSelectedService(item)
-                        }}
-                        className={`rounded-xl border p-4 text-left transition-all ${
-                          selectedService?.id === item.id
-                            ? 'border-primary bg-primary/5 shadow-sm'
-                            : 'border-border hover:border-primary/40'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold">{item.online_services?.name}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              {item.online_services?.category} | {item.online_services?.description || 'Quick processing'}
-                            </p>
-                          </div>
-                          <Badge className="shrink-0" style={{ backgroundColor: accent }}>
-                            GHc {Number(item.selling_price).toFixed(2)}
-                          </Badge>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-          <Card id="order">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ShoppingCart className="h-4 w-4" style={{ color: accent }} />
-                Order Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="customerName">Full Name</Label>
-                <Input id="customerName" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="customerPhone">Phone Number</Label>
-                <Input id="customerPhone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="customerEmail">Email (optional)</Label>
-                <Input id="customerEmail" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input id="quantity" type="number" min={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="customerNote">Order Note (optional)</Label>
-                <Textarea id="customerNote" rows={3} value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="rounded-lg bg-muted p-3 text-sm">
-                  <p className="text-muted-foreground">Selected item</p>
-                  <p className="font-semibold">
-                    {selectedData
-                      ? `${selectedData.data_packages?.network} ${selectedData.data_packages?.name}`
-                      : selectedService
-                      ? selectedService.online_services?.name
-                      : 'None selected'}
-                  </p>
-                  <p className="mt-2 text-muted-foreground">Quantity</p>
-                  <p className="font-medium">{quantityNum}</p>
-                  <p className="mt-2 text-muted-foreground">Total</p>
-                  <p className="text-xl font-bold" style={{ color: accent }}>GHc {totalPrice.toFixed(2)}</p>
-                </div>
-
-                <Button className="w-full" onClick={submitOrder} disabled={submitting} style={{ backgroundColor: accent }}>
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Submit Order
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card id="contact">
-              <CardHeader>
-                <CardTitle className="text-base">Contact This Store</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {store.contact_phone ? (
-                  <p className="flex items-center gap-2"><Phone className="h-4 w-4" style={{ color: accent }} />{store.contact_phone}</p>
-                ) : null}
-                {store.contact_email ? (
-                  <p className="flex items-center gap-2"><Mail className="h-4 w-4" style={{ color: accent }} />{store.contact_email}</p>
-                ) : null}
-                {store.whatsapp_number ? (
-                  <p className="flex items-center gap-2"><MessageCircle className="h-4 w-4" style={{ color: accent }} />{store.whatsapp_number}</p>
-                ) : null}
-                {!store.contact_phone && !store.contact_email && !store.whatsapp_number ? (
-                  <p className="text-muted-foreground">Contact details are not provided yet.</p>
-                ) : null}
-              </CardContent>
-            </Card>
+      <main className="mx-auto max-w-6xl space-y-10 px-4 py-10 lg:px-6 lg:py-14">
+        <motion.section
+          id="services-banner"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4 }}
+          className="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-100 via-orange-50 to-rose-100 p-6 lg:p-8"
+        >
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">More than data</p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900 lg:text-3xl">Explore other services in this store</h2>
+              <p className="mt-2 max-w-2xl text-sm text-slate-700">
+                Recharge products, digital tools, and other helpful services curated by this seller.
+              </p>
+              <a href="#contact-footer" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-slate-900 underline-offset-4 hover:underline">
+                Contact store for custom requests <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+            <div className="grid w-full gap-2 sm:grid-cols-2 lg:max-w-md">
+              {services.length === 0 ? (
+                <div className="rounded-2xl border border-white/70 bg-white/70 p-3 text-sm text-slate-700">No extra services listed yet.</div>
+              ) : (
+                services.slice(0, 4).map((service) => (
+                  <div key={service.id} className="rounded-2xl border border-white/70 bg-white/75 p-3">
+                    <p className="text-sm font-semibold text-slate-900">{service.online_services?.name}</p>
+                    <p className="mt-1 text-xs text-slate-600">{service.online_services?.category}</p>
+                    <p className="mt-2 text-sm font-bold" style={{ color: accent }}>{formatGhs(service.selling_price)}</p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </section>
+        </motion.section>
+
+        <motion.section
+          id="data-section"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4 }}
+          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8"
+        >
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-900 lg:text-3xl">Buy Data Bundles</h2>
+            <p className="mt-2 text-sm text-slate-600">Switch network, tap your package, enter recipient number, and pay.</p>
+          </div>
+
+          {store.allow_data ? (
+            <>
+              <div className="mb-5 flex flex-wrap gap-2">
+                {networks.map((network) => (
+                  <button
+                    key={network}
+                    onClick={() => setActiveNetwork(network)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      activeNetwork === network
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {network}
+                  </button>
+                ))}
+              </div>
+
+              {filteredPackages.length === 0 ? (
+                <p className="text-sm text-slate-600">No data packages available for this network yet.</p>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredPackages.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => startCheckout(item)}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white"
+                    >
+                      <p className="text-sm font-semibold text-slate-900">
+                        {item.data_packages?.network} {item.data_packages?.name}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {item.data_packages?.amount} | {item.data_packages?.validity}
+                      </p>
+                      <p className="mt-3 text-lg font-bold" style={{ color: accent }}>{formatGhs(item.selling_price)}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-slate-600">This store has disabled data sales at the moment.</p>
+          )}
+        </motion.section>
       </main>
 
-      <footer className="border-t border-border bg-background/80">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between lg:px-6">
-          <p>{store.brand_name} storefront</p>
-          <p>Secure ordering powered by FlashData GH</p>
+      <footer id="contact-footer" className="border-t border-slate-200 bg-slate-900 text-slate-200">
+        <div className="mx-auto max-w-6xl px-4 py-10 lg:px-6">
+          <h3 className="text-xl font-bold text-white">Contact {store.brand_name}</h3>
+          <p className="mt-2 text-sm text-slate-300">Need help with payment or order updates? Reach the store directly.</p>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/60 p-4">
+              <p className="flex items-center gap-2 text-sm">
+                <Phone className="h-4 w-4 text-orange-300" />
+                {store.contact_phone || 'Phone not provided'}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/60 p-4">
+              <p className="flex items-center gap-2 text-sm">
+                <Mail className="h-4 w-4 text-orange-300" />
+                {store.contact_email || 'Email not provided'}
+              </p>
+            </div>
+          </div>
         </div>
       </footer>
+
+      {whatsappHref ? (
+        <a
+          href={whatsappHref}
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:bg-green-600"
+        >
+          <MessageCircle className="h-4 w-4" />
+          Join WhatsApp Group
+        </a>
+      ) : null}
+
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete your data purchase</DialogTitle>
+            <DialogDescription>
+              {selectedPackage?.data_packages?.network} {selectedPackage?.data_packages?.name} - {formatGhs(selectedPackage?.selling_price || 0)}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="recipient">Recipient Number</Label>
+              <Input
+                id="recipient"
+                placeholder="e.g. 024XXXXXXX"
+                value={recipientPhone}
+                onChange={(e) => setRecipientPhone(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="buyer-name">Your Name</Label>
+              <Input id="buyer-name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="buyer-phone">Your Phone</Label>
+              <Input id="buyer-phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="buyer-email">Your Email (optional)</Label>
+              <Input id="buyer-email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
+            </div>
+
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+              <p className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> You will be contacted to finalize payment.</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCheckoutOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitDataOrder} disabled={submitting} style={{ backgroundColor: accent }}>
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Pay {formatGhs(selectedPackage?.selling_price || 0)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
