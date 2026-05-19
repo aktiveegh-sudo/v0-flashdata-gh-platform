@@ -41,6 +41,7 @@ type StoreOrderRow = {
   customer_name: string
   customer_phone: string
   customer_email: string | null
+  customer_note: string | null
   total_price: number
   status: 'pending' | 'accepted' | 'declined' | 'completed'
   created_at: string
@@ -51,7 +52,7 @@ type StoreOrderRow = {
 
 type UnifiedOrderRow = {
   id: string
-  source: 'dashboard' | 'dashboard_afa' | 'store_data' | 'store_service'
+  source: 'dashboard' | 'dashboard_afa' | 'store_data' | 'store_service' | 'store_afa'
   orderType: 'Data' | 'AFA' | 'Service'
   reference: string
   customerName: string
@@ -94,7 +95,7 @@ export default function AdminOrdersPage() {
         .order('created_at', { ascending: false }),
       supabase.client
         .from('agent_store_orders')
-        .select('id,item_type,customer_name,customer_phone,customer_email,total_price,status,created_at,data_packages(network,name,amount),online_services(name,category),agent_stores(brand_name,slug)')
+        .select('id,item_type,customer_name,customer_phone,customer_email,customer_note,total_price,status,created_at,data_packages(network,name,amount),online_services(name,category),agent_stores(brand_name,slug)')
         .order('created_at', { ascending: false }),
     ])
 
@@ -150,22 +151,25 @@ export default function AdminOrdersPage() {
       retryTargetOrderId: null,
     }))
 
-    const storeRows: UnifiedOrderRow[] = ((storeResult.data as StoreOrderRow[] | null) || []).map((row) => ({
+    const storeRows: UnifiedOrderRow[] = ((storeResult.data as StoreOrderRow[] | null) || []).map((row) => {
+      const isStoreAfa = row.item_type === 'data' && String(row.data_packages?.network || '').trim().toUpperCase() === 'AFA'
+
+      return {
       id: row.id,
-      source: row.item_type === 'service' ? 'store_service' : 'store_data',
-      orderType: row.item_type === 'service' ? 'Service' : 'Data',
+      source: row.item_type === 'service' ? 'store_service' : (isStoreAfa ? 'store_afa' : 'store_data'),
+      orderType: row.item_type === 'service' ? 'Service' : (isStoreAfa ? 'AFA' : 'Data'),
       reference: `STORE-${row.id.slice(0, 8).toUpperCase()}`,
       customerName: row.customer_name || 'Store Customer',
       customerEmail: row.customer_email || '-',
       customerPhone: row.customer_phone,
-      itemLabel: row.item_type === 'service' ? (row.online_services?.name || 'Store Service') : (row.data_packages?.name || 'Store Data'),
+      itemLabel: row.item_type === 'service' ? (row.online_services?.name || 'Store Service') : (isStoreAfa ? 'Store AFA Registration' : (row.data_packages?.name || 'Store Data')),
       networkOrCategory: row.item_type === 'service' ? (row.online_services?.category || 'Service') : (row.data_packages?.network || '-'),
       amount: Number(row.total_price || 0),
       status: row.status,
       createdAt: row.created_at,
       retryCount: 0,
       retryTargetOrderId: null,
-    }))
+    }})
 
     const unifiedRows = [...dashboardRows, ...afaRows, ...storeRows].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

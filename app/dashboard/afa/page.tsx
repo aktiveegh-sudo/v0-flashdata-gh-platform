@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase } from '@/lib/supabase/client'
-import { useWalletStore, useTransactionStore, useLoadingStore } from '@/lib/store'
+import { useLoadingStore } from '@/lib/store'
 import { startPaystackCheckout } from '@/lib/paystack/client'
 import toast from 'react-hot-toast'
 
@@ -51,11 +51,7 @@ export default function AfaPage() {
   const [location, setLocation] = useState('')
   const [paystackLoading, setPaystackLoading] = useState(false)
 
-  const { balance, deductFunds } = useWalletStore()
-  const { addTransaction } = useTransactionStore()
   const { setLoading: setGlobalLoading } = useLoadingStore()
-
-  const canPay = useMemo(() => balance >= Number(settings.base_price || 0), [balance, settings.base_price])
 
   const loadData = async () => {
     setLoading(true)
@@ -106,92 +102,6 @@ export default function AfaPage() {
   useEffect(() => {
     void loadData()
   }, [])
-
-  const submitRegistration = async () => {
-    if (!settings.is_active) {
-      toast.error('AFA registration is currently disabled')
-      return
-    }
-
-    const normalizedPhone = normalizePhone(phone)
-    if (!normalizedPhone) {
-      toast.error('Enter a valid Ghana phone number')
-      return
-    }
-
-    if (!fullName.trim()) {
-      toast.error('Full name is required')
-      return
-    }
-
-    const ghanaCardPattern = /^GHA-\d{9}-\d$/i
-    if (!ghanaCardPattern.test(ghanaCardNumber.trim())) {
-      toast.error('Use Ghana Card format: GHA-123456789-1')
-      return
-    }
-
-    if (!location.trim()) {
-      toast.error('Location is required')
-      return
-    }
-
-    if (!canPay) {
-      toast.error('Insufficient wallet balance')
-      return
-    }
-
-    const { data: authData, error: authError } = await supabase.auth.getUser()
-    if (authError || !authData.user) {
-      toast.error('Please login again')
-      return
-    }
-
-    setSubmitting(true)
-    setGlobalLoading(true)
-
-    const reference = `AFA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-
-    const { error } = await supabase.client.from('afa_registrations').insert({
-      user_id: authData.user.id,
-      full_name: fullName.trim(),
-      phone: normalizedPhone,
-      ghana_card_number: ghanaCardNumber.trim().toUpperCase(),
-      location: location.trim(),
-      amount: Number(settings.base_price || 0),
-      reference,
-      status: 'pending',
-    })
-
-    if (error) {
-      setSubmitting(false)
-      setGlobalLoading(false)
-      toast.error(error.message || 'Could not submit AFA registration')
-      return
-    }
-
-    const debited = deductFunds(Number(settings.base_price || 0))
-    if (debited) {
-      addTransaction({
-        type: 'bill',
-        network: 'AFA',
-        amount: Number(settings.base_price || 0),
-        phone: normalizedPhone,
-        status: 'pending',
-        reference,
-        description: 'AFA Registration',
-      })
-    }
-
-    toast.success('AFA registration submitted successfully')
-
-    setFullName('')
-    setPhone('')
-    setGhanaCardNumber('')
-    setLocation('')
-    setSubmitting(false)
-    setGlobalLoading(false)
-    await loadData()
-  }
 
   const payWithPaystack = async () => {
     if (!settings.is_active) {
@@ -293,17 +203,17 @@ export default function AfaPage() {
               <span className="font-semibold">GHc {Number(settings.base_price || 0).toFixed(2)}</span>
             </div>
             <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-              <span className="text-muted-foreground">Wallet Balance</span>
-              <span className={`font-semibold ${canPay ? 'text-foreground' : 'text-destructive'}`}>GHc {balance.toFixed(2)}</span>
+              <span className="text-muted-foreground">Checkout</span>
+              <span className="font-semibold text-foreground">Paystack verification required</span>
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button onClick={() => void submitRegistration()} className="w-full" disabled={submitting || paystackLoading || !settings.is_active || !canPay}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Pay with Wallet
-            </Button>
-            <Button variant="outline" onClick={() => void payWithPaystack()} className="w-full" disabled={submitting || paystackLoading || !settings.is_active}>
+          <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+            Your registration is only created after Paystack confirms a successful payment, and then it appears in the admin dashboard.
+          </div>
+
+          <div className="grid gap-2">
+            <Button onClick={() => void payWithPaystack()} className="w-full" disabled={submitting || paystackLoading || !settings.is_active}>
               {paystackLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Pay with Paystack
             </Button>

@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase/client'
-import { useWalletStore, useTransactionStore, useLoadingStore } from '@/lib/store'
+import { useLoadingStore } from '@/lib/store'
 import { startPaystackCheckout } from '@/lib/paystack/client'
 import toast from 'react-hot-toast'
 
@@ -43,8 +43,6 @@ function BuyDataContent() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [paystackLoading, setPaystackLoading] = useState(false)
 
-  const { balance, deductFunds } = useWalletStore()
-  const { addTransaction } = useTransactionStore()
   const { setLoading } = useLoadingStore()
 
   useEffect(() => {
@@ -127,104 +125,6 @@ function BuyDataContent() {
     }
 
     return null
-  }
-
-  const handleBuyData = async () => {
-    const normalizedPhone = normalizeToGhanaPhone(phoneNumber)
-    if (!normalizedPhone) {
-      toast.error('Enter a valid Ghana phone number')
-      return
-    }
-
-    if (!selectedPackage) {
-      toast.error('Please select a data package')
-      return
-    }
-
-    if (isAfaRegistration) {
-      if (!afaFullName.trim()) {
-        toast.error('Full name is required for AFA registration')
-        return
-      }
-
-      const ghanaCardPattern = /^GHA-\d{9}-\d$/i
-      if (!ghanaCardPattern.test(afaGhanaCardNumber.trim())) {
-        toast.error('Enter a valid Ghana Card Number (e.g. GHA-123456789-1)')
-        return
-      }
-
-      if (!afaLocation.trim()) {
-        toast.error('Location is required for AFA registration')
-        return
-      }
-    }
-
-    if (balance < selectedPackage.selling_price) {
-      toast.error('Insufficient wallet balance. Please top up your wallet.')
-      return
-    }
-
-    const { data: authData, error: authError } = await supabase.auth.getUser()
-    if (authError || !authData.user) {
-      toast.error('Please login again')
-      return
-    }
-
-    setLoading(true)
-
-    const reference = `FD-${selectedPackage.network.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4)}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-
-    const { error } = await supabase.client.from('orders').insert({
-      user_id: authData.user.id,
-      package_id: selectedPackage.id,
-      phone: normalizedPhone,
-      amount: selectedPackage.selling_price,
-      status: 'pending',
-      reference,
-      metadata: isAfaRegistration
-        ? {
-            registration_type: 'AFA',
-            full_name: afaFullName.trim(),
-            phone_number: normalizedPhone,
-            ghana_card_number: afaGhanaCardNumber.trim().toUpperCase(),
-            location: afaLocation.trim(),
-          }
-        : {},
-    })
-
-    if (error) {
-      setLoading(false)
-      toast.error(error.message || 'Could not place data order')
-      return
-    }
-
-    const debited = deductFunds(selectedPackage.selling_price)
-    if (debited) {
-      addTransaction({
-        type: 'data',
-        network: selectedPackage.network,
-        amount: selectedPackage.selling_price,
-        phone: normalizedPhone,
-        status: 'pending',
-        reference,
-        description: `${selectedPackage.amount} ${selectedPackage.network} Data Bundle`,
-      })
-    }
-
-    toast.success(
-      <div>
-        <p className="font-semibold">Order submitted successfully</p>
-        <p className="text-sm">Ref: {reference}</p>
-      </div>
-    )
-
-    setPhoneNumber('')
-    setAfaFullName('')
-    setAfaGhanaCardNumber('')
-    setAfaLocation('')
-    setSelectedPackageId('')
-    setIsCheckoutOpen(false)
-    setLoading(false)
   }
 
   const handleStartCheckout = (packageId: string) => {
@@ -373,7 +273,8 @@ function BuyDataContent() {
                 <p>1. Pick your network</p>
                 <p>2. Tap a package card</p>
                 <p>3. Enter required details in popup</p>
-                <p>4. Confirm and pay</p>
+                <p>4. Pay on Paystack and return for verification</p>
+                <p>5. Your order is created only after payment is verified</p>
                 <p className="pt-2 text-xs">Packages are managed by admins only.</p>
               </CardContent>
             </Card>
@@ -453,33 +354,16 @@ function BuyDataContent() {
                   </div>
                 </div>
 
-                {balance < (selectedPackage?.selling_price || 0) ? (
-                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-destructive">
-                    <AlertCircle className="h-5 w-5" />
-                    <span className="text-sm">Insufficient balance. Wallet: GHc {balance.toFixed(2)}</span>
-                  </div>
-                ) : null}
+                <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-muted-foreground">
+                  <AlertCircle className="h-5 w-5" />
+                  <span className="text-sm">You will be redirected to Paystack. The order reaches admin only after payment verification succeeds.</span>
+                </div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button
-                    onClick={handleBuyData}
-                    className="w-full"
-                    size="lg"
-                    disabled={
-                      !phoneNumber ||
-                      !selectedPackage ||
-                      balance < (selectedPackage?.selling_price || 0) ||
-                      paystackLoading ||
-                      (isAfaRegistration && (!afaFullName.trim() || !afaGhanaCardNumber.trim() || !afaLocation.trim()))
-                    }
-                  >
-                    Pay with Wallet
-                  </Button>
+                <div className="grid gap-2">
                   <Button
                     onClick={() => void handlePaystackCheckout()}
                     className="w-full"
                     size="lg"
-                    variant="outline"
                     disabled={
                       !phoneNumber ||
                       !selectedPackage ||
