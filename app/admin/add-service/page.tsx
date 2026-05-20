@@ -38,18 +38,25 @@ export default function AdminAddServicePage() {
 
   const loadServices = async () => {
     setLoading(true)
-    const { data, error } = await supabase.client
-      .from('online_services')
-      .select('id,name,description,category,price,image_url,is_active,created_at')
-      .order('created_at', { ascending: false })
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token || ''
 
-    if (error) {
-      toast.error(error.message)
+    const response = await fetch('/api/admin/services', {
+      method: 'GET',
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    })
+
+    const payload = (await response.json().catch(() => null)) as
+      | { success?: boolean; data?: ServiceRow[]; error?: string }
+      | null
+
+    if (!response.ok || !payload?.success) {
+      toast.error(payload?.error || 'Unable to load services')
       setLoading(false)
       return
     }
 
-    setRows((data as ServiceRow[]) || [])
+    setRows(payload.data || [])
     setLoading(false)
   }
 
@@ -118,21 +125,28 @@ export default function AdminAddServicePage() {
       return
     }
 
-    if (editingId) {
-      const { error } = await supabase.client.from('online_services').update(payload).eq('id', editingId)
-      if (error) {
-        toast.error(error.message)
-        return
-      }
-      toast.success('Service updated')
-    } else {
-      const { error } = await supabase.client.from('online_services').insert(payload)
-      if (error) {
-        toast.error(error.message)
-        return
-      }
-      toast.success('Service created')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token || ''
+
+    const response = await fetch('/api/admin/services', {
+      method: editingId ? 'PATCH' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(editingId ? { ...payload, id: editingId } : payload),
+    })
+
+    const result = (await response.json().catch(() => null)) as
+      | { success?: boolean; error?: string }
+      | null
+
+    if (!response.ok || !result?.success) {
+      toast.error(result?.error || 'Unable to save service')
+      return
     }
+
+    toast.success(editingId ? 'Service updated' : 'Service created')
 
     setEditingId(null)
     setForm(emptyForm)
@@ -155,9 +169,24 @@ export default function AdminAddServicePage() {
       return
     }
 
-    const { error } = await supabase.client.from('online_services').delete().eq('id', id)
-    if (error) {
-      toast.error(error.message)
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token || ''
+
+    const response = await fetch('/api/admin/services', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ id }),
+    })
+
+    const result = (await response.json().catch(() => null)) as
+      | { success?: boolean; error?: string }
+      | null
+
+    if (!response.ok || !result?.success) {
+      toast.error(result?.error || 'Unable to delete service')
       return
     }
 
