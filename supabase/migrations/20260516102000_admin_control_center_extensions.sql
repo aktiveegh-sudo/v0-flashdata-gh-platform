@@ -31,6 +31,11 @@ create index if not exists idx_admin_activity_entity on public.admin_activity (e
 
 alter table public.admin_activity enable row level security;
 
+drop policy if exists admin_activity_select_admin_only on public.admin_activity;
+drop policy if exists admin_activity_insert_admin_only on public.admin_activity;
+drop policy if exists admin_activity_update_admin_only on public.admin_activity;
+drop policy if exists admin_activity_delete_admin_only on public.admin_activity;
+
 create policy admin_activity_select_admin_only
 on public.admin_activity
 for select

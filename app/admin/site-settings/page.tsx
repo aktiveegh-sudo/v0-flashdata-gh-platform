@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { supabase } from '@/lib/supabase/client'
@@ -20,6 +21,7 @@ type SiteSettingsRow = {
   contact_phone: string | null
   whatsapp_channel_url: string | null
   maintenance_mode: boolean
+  delivery_provider: 'swiftdata' | 'secondary'
 }
 
 const defaultState = {
@@ -31,6 +33,7 @@ const defaultState = {
   contact_phone: '',
   whatsapp_channel_url: '',
   maintenance_mode: false,
+  delivery_provider: 'swiftdata' as const,
 }
 
 export default function AdminSiteSettingsPage() {
@@ -43,7 +46,7 @@ export default function AdminSiteSettingsPage() {
 
     const { data, error } = await supabase.client
       .from('site_settings')
-      .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode')
+      .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider')
       .limit(1)
       .maybeSingle()
 
@@ -65,8 +68,9 @@ export default function AdminSiteSettingsPage() {
           contact_phone: null,
           whatsapp_channel_url: null,
           maintenance_mode: false,
+          delivery_provider: 'swiftdata',
         })
-        .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode')
+        .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider')
         .single()
 
       if (insertError || !inserted) {
@@ -84,6 +88,7 @@ export default function AdminSiteSettingsPage() {
         contact_phone: inserted.contact_phone || '',
         whatsapp_channel_url: inserted.whatsapp_channel_url || '',
         maintenance_mode: !!inserted.maintenance_mode,
+        delivery_provider: inserted.delivery_provider === 'secondary' ? 'secondary' : 'swiftdata',
       })
 
       setLoading(false)
@@ -100,6 +105,7 @@ export default function AdminSiteSettingsPage() {
       contact_phone: row.contact_phone || '',
       whatsapp_channel_url: row.whatsapp_channel_url || '',
       maintenance_mode: !!row.maintenance_mode,
+      delivery_provider: row.delivery_provider === 'secondary' ? 'secondary' : 'swiftdata',
     })
 
     setLoading(false)
@@ -121,6 +127,7 @@ export default function AdminSiteSettingsPage() {
       contact_phone: form.contact_phone || null,
       whatsapp_channel_url: form.whatsapp_channel_url || null,
       maintenance_mode: form.maintenance_mode,
+      delivery_provider: form.delivery_provider,
       updated_at: new Date().toISOString(),
     }
 
@@ -184,6 +191,24 @@ export default function AdminSiteSettingsPage() {
               <div className="space-y-2 md:col-span-2">
                 <Label>Hero Text</Label>
                 <Textarea value={form.hero_text} onChange={(e) => setForm((prev) => ({ ...prev, hero_text: e.target.value }))} rows={4} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Active Data Provider</Label>
+                <Select
+                  value={form.delivery_provider}
+                  onValueChange={(value) => setForm((prev) => ({ ...prev, delivery_provider: value as 'swiftdata' | 'secondary' }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="swiftdata">SwiftData (Primary)</SelectItem>
+                    <SelectItem value="secondary">Secondary Provider</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Secret API keys stay in environment variables. This switch controls which provider paid data orders use.
+                </p>
               </div>
               <div className="md:col-span-2 flex items-center justify-between rounded-lg border border-border p-3">
                 <div>

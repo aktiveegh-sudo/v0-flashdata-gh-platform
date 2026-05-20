@@ -55,12 +55,34 @@ type FulfillmentResult = {
   message: string
 }
 
+type DeliveryProvider = 'swiftdata' | 'secondary'
+
+type DeliveryInput = {
+  network: string
+  phone: string
+  packageSize: string
+  requestId: string
+  idempotencyKey: string
+}
+
+type DeliveryResult = {
+  status: string
+  orderId: string | null
+  raw: unknown
+}
+
 const paystackBaseUrl = 'https://api.paystack.co'
 const swiftDataBaseUrl = process.env.SWIFTDATA_API_BASE_URL || 'https://lsocdjpflecduumopijn.supabase.co/functions/v1/developer-api'
 const swiftDataDeveloperKey =
   process.env.SWIFTDATA_DEVELOPER_KEY ||
   process.env.SWIFTDATA_API_KEY ||
   'swft_live_6248da12791040318e54c5259fdbe981'
+const secondaryDataBaseUrl =
+  process.env.SECONDARY_DATA_API_BASE_URL ||
+  process.env.HUBNET_API_BASE_URL ||
+  'https://console.hubnet.app/live/api/context/business/transaction'
+const secondaryDataApiKey = process.env.SECONDARY_DATA_API_KEY || process.env.HUBNET_API_KEY || ''
+const secondaryDataWebhookUrl = process.env.SECONDARY_DATA_WEBHOOK_URL || process.env.HUBNET_WEBHOOK_URL || ''
 
 const getPaystackSecretKey = () => {
   const secret = process.env.PAYSTACK_SECRET_KEY
@@ -89,13 +111,76 @@ const toSwiftNetwork = (network: string) => {
   return value
 }
 
-const deliverSwiftDataBundle = async (input: {
-  network: string
-  phone: string
-  packageSize: string
-  requestId: string
-  idempotencyKey: string
-}) => {
+const toHubnetNetwork = (network: string) => {
+  const value = String(network || '').trim().toUpperCase()
+  if (value === 'MTN' || value === 'YELLO' || value === 'MTN_XPRESS') return 'mtn'
+  if (value === 'AIRTELTIGO' || value === 'AT') return 'at'
+  if (value === 'TELECEL' || value === 'VODAFONE' || value === 'VOD' || value === 'GLO') return 'big-time'
+  return value.toLowerCase()
+}
+
+const toHubnetPhone = (phone: string) => {
+  const digits = String(phone || '').replace(/\D/g, '')
+  if (digits.startsWith('233') && digits.length === 12) {
+    return `0${digits.slice(3)}`
+  }
+  if (digits.length === 9) {
+    return `0${digits}`
+  }
+  if (digits.length === 10 && digits.startsWith('0')) {
+    return digits
+  }
+  if (digits.length > 10) {
+    return `0${digits.slice(-9)}`
+  }
+  return digits
+}
+
+const toHubnetVolume = (packageSize: string) => {
+  const normalized = String(packageSize || '').trim().toUpperCase().replace(/\s+/g, '')
+  const match = normalized.match(/^(\d+(?:\.\d+)?)(GB|MB)?$/)
+
+  if (!match) {
+    return '1'
+  }
+
+  const value = Number(match[1])
+  const unit = match[2] || 'MB'
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return '1'
+  }
+
+  const mbValue = unit === 'GB' ? Math.round(value * 1000) : Math.round(value)
+  return String(Math.max(1, mbValue))
+}
+
+const toHubnetReference = (requestId: string) => {
+  const cleaned = String(requestId || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, '')
+  const base = cleaned || `REF-${Date.now()}`
+  const sliced = base.slice(0, 25)
+
+  return sliced.length >= 6 ? sliced : `${sliced.padEnd(6, '0')}`
+}
+
+const getActiveDeliveryProvider = async (): Promise<DeliveryProvider> => {
+  const { data } = await supabaseAdmin
+    .from('site_settings')
+    .select('delivery_provider')
+    .eq('id', 1)
+    .maybeSingle()
+
+  const provider = String((data as { delivery_provider?: string | null } | null)?.delivery_provider || 'swiftdata').toLowerCase()
+  if (provider === 'secondary') {
+    return 'secondary'
+  }
+
+  return 'swiftdata'
+}
+
+const deliverSwiftDataBundle = async (input: DeliveryInput): Promise<DeliveryResult> => {
   if (!swiftDataDeveloperKey) {
     throw new Error('Missing SwiftData developer key')
   }
@@ -128,6 +213,64 @@ const deliverSwiftDataBundle = async (input: {
     status: payload?.status || 'processing',
     orderId: payload?.order_id || null,
     raw: payload,
+  }
+}
+
+const deliverSecondaryDataBundle = async (input: DeliveryInput): Promise<DeliveryResult> => {
+  if (!secondaryDataBaseUrl || !secondaryDataApiKey) {
+    throw new Error('Secondary provider is not configured')
+  }
+
+  const network = toHubnetNetwork(input.network)
+  const endpointBase = secondaryDataBaseUrl.replace(/\/$/, '')
+  const endpoint = `${endpointBase}/${network}-new-transaction`
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      token: `Bearer ${secondaryDataApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      phone: toHubnetPhone(input.phone),
+      volume: toHubnetVolume(input.packageSize),
+      reference: toHubnetReference(input.requestId),
+      webhook: secondaryDataWebhookUrl || undefined,
+    }),
+  })
+
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        status?: boolean
+        reason?: string
+        code?: string
+        message?: string
+        transaction_id?: string
+        payment_id?: string
+        data?: { status?: boolean; code?: string; message?: string }
+      }
+    | null
+
+  const accepted = response.ok && payload?.status === true && payload?.data?.status === true
+
+  if (!accepted) {
+    throw new Error(payload?.reason || payload?.data?.message || payload?.message || `Secondary delivery failed (${response.status})`)
+  }
+
+  return {
+    status: payload?.data?.code === '0000' ? 'completed' : 'processing',
+    orderId: payload?.transaction_id || payload?.payment_id || null,
+    raw: payload,
+  }
+}
+
+const deliverDataBundleByProvider = async (input: DeliveryInput): Promise<DeliveryResult & { provider: DeliveryProvider }> => {
+  const provider = await getActiveDeliveryProvider()
+  const result = provider === 'secondary' ? await deliverSecondaryDataBundle(input) : await deliverSwiftDataBundle(input)
+
+  return {
+    provider,
+    ...result,
   }
 }
 
@@ -374,7 +517,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       }
 
       try {
-        const delivery = await deliverSwiftDataBundle({
+        const delivery = await deliverDataBundleByProvider({
           network: packageRow.network,
           phone: metadata.phone,
           packageSize: packageRow.amount,
@@ -394,6 +537,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
             metadata: {
               source: 'paystack',
               payment_channel: charge.channel,
+              delivery_provider: delivery.provider,
               swift_status: delivery.status,
               swift_order_id: delivery.orderId,
               swift_response: delivery.raw,
@@ -410,6 +554,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
               channel: charge.channel,
               order_id: createdOrder.id,
               order_reference: reference,
+              delivery_provider: delivery.provider,
               swift_status: delivery.status,
               swift_order_id: delivery.orderId,
             },
@@ -619,7 +764,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         customerNote = `${customerNote} | Recipient: ${metadata.phone || ''}`
 
         try {
-          const delivery = await deliverSwiftDataBundle({
+          const delivery = await deliverDataBundleByProvider({
             network: packageRow.data_packages?.network || '',
             phone: metadata.phone || customerPhone,
             packageSize: packageRow.data_packages?.amount || '',
@@ -632,8 +777,8 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
               ? 'completed'
               : 'pending'
 
-          customerNote = `${customerNote} | Swift Status: ${delivery.status}${
-            delivery.orderId ? ` | Swift Order: ${delivery.orderId}` : ''
+          customerNote = `${customerNote} | Provider: ${delivery.provider} | Delivery Status: ${delivery.status}${
+            delivery.orderId ? ` | Provider Order: ${delivery.orderId}` : ''
           }`
         } catch (deliveryError) {
           const deliveryMessage = deliveryError instanceof Error ? deliveryError.message : 'SwiftData delivery failed'
