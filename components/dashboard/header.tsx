@@ -57,6 +57,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loadingNotifications, setLoadingNotifications] = useState(false)
+  const [resolvedUserId, setResolvedUserId] = useState('')
   const greeting = user?.name?.split(' ')[0] ? `Hi, ${user.name.split(' ')[0]}` : 'Welcome back'
 
   const pageTitle = pageLabels[pathname] ?? pageLabels[Object.keys(pageLabels).find((k) => pathname.startsWith(k)) ?? ''] ?? 'Dashboard'
@@ -91,8 +92,8 @@ export function Header({ onMenuClick }: HeaderProps) {
       .slice(0, 2)
   }
 
-  const loadNotifications = async () => {
-    const userId = user?.id
+  const loadNotifications = async (explicitUserId?: string) => {
+    const userId = explicitUserId || resolvedUserId || user?.id
     if (!userId) {
       setNotifications([])
       return
@@ -107,6 +108,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       .limit(8)
 
     if (error) {
+      toast.error(error.message)
       setLoadingNotifications(false)
       return
     }
@@ -116,29 +118,47 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   useEffect(() => {
-    void loadNotifications()
+    const syncResolvedUser = async () => {
+      const { data } = await supabase.auth.getSession()
+      const userId = data.session?.user?.id || ''
+      setResolvedUserId(userId)
+    }
 
-    const userId = user?.id
+    void syncResolvedUser()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setResolvedUserId(session?.user?.id || '')
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    const userId = resolvedUserId || user?.id
     if (!userId) return
+
+    void loadNotifications(userId)
 
     const channel = supabase.client
       .channel(`user-notifications-${userId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        () => void loadNotifications()
+        () => void loadNotifications(userId)
       )
       .subscribe()
 
     const interval = window.setInterval(() => {
-      void loadNotifications()
+      void loadNotifications(userId)
     }, 15000)
 
     return () => {
       window.clearInterval(interval)
       void supabase.client.removeChannel(channel)
     }
-  }, [user?.id])
+  }, [resolvedUserId, user?.id])
 
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
