@@ -132,26 +132,42 @@ export default function AdminSiteSettingsPage() {
       return
     }
 
-    const maxFileSizeBytes = 50 * 1024 * 1024
+    const maxFileSizeBytes = 200 * 1024 * 1024
     if (file.size > maxFileSizeBytes) {
-      toast.error('Video size must be 50MB or less')
+      toast.error('Video size must be 200MB or less')
       return
     }
 
     setUploadingHeroVideo(true)
 
     try {
-      const body = new FormData()
-      body.append('file', file)
-
       const response = await fetch('/api/admin/storage/upload-hero-video', {
         method: 'POST',
-        body,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        }),
       })
 
       const payload = await response.json().catch(() => null)
-      if (!response.ok || !payload?.success || !payload?.data?.publicUrl) {
+      if (!response.ok || !payload?.success || !payload?.data?.path || !payload?.data?.token || !payload?.data?.publicUrl) {
         toast.error(payload?.error || 'Failed to upload hero video')
+        setUploadingHeroVideo(false)
+        return
+      }
+
+      const { error: uploadError } = await supabase.client.storage
+        .from('hero-videos')
+        .uploadToSignedUrl(payload.data.path as string, payload.data.token as string, file, {
+          contentType: 'video/mp4',
+        })
+
+      if (uploadError) {
+        toast.error(uploadError.message || 'Upload failed')
         setUploadingHeroVideo(false)
         return
       }
@@ -262,7 +278,7 @@ export default function AdminSiteSettingsPage() {
                     />
                     {uploadingHeroVideo ? (
                       <div className="inline-flex items-center text-sm text-muted-foreground">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading directly to storage...
                       </div>
                     ) : null}
                   </div>
@@ -285,7 +301,7 @@ export default function AdminSiteSettingsPage() {
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Upload an MP4 file to use as the homepage hero background video.</p>
+                    <p className="text-xs text-muted-foreground">Upload an MP4 file (up to 200MB) to use as the homepage hero background video.</p>
                   )}
                 </div>
               </div>

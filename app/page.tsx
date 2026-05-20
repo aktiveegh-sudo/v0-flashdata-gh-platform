@@ -4,6 +4,8 @@ import { ArrowRight, BadgeCheck, RadioTower, Rocket, ShieldCheck, Store, Zap } f
 import { Button } from '@/components/ui/button'
 import { getPublicSiteSettings } from '@/lib/site-settings'
 
+export const dynamic = 'force-dynamic'
+
 const headingFont = Bricolage_Grotesque({ subsets: ['latin'], weight: ['700', '800'] })
 const bodyFont = Space_Grotesk({ subsets: ['latin'], weight: ['400', '500', '700'] })
 

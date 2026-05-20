@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/api/rest'
 
 const allowedMimeTypes = ['video/mp4']
-const maxFileSizeBytes = 50 * 1024 * 1024
+const maxFileSizeBytes = 200 * 1024 * 1024
 const bucketName = 'hero-videos'
 
 const isBucketMissing = (message: string) => {
@@ -90,30 +90,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: bucketError }, { status: 500 })
     }
 
-    const formData = await request.formData()
-    const file = formData.get('file')
+    const body = (await request.json().catch(() => null)) as {
+      fileName?: string
+      fileType?: string
+      fileSize?: number
+    } | null
 
-    if (!(file instanceof File)) {
-      return NextResponse.json({ success: false, error: 'Video file is required' }, { status: 400 })
+    const fileName = (body?.fileName || '').trim()
+    const fileType = (body?.fileType || '').trim().toLowerCase()
+    const fileSize = Number(body?.fileSize || 0)
+
+    if (!fileName || !fileType || !Number.isFinite(fileSize) || fileSize <= 0) {
+      return NextResponse.json({ success: false, error: 'Invalid upload request payload' }, { status: 400 })
     }
 
-    if (!allowedMimeTypes.includes(file.type)) {
+    if (!allowedMimeTypes.includes(fileType)) {
       return NextResponse.json({ success: false, error: 'Only MP4 video files are allowed' }, { status: 400 })
     }
 
-    if (file.size > maxFileSizeBytes) {
-      return NextResponse.json({ success: false, error: 'Video size must be 50MB or less' }, { status: 400 })
+    if (fileSize > maxFileSizeBytes) {
+      return NextResponse.json({ success: false, error: 'Video size must be 200MB or less' }, { status: 400 })
     }
 
     const filePath = `home-hero/${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`
 
-    const { error: uploadError } = await supabaseAdmin.storage.from(bucketName).upload(filePath, file, {
-      upsert: true,
-      contentType: 'video/mp4',
-    })
+    const { data: signedUploadData, error: signedUploadError } = await supabaseAdmin.storage
+      .from(bucketName)
+      .createSignedUploadUrl(filePath)
 
-    if (uploadError) {
-      return NextResponse.json({ success: false, error: uploadError.message }, { status: 500 })
+    if (signedUploadError || !signedUploadData?.token) {
+      return NextResponse.json({ success: false, error: signedUploadError?.message || 'Unable to initialize upload' }, { status: 500 })
     }
 
     const { data: publicUrlData } = supabaseAdmin.storage.from(bucketName).getPublicUrl(filePath)
@@ -122,6 +128,8 @@ export async function POST(request: Request) {
       success: true,
       data: {
         filePath,
+        path: signedUploadData.path,
+        token: signedUploadData.token,
         publicUrl: publicUrlData.publicUrl,
       },
     })
