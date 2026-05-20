@@ -72,9 +72,6 @@ export default function PublicAgentStorePage() {
   const [afaFullName, setAfaFullName] = useState('')
   const [afaGhanaCardNumber, setAfaGhanaCardNumber] = useState('')
   const [afaLocation, setAfaLocation] = useState('')
-  const [customerName, setCustomerName] = useState('')
-  const [customerPhone, setCustomerPhone] = useState('')
-  const [customerEmail, setCustomerEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -193,16 +190,6 @@ export default function PublicAgentStorePage() {
       return
     }
 
-    if (!customerName.trim() || !customerPhone.trim()) {
-      toast.error('Please add your name and phone number')
-      return
-    }
-
-    if (!customerEmail.trim()) {
-      toast.error('Email is required for Paystack payment')
-      return
-    }
-
     if (isAfaRegistration) {
       if (!afaFullName.trim()) {
         toast.error('Full name is required for AFA registration')
@@ -233,9 +220,6 @@ export default function PublicAgentStorePage() {
           flow: 'store_service',
           storeId: store.id,
           serviceId: selectedService.online_services.id,
-          customerName: customerName.trim(),
-          customerPhone: customerPhone.trim(),
-          customerEmail: customerEmail.trim(),
           redirectPath: `/store/${store.slug}`,
         })
         return
@@ -253,9 +237,6 @@ export default function PublicAgentStorePage() {
         fullName: isAfaRegistration ? afaFullName.trim() : undefined,
         ghanaCardNumber: isAfaRegistration ? afaGhanaCardNumber.trim().toUpperCase() : undefined,
         location: isAfaRegistration ? afaLocation.trim() : undefined,
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        customerEmail: customerEmail.trim(),
         redirectPath: `/store/${store.slug}`,
       })
     } catch (error) {
@@ -520,21 +501,6 @@ export default function PublicAgentStorePage() {
                 </div>
               </>
             ) : null}
-
-            <div className="space-y-1.5">
-              <Label htmlFor="buyer-name">Your Name</Label>
-              <Input id="buyer-name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="buyer-phone">Your Phone</Label>
-              <Input id="buyer-phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="buyer-email">Your Email</Label>
-              <Input id="buyer-email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
-            </div>
 
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
               <p className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> Secure Paystack checkout will open next.</p>

@@ -400,7 +400,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
     }
   }
 
-  if (!metadata.storeId || !metadata.customerName || !metadata.customerPhone || !metadata.customerEmail) {
+  if (!metadata.storeId) {
     throw new Error('Missing store checkout details')
   }
 
@@ -413,6 +413,10 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
   if (storeError || !store) {
     throw new Error(storeError?.message || 'Store not found')
   }
+
+  const customerName = (metadata.customerName || metadata.fullName || '').trim() || 'Store Customer'
+  const customerPhone = normalizeStoreCustomerPhone(metadata.customerPhone || metadata.phone || '') || 'N/A'
+  const customerEmail = (metadata.customerEmail || charge.customer?.email || '').trim() || `store-${store.id.slice(0, 8)}@flashdata.gh`
 
   const existingStoreOrder = await findStoreOrderByReference(store.id, reference)
 
@@ -494,9 +498,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         item_type: itemType,
         package_id: packageId,
         service_id: serviceId,
-        customer_name: metadata.customerName,
-        customer_phone: normalizeStoreCustomerPhone(metadata.customerPhone),
-        customer_email: metadata.customerEmail,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        customer_email: customerEmail,
         customer_note: customerNote,
         quantity: 1,
         total_price: amount,

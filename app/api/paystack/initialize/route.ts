@@ -137,17 +137,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, data: payment })
     }
 
-    const customerEmail = (body.customerEmail || '').trim()
-    const customerName = (body.customerName || '').trim()
-    const customerPhone = (body.customerPhone || '').trim()
-
-    if (!body.storeId || !customerEmail || !customerName || !customerPhone) {
-      return jsonError('storeId, customerName, customerPhone, and customerEmail are required', 400)
+    if (!body.storeId) {
+      return jsonError('storeId is required', 400)
     }
 
     const { data: store, error: storeError } = await supabaseAdmin
       .from('agent_stores')
-      .select('id,slug')
+      .select('id,slug,contact_email,contact_phone')
       .eq('id', body.storeId)
       .eq('is_active', true)
       .maybeSingle()
@@ -155,6 +151,13 @@ export async function POST(request: NextRequest) {
     if (storeError || !store) {
       return jsonError(storeError?.message || 'Store not found', 404)
     }
+
+    const fallbackEmail = `store-${store.id.slice(0, 8)}@flashdata.gh`
+    const customerEmail = (body.customerEmail || store.contact_email || '').trim() || fallbackEmail
+    const customerName = (body.customerName || '').trim() || 'Store Customer'
+    const customerPhoneFromBody = normalizeToGhanaPhone(body.customerPhone || '')
+    const customerPhoneFromStore = normalizeToGhanaPhone(store.contact_phone || '')
+    const customerPhone = customerPhoneFromBody || customerPhoneFromStore || (store.contact_phone || '').trim() || 'N/A'
 
     if (body.flow === 'store_service') {
       if (!body.serviceId) {
@@ -238,7 +241,7 @@ export async function POST(request: NextRequest) {
         ghanaCardNumber,
         location,
         customerName,
-        customerPhone,
+        customerPhone: normalizedPhone || customerPhone,
         customerEmail,
       },
     })
