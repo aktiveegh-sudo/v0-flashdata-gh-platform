@@ -285,33 +285,50 @@ export default function PublicAgentStorePage() {
         <div className="absolute -left-24 top-10 h-64 w-64 rounded-full bg-yellow-300/20 blur-3xl" />
         <div className="absolute -right-12 top-24 h-72 w-72 rounded-full bg-yellow-200/10 blur-3xl" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,.18),transparent_46%)]" />
-        <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 lg:px-6 lg:pt-24">
+        <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-14 lg:px-6 lg:pt-20">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
-            className="max-w-3xl rounded-3xl border border-yellow-300/25 bg-white/5 p-6 shadow-[0_0_70px_rgba(250,204,21,0.2)] backdrop-blur-xl lg:p-8"
+            className="mx-auto max-w-5xl text-center"
           >
-            <Badge className="mb-5 border-0 bg-yellow-300/90 text-black">
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-              Welcome to {store.brand_name}
-            </Badge>
-            <h1 className="text-4xl font-black leading-tight text-white lg:text-6xl">
-              Your own plug for data and digital essentials.
+            <div className="mx-auto mb-6 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs text-zinc-200 backdrop-blur-xl">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                Live
+              </span>
+              <span className="text-zinc-500">|</span>
+              <span>Fast Checkout</span>
+              <span className="text-zinc-500">|</span>
+              <span className="inline-flex items-center gap-1 text-yellow-200">
+                <Sparkles className="h-3.5 w-3.5" /> Instant Delivery
+              </span>
+            </div>
+
+            <h1 className="text-4xl font-black leading-[1.05] text-white sm:text-5xl lg:text-7xl">
+              Best Deals on
+              <span className="block bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-500 bg-clip-text text-transparent">
+                Data and Services
+              </span>
             </h1>
-            <p className="mt-4 max-w-2xl text-base text-zinc-200 lg:text-lg">
+            <p className="mx-auto mt-5 max-w-3xl text-base text-zinc-300 lg:text-2xl">
               {store.tagline || store.description || 'Buy quickly, pay securely, and get served fast from this independent store.'}
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+
+            <div className="mx-auto mt-9 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
               <a href="#data-section">
-                <Button className="border border-yellow-300 bg-yellow-300 text-black shadow-[0_0_25px_rgba(250,204,21,0.45)] hover:bg-yellow-200">Buy Data Now</Button>
+                <Button className="h-14 w-full border border-yellow-300 bg-yellow-300 px-8 text-lg font-bold text-black shadow-[0_0_25px_rgba(250,204,21,0.45)] hover:bg-yellow-200">
+                  Buy Data
+                </Button>
               </a>
               <a href="#services-banner">
-                <Button variant="outline" className="border-yellow-300/50 bg-black/35 text-yellow-200 backdrop-blur-md hover:bg-yellow-300/10">
+                <Button variant="outline" className="h-14 w-full border-white/20 bg-white/5 px-8 text-lg font-semibold text-zinc-200 backdrop-blur-md hover:border-yellow-300/40 hover:bg-white/10">
                   Explore Services
                 </Button>
               </a>
             </div>
+
+            <p className="mt-5 text-sm text-zinc-400">Welcome to {store.brand_name}</p>
           </motion.div>
         </div>
       </section>
