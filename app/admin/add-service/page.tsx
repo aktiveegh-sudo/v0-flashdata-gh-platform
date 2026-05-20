@@ -24,7 +24,7 @@ type ServiceRow = {
 const emptyForm = {
   name: '',
   description: '',
-  category: '',
+  category: 'General',
   price: '',
   image_url: '',
 }
@@ -60,6 +60,19 @@ export default function AdminAddServicePage() {
   const onUploadImage = async (file: File) => {
     setUploading(true)
 
+    const ensureBucket = await fetch('/api/admin/storage/ensure-service-images', {
+      method: 'POST',
+    })
+
+    if (!ensureBucket.ok) {
+      const payload = (await ensureBucket.json().catch(() => ({ error: 'Unable to initialize storage bucket' }))) as {
+        error?: string
+      }
+      setUploading(false)
+      toast.error(payload.error || 'Unable to initialize storage bucket')
+      return
+    }
+
     const ext = file.name.split('.').pop() || 'png'
     const filePath = `services/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
@@ -83,16 +96,20 @@ export default function AdminAddServicePage() {
   const submitService = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    const normalizedName = form.name.trim()
+    const normalizedCategory = form.category.trim() || 'General'
+    const parsedPrice = Number(form.price)
+
     const payload = {
-      name: form.name,
-      description: form.description || null,
-      category: form.category || null,
-      price: Number(form.price),
+      name: normalizedName,
+      description: form.description.trim() || null,
+      category: normalizedCategory,
+      price: parsedPrice,
       image_url: form.image_url || null,
       is_active: true,
     }
 
-    if (!payload.name || Number.isNaN(payload.price)) {
+    if (!payload.name || Number.isNaN(payload.price) || payload.price < 0) {
       toast.error('Name and valid price are required')
       return
     }
@@ -165,7 +182,11 @@ export default function AdminAddServicePage() {
             </div>
             <div className="space-y-2">
               <Label>Category</Label>
-              <Input value={form.category} onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))} />
+              <Input
+                value={form.category}
+                onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
+                placeholder="e.g. Utility, Entertainment"
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Description</Label>
