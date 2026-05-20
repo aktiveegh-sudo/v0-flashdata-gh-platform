@@ -16,10 +16,6 @@ type PaystackInitializePayload = {
 }
 
 export const startPaystackCheckout = async (payload: PaystackInitializePayload) => {
-  if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) {
-    throw new Error('Missing Paystack public key configuration')
-  }
-
   const response = await fetch('/api/paystack/initialize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -36,5 +32,11 @@ export const startPaystackCheckout = async (payload: PaystackInitializePayload) 
     throw new Error(result.error || 'Unable to initialize Paystack payment')
   }
 
-  window.location.assign(result.data.authorization_url)
+  const url = result.data.authorization_url
+  if (!/^https?:\/\//i.test(url)) {
+    throw new Error('Invalid Paystack authorization URL')
+  }
+
+  // Use direct href assignment for the most reliable full-page redirect behavior.
+  window.location.href = url
 }
