@@ -11,30 +11,22 @@ import { supabase } from '@/lib/supabase/client'
 import { startPaystackCheckout } from '@/lib/paystack/client'
 import toast from 'react-hot-toast'
 
-type StoreInfo = {
+type PublicPackage = {
   id: string
-  slug: string
-  brand_name: string
-}
-
-type StorePackage = {
-  id: string
-  selling_price: number
-  data_packages: {
-    id: string
-    network: string
-    name: string
-    amount: string
-  } | null
+  network: string
+  name: string
+  amount: string
+  user_price: number
+  selling_price?: number
+  is_active: boolean
 }
 
 const formatGhs = (value: number) => `GHc ${Number(value || 0).toFixed(2)}`
 
 export default function PublicBuyDataPage() {
-  const [store, setStore] = useState<StoreInfo | null>(null)
-  const [packages, setPackages] = useState<StorePackage[]>([])
+  const [packages, setPackages] = useState<PublicPackage[]>([])
   const [activeNetwork, setActiveNetwork] = useState('')
-  const [selectedPackage, setSelectedPackage] = useState<StorePackage | null>(null)
+  const [selectedPackage, setSelectedPackage] = useState<PublicPackage | null>(null)
   const [open, setOpen] = useState(false)
   const [recipientPhone, setRecipientPhone] = useState('')
   const [afaFullName, setAfaFullName] = useState('')
@@ -45,31 +37,19 @@ export default function PublicBuyDataPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: activeStore } = await supabase.client
-        .from('agent_stores')
-        .select('id,slug,brand_name')
-        .eq('is_active', true)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
-
-      if (!activeStore) {
-        setLoading(false)
-        return
-      }
-
-      setStore(activeStore as StoreInfo)
-
       const { data } = await supabase.client
-        .from('agent_store_packages')
-        .select('id,selling_price,data_packages!inner(id,network,name,amount)')
-        .eq('store_id', activeStore.id)
+        .from('data_packages')
+        .select('id,network,name,amount,user_price,is_active')
         .eq('is_active', true)
-        .order('selling_price', { ascending: true })
+        .order('network', { ascending: true })
+        .order('user_price', { ascending: true })
 
-      const list = ((data as StorePackage[] | null) || [])
+      const list = (((data as PublicPackage[] | null) || []).map((item) => ({
+        ...item,
+        user_price: Number(item.user_price || item.selling_price || 0),
+      })))
       setPackages(list)
-      setActiveNetwork(list.find((pkg) => pkg.data_packages?.network)?.data_packages?.network || '')
+      setActiveNetwork(list.find((pkg) => pkg.network)?.network || '')
       setLoading(false)
     }
 
@@ -79,19 +59,19 @@ export default function PublicBuyDataPage() {
   const networks = useMemo(() => {
     const uniq = new Set<string>()
     for (const pkg of packages) {
-      if (pkg.data_packages?.network) uniq.add(pkg.data_packages.network)
+      if (pkg.network) uniq.add(pkg.network)
     }
     return Array.from(uniq)
   }, [packages])
 
   const filtered = useMemo(() => {
     if (!activeNetwork) return packages
-    return packages.filter((pkg) => pkg.data_packages?.network === activeNetwork)
+    return packages.filter((pkg) => pkg.network === activeNetwork)
   }, [activeNetwork, packages])
 
-  const isAfa = (selectedPackage?.data_packages?.network || '').toUpperCase() === 'AFA'
+  const isAfa = (selectedPackage?.network || '').toUpperCase() === 'AFA'
 
-  const openCheckout = (pkg: StorePackage) => {
+  const openCheckout = (pkg: PublicPackage) => {
     setSelectedPackage(pkg)
     setRecipientPhone('')
     setAfaFullName('')
@@ -101,7 +81,7 @@ export default function PublicBuyDataPage() {
   }
 
   const submit = async () => {
-    if (!store || !selectedPackage?.data_packages) return
+    if (!selectedPackage) return
     if (!recipientPhone.trim()) {
       toast.error('Please enter recipient phone')
       return
@@ -122,9 +102,8 @@ export default function PublicBuyDataPage() {
     setSubmitting(true)
     try {
       await startPaystackCheckout({
-        flow: isAfa ? 'store_afa' : 'store_data',
-        storeId: store.id,
-        packageId: selectedPackage.data_packages.id,
+        flow: isAfa ? 'public_afa' : 'public_data',
+        packageId: selectedPackage.id,
         phone: recipientPhone.trim(),
         fullName: isAfa ? afaFullName.trim() : undefined,
         ghanaCardNumber: isAfa ? afaGhanaCardNumber.trim().toUpperCase() : undefined,
@@ -145,10 +124,10 @@ export default function PublicBuyDataPage() {
     )
   }
 
-  if (!store) {
+  if (packages.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white p-6">
-        <Card className="max-w-md"><CardContent className="p-6 text-center">No active public store found yet.</CardContent></Card>
+        <Card className="max-w-md"><CardContent className="p-6 text-center">No active public packages available yet.</CardContent></Card>
       </div>
     )
   }
@@ -159,7 +138,7 @@ export default function PublicBuyDataPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Public Buy Data</p>
           <h1 className="mt-2 text-3xl font-black text-zinc-900 sm:text-4xl">Buy Data Without Account</h1>
-          <p className="mt-2 text-zinc-600">Powered by {store.brand_name}. Sign up is not required.</p>
+          <p className="mt-2 text-zinc-600">Packages shown here are activated by admin for public users.</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -174,10 +153,10 @@ export default function PublicBuyDataPage() {
           {filtered.map((pkg) => (
             <Card key={pkg.id} className="rounded-2xl border-zinc-200">
               <CardContent className="space-y-3 p-5">
-                <p className="text-sm font-semibold text-zinc-500">{pkg.data_packages?.network}</p>
-                <h2 className="text-lg font-bold text-zinc-900">{pkg.data_packages?.name}</h2>
-                <p className="text-sm text-zinc-600">{pkg.data_packages?.amount}</p>
-                <p className="text-xl font-black text-sky-700">{formatGhs(pkg.selling_price)}</p>
+                <p className="text-sm font-semibold text-zinc-500">{pkg.network}</p>
+                <h2 className="text-lg font-bold text-zinc-900">{pkg.name}</h2>
+                <p className="text-sm text-zinc-600">{pkg.amount}</p>
+                <p className="text-xl font-black text-sky-700">{formatGhs(pkg.user_price)}</p>
                 <Button className="w-full rounded-xl" onClick={() => openCheckout(pkg)}>Buy Now</Button>
               </CardContent>
             </Card>

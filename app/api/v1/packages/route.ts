@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error: packagesError } = await supabaseAdmin
     .from('data_packages')
-    .select('id,network,name,amount,cost_price,selling_price,validity,is_active')
+    .select('id,network,name,amount,cost_price,agent_price,selling_price,validity,is_active')
     .eq('is_active', true)
     .order('network', { ascending: true })
     .order('cost_price', { ascending: true })

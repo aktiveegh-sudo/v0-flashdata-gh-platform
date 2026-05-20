@@ -11,27 +11,20 @@ import { supabase } from '@/lib/supabase/client'
 import { startPaystackCheckout } from '@/lib/paystack/client'
 import toast from 'react-hot-toast'
 
-type StoreInfo = {
-  id: string
-  brand_name: string
-}
-
 type ServiceRow = {
   id: string
-  selling_price: number
-  online_services: {
-    id: string
-    name: string
-    category: string
-    description: string | null
-    image_url: string | null
-  } | null
+  name: string
+  category: string
+  description: string | null
+  image_url: string | null
+  user_price: number
+  price?: number
+  is_active: boolean
 }
 
 const formatGhs = (value: number) => `GHc ${Number(value || 0).toFixed(2)}`
 
 export default function PublicOtherServicesPage() {
-  const [store, setStore] = useState<StoreInfo | null>(null)
   const [services, setServices] = useState<ServiceRow[]>([])
   const [selected, setSelected] = useState<ServiceRow | null>(null)
   const [recipientPhone, setRecipientPhone] = useState('')
@@ -41,29 +34,18 @@ export default function PublicOtherServicesPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: activeStore } = await supabase.client
-        .from('agent_stores')
-        .select('id,brand_name')
-        .eq('is_active', true)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
-
-      if (!activeStore) {
-        setLoading(false)
-        return
-      }
-
-      setStore(activeStore as StoreInfo)
-
       const { data } = await supabase.client
-        .from('agent_store_service_prices')
-        .select('id,selling_price,online_services!inner(id,name,category,description,image_url)')
-        .eq('store_id', activeStore.id)
+        .from('online_services')
+        .select('id,name,category,description,image_url,user_price,is_active')
         .eq('is_active', true)
-        .order('selling_price', { ascending: true })
+        .order('user_price', { ascending: true })
 
-      setServices((data as ServiceRow[] | null) || [])
+      const rows = (((data as ServiceRow[] | null) || []).map((row) => ({
+        ...row,
+        user_price: Number(row.user_price || row.price || 0),
+      })))
+
+      setServices(rows)
       setLoading(false)
     }
 
@@ -77,7 +59,7 @@ export default function PublicOtherServicesPage() {
   }
 
   const submit = async () => {
-    if (!store || !selected?.online_services) return
+    if (!selected) return
     if (!recipientPhone.trim()) {
       toast.error('Please enter recipient number')
       return
@@ -86,9 +68,8 @@ export default function PublicOtherServicesPage() {
     setSubmitting(true)
     try {
       await startPaystackCheckout({
-        flow: 'store_service',
-        storeId: store.id,
-        serviceId: selected.online_services.id,
+        flow: 'public_service',
+        serviceId: selected.id,
         phone: recipientPhone.trim(),
         customerPhone: recipientPhone.trim(),
         redirectPath: '/other-services',
@@ -107,10 +88,10 @@ export default function PublicOtherServicesPage() {
     )
   }
 
-  if (!store) {
+  if (services.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white p-6">
-        <Card className="max-w-md"><CardContent className="p-6 text-center">No active public store found yet.</CardContent></Card>
+        <Card className="max-w-md"><CardContent className="p-6 text-center">No active public services found yet.</CardContent></Card>
       </div>
     )
   }
@@ -121,20 +102,20 @@ export default function PublicOtherServicesPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Public Other Services</p>
           <h1 className="mt-2 text-3xl font-black text-zinc-900 sm:text-4xl">Buy Services Without Account</h1>
-          <p className="mt-2 text-zinc-600">Powered by {store.brand_name}. Sign up is not required.</p>
+          <p className="mt-2 text-zinc-600">Services shown here are activated by admin for public users.</p>
         </div>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((service) => (
             <Card key={service.id} className="rounded-2xl border-zinc-200">
               <CardContent className="space-y-3 p-5">
-                {service.online_services?.image_url ? (
-                  <img src={service.online_services.image_url} alt={service.online_services.name} className="h-32 w-full rounded-xl object-cover" />
+                {service.image_url ? (
+                  <img src={service.image_url} alt={service.name} className="h-32 w-full rounded-xl object-cover" />
                 ) : null}
-                <p className="text-sm font-semibold text-zinc-500">{service.online_services?.category}</p>
-                <h2 className="text-lg font-bold text-zinc-900">{service.online_services?.name}</h2>
-                <p className="text-sm text-zinc-600">{service.online_services?.description || 'Quick digital service fulfillment.'}</p>
-                <p className="text-xl font-black text-emerald-700">{formatGhs(service.selling_price)}</p>
+                <p className="text-sm font-semibold text-zinc-500">{service.category}</p>
+                <h2 className="text-lg font-bold text-zinc-900">{service.name}</h2>
+                <p className="text-sm text-zinc-600">{service.description || 'Quick digital service fulfillment.'}</p>
+                <p className="text-xl font-black text-emerald-700">{formatGhs(service.user_price)}</p>
                 <Button className="w-full rounded-xl" onClick={() => openCheckout(service)}>Pay Now</Button>
               </CardContent>
             </Card>

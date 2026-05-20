@@ -19,7 +19,8 @@ type DataPackageRow = {
   id: string
   network: string
   amount: string
-  selling_price: number
+  agent_price: number
+  selling_price?: number
 }
 
 const networkPalette: Record<string, { color: string; textColor: string; borderColor: string }> = {
@@ -51,10 +52,10 @@ function BuyDataContent() {
 
       const { data, error } = await supabase.client
         .from('data_packages')
-        .select('id,network,amount,selling_price')
+        .select('id,network,amount,agent_price,selling_price')
         .eq('is_active', true)
         .order('network', { ascending: true })
-        .order('selling_price', { ascending: true })
+        .order('agent_price', { ascending: true })
 
       if (error) {
         toast.error(error.message)
@@ -65,7 +66,7 @@ function BuyDataContent() {
 
       const rows = ((data as DataPackageRow[] | null) || []).map((row) => ({
         ...row,
-        selling_price: Number(row.selling_price || 0),
+        agent_price: Number(row.agent_price || row.selling_price || 0),
       }))
 
       setPackages(rows)
@@ -259,7 +260,7 @@ function BuyDataContent() {
                         ) : null}
                         <p className="text-xs font-semibold uppercase tracking-wide muted">{pkg.network}</p>
                         <p className="text-[2rem] font-black leading-tight">{pkg.amount}</p>
-                        <p className="mt-1 text-2xl font-extrabold">GHc {pkg.selling_price.toFixed(2)}</p>
+                        <p className="mt-1 text-2xl font-extrabold">GHc {pkg.agent_price.toFixed(2)}</p>
                         <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] muted">No Expiry</p>
                       </button>
                     ))}
@@ -289,7 +290,7 @@ function BuyDataContent() {
                 <DialogTitle>Complete Data Purchase</DialogTitle>
                 <DialogDescription>
                   {selectedPackage
-                    ? `${selectedPackage.network} ${selectedPackage.amount} - GHc ${selectedPackage.selling_price.toFixed(2)}`
+                    ? `${selectedPackage.network} ${selectedPackage.amount} - GHc ${selectedPackage.agent_price.toFixed(2)}`
                     : 'Select a package to continue'}
                 </DialogDescription>
               </DialogHeader>
@@ -353,7 +354,7 @@ function BuyDataContent() {
                   </div>
                   <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                     <span className="font-medium">Total</span>
-                    <span className="text-xl font-bold text-primary">GHc {(selectedPackage?.selling_price || 0).toFixed(2)}</span>
+                    <span className="text-xl font-bold text-primary">GHc {(selectedPackage?.agent_price || 0).toFixed(2)}</span>
                   </div>
                 </div>
 

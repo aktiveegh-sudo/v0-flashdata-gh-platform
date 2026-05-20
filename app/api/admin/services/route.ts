@@ -7,7 +7,8 @@ type ServicePayload = {
   name?: string
   description?: string | null
   category?: string | null
-  price?: number
+  public_price?: number
+  agent_price?: number
   image_url?: string | null
   is_active?: boolean
 }
@@ -58,12 +59,13 @@ const normalizePayload = (input: ServicePayload) => {
   const name = String(input.name || '').trim()
   const description = String(input.description || '').trim() || null
   const category = String(input.category || '').trim() || 'General'
-  const price = Number(input.price)
+  const public_price = Number(input.public_price)
+  const agent_price = Number(input.agent_price)
   const image_url = String(input.image_url || '').trim() || null
   const is_active = input.is_active ?? true
 
-  if (!name || Number.isNaN(price) || price < 0) {
-    return { error: 'Name and valid price are required', payload: null }
+  if (!name || Number.isNaN(public_price) || Number.isNaN(agent_price) || public_price < 0 || agent_price < 0) {
+    return { error: 'Name and valid public/agent prices are required', payload: null }
   }
 
   return {
@@ -72,7 +74,9 @@ const normalizePayload = (input: ServicePayload) => {
       name,
       description,
       category,
-      price,
+      public_price,
+      agent_price,
+      price: agent_price,
       image_url,
       is_active,
     },
@@ -85,7 +89,7 @@ export async function GET(request: Request) {
 
   const { data, error: dbError } = await supabaseAdmin
     .from('online_services')
-    .select('id,name,description,category,price,image_url,is_active,created_at')
+    .select('id,name,description,category,public_price,agent_price,image_url,is_active,created_at')
     .order('created_at', { ascending: false })
 
   if (dbError) {
@@ -109,7 +113,7 @@ export async function POST(request: Request) {
   const { data, error: dbError } = await supabaseAdmin
     .from('online_services')
     .insert(normalized.payload)
-    .select('id,name,description,category,price,image_url,is_active,created_at')
+    .select('id,name,description,category,public_price,agent_price,image_url,is_active,created_at')
     .single()
 
   if (dbError) {
@@ -139,7 +143,7 @@ export async function PATCH(request: Request) {
     .from('online_services')
     .update(normalized.payload)
     .eq('id', id)
-    .select('id,name,description,category,price,image_url,is_active,created_at')
+    .select('id,name,description,category,public_price,agent_price,image_url,is_active,created_at')
     .single()
 
   if (dbError) {

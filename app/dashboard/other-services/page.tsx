@@ -32,7 +32,7 @@ type BaseService = {
   id: string
   name: string
   category: string
-  price: number
+  agent_price: number
   description: string | null
 }
 
@@ -100,7 +100,7 @@ export default function OtherServicesPage() {
       fetch('/api/services/active', { method: 'GET' }),
       supabase.client
         .from('agent_store_service_prices')
-        .select('id,selling_price,is_active,online_services(id,name,category,price,description)')
+        .select('id,selling_price,is_active,online_services(id,name,category,agent_price,description)')
         .eq('store_id', store.id)
         .order('created_at', { ascending: false }),
     ])
@@ -380,7 +380,7 @@ export default function OtherServicesPage() {
                   <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
                     <div>
                       <p className="text-muted-foreground">Base Price</p>
-                      <p className="font-medium">GHc {Number(svc.online_services?.price || 0).toFixed(2)}</p>
+                      <p className="font-medium">GHc {Number(svc.online_services?.agent_price || 0).toFixed(2)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Selling Price</p>
@@ -389,7 +389,7 @@ export default function OtherServicesPage() {
                     <div>
                       <p className="text-muted-foreground">Margin</p>
                       <p className="font-semibold text-green-600 dark:text-green-400">
-                        GHc {margin(Number(svc.selling_price), Number(svc.online_services?.price || 0)).toFixed(2)}
+                        GHc {margin(Number(svc.selling_price), Number(svc.online_services?.agent_price || 0)).toFixed(2)}
                       </p>
                     </div>
                   </div>

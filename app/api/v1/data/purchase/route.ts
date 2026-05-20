@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   const { data: packageRow, error: packageError } = await supabaseAdmin
     .from('data_packages')
-    .select('id,network,name,amount,selling_price,is_active')
+    .select('id,network,name,amount,agent_price,selling_price,is_active')
     .eq('id', payload.package_id)
     .eq('is_active', true)
     .maybeSingle()
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     return jsonError('Invalid package_id or package is inactive', 404)
   }
 
-  const amount = Number(packageRow.selling_price || 0)
+  const amount = Number(packageRow.agent_price || packageRow.selling_price || 0)
   const reference = generateReference(`API-${String(packageRow.network || 'DATA').toUpperCase()}`)
 
   const { walletId, error: walletError } = await debitWallet(apiUser.user_id, amount)

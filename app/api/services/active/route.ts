@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
       .from('online_services')
-      .select('id,name,category,price,description')
+      .select('id,name,category,agent_price,description')
       .eq('is_active', true)
       .order('category', { ascending: true })
       .order('name', { ascending: true })

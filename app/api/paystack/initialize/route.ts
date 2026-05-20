@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
         const { data: packageRow, error: packageError } = await supabaseAdmin
           .from('data_packages')
-          .select('id,selling_price,is_active')
+          .select('id,agent_price,selling_price,is_active')
           .eq('id', body.packageId)
           .eq('is_active', true)
           .maybeSingle()
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
         const payment = await initializePaystackTransaction({
           email,
-          amount: Number(packageRow.selling_price || 0),
+          amount: Number(packageRow.agent_price || packageRow.selling_price || 0),
           callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(body.redirectPath || '/dashboard/buy-data')}`,
           metadata: {
             flow: body.flow,
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
 
       const { data: settings, error: settingsError } = await supabaseAdmin
         .from('afa_settings')
-        .select('base_price,is_active')
+        .select('base_price,agent_price,is_active')
         .eq('id', 1)
         .maybeSingle()
 
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
 
       const payment = await initializePaystackTransaction({
         email,
-        amount: Number(settings.base_price || 0),
+        amount: Number(settings.agent_price || settings.base_price || 0),
         callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(body.redirectPath || '/dashboard/afa')}`,
         metadata: {
           flow: body.flow,
@@ -156,6 +156,117 @@ export async function POST(request: NextRequest) {
           fullName,
           ghanaCardNumber,
           location,
+        },
+      })
+
+      return NextResponse.json({ success: true, data: payment })
+    }
+
+    if (body.flow === 'public_service' || body.flow === 'public_data' || body.flow === 'public_afa') {
+      const { data: publicStore, error: publicStoreError } = await supabaseAdmin
+        .from('agent_stores')
+        .select('id,slug,contact_email,contact_phone')
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (publicStoreError || !publicStore) {
+        return jsonError(publicStoreError?.message || 'Public checkout is not available right now', 404)
+      }
+
+      const fallbackEmail = `public-${publicStore.id.slice(0, 8)}@flashdata.gh`
+      const customerEmail = (body.customerEmail || publicStore.contact_email || '').trim() || fallbackEmail
+      const customerName = (body.customerName || '').trim() || 'Public Customer'
+
+      if (body.flow === 'public_service') {
+        if (!body.serviceId) {
+          return jsonError('serviceId is required', 400)
+        }
+
+        const normalizedServicePhone = normalizeToGhanaPhone(body.phone || '')
+        if (!normalizedServicePhone) {
+          return jsonError('A valid recipient number is required', 400)
+        }
+
+        const { data: serviceRow, error: serviceError } = await supabaseAdmin
+          .from('online_services')
+          .select('id,public_price,price,is_active')
+          .eq('id', body.serviceId)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (serviceError || !serviceRow) {
+          return jsonError(serviceError?.message || 'Public service not found', 404)
+        }
+
+        const payment = await initializePaystackTransaction({
+          email: customerEmail,
+          amount: Number(serviceRow.public_price || serviceRow.price || 0),
+          callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(body.redirectPath || '/other-services')}`,
+          metadata: {
+            flow: body.flow,
+            redirectPath: body.redirectPath || '/other-services',
+            storeId: publicStore.id,
+            serviceId: serviceRow.id,
+            phone: normalizedServicePhone,
+            customerName,
+            customerPhone: normalizedServicePhone,
+            customerEmail,
+          },
+        })
+
+        return NextResponse.json({ success: true, data: payment })
+      }
+
+      const normalizedPhone = normalizeToGhanaPhone(body.phone || '')
+      if (!body.packageId || !normalizedPhone) {
+        return jsonError('packageId and a valid phone number are required', 400)
+      }
+
+      const { data: packageRow, error: packageError } = await supabaseAdmin
+        .from('data_packages')
+        .select('id,network,public_price,selling_price,is_active')
+        .eq('id', body.packageId)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (packageError || !packageRow) {
+        return jsonError(packageError?.message || 'Public package not found', 404)
+      }
+
+      const isPublicAfa = body.flow === 'public_afa' || String(packageRow.network || '').trim().toUpperCase() === 'AFA'
+      let fullName = ''
+      let ghanaCardNumber = ''
+      let location = ''
+
+      if (isPublicAfa) {
+        fullName = (body.fullName || '').trim()
+        ghanaCardNumber = (body.ghanaCardNumber || '').trim().toUpperCase()
+        location = (body.location || '').trim()
+        const ghanaCardPattern = /^GHA-\d{9}-\d$/i
+
+        if (!fullName || !location || !ghanaCardPattern.test(ghanaCardNumber)) {
+          return jsonError('Valid fullName, location, and Ghana Card number are required', 400)
+        }
+      }
+
+      const payment = await initializePaystackTransaction({
+        email: customerEmail,
+        amount: Number(packageRow.public_price || packageRow.selling_price || 0),
+        callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(body.redirectPath || '/buy-data')}`,
+        metadata: {
+          flow: isPublicAfa ? 'public_afa' : 'public_data',
+          redirectPath: body.redirectPath || '/buy-data',
+          storeId: publicStore.id,
+          packageId: packageRow.id,
+          phone: normalizedPhone,
+          fullName,
+          ghanaCardNumber,
+          location,
+          customerName,
+          customerPhone: normalizedPhone,
+          customerEmail,
         },
       })
 

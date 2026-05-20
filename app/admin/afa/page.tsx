@@ -17,6 +17,8 @@ import toast from 'react-hot-toast'
 type AfaSettings = {
   id: number
   base_price: number
+  public_price: number
+  agent_price: number
   is_active: boolean
   instructions: string | null
 }
@@ -45,7 +47,7 @@ export default function AdminAfaPage() {
   const [loading, setLoading] = useState(true)
   const [savingSettings, setSavingSettings] = useState(false)
   const [rows, setRows] = useState<AfaRegistration[]>([])
-  const [settings, setSettings] = useState<AfaSettings>({ id: 1, base_price: 0, is_active: true, instructions: '' })
+  const [settings, setSettings] = useState<AfaSettings>({ id: 1, base_price: 0, public_price: 0, agent_price: 0, is_active: true, instructions: '' })
 
   const loadData = async () => {
     setLoading(true)
@@ -53,7 +55,7 @@ export default function AdminAfaPage() {
     const [{ data: settingsData, error: settingsError }, { data: registrations, error: registrationsError }] = await Promise.all([
       supabase.client
         .from('afa_settings')
-        .select('id,base_price,is_active,instructions')
+        .select('id,base_price,public_price,agent_price,is_active,instructions')
         .eq('id', 1)
         .maybeSingle(),
       supabase.client
@@ -77,6 +79,8 @@ export default function AdminAfaPage() {
     setSettings({
       id: settingsData?.id || 1,
       base_price: Number(settingsData?.base_price || 0),
+      public_price: Number(settingsData?.public_price || settingsData?.base_price || 0),
+      agent_price: Number(settingsData?.agent_price || settingsData?.base_price || 0),
       is_active: Boolean(settingsData?.is_active ?? true),
       instructions: settingsData?.instructions || '',
     })
@@ -94,13 +98,15 @@ export default function AdminAfaPage() {
 
     const payload = {
       id: 1,
-      base_price: Number(settings.base_price || 0),
+      base_price: Number(settings.agent_price || settings.base_price || 0),
+      public_price: Number(settings.public_price || 0),
+      agent_price: Number(settings.agent_price || 0),
       is_active: settings.is_active,
       instructions: settings.instructions?.trim() || null,
     }
 
-    if (Number.isNaN(payload.base_price) || payload.base_price < 0) {
-      toast.error('Base price must be valid and non-negative')
+    if (Number.isNaN(payload.public_price) || Number.isNaN(payload.agent_price) || payload.public_price < 0 || payload.agent_price < 0) {
+      toast.error('Public and agent prices must be valid and non-negative')
       setSavingSettings(false)
       return
     }
@@ -174,13 +180,23 @@ export default function AdminAfaPage() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>Base Price (GHc)</Label>
+            <Label>User Price (GHc)</Label>
             <Input
               type="number"
               min="0"
               step="0.01"
-              value={settings.base_price}
-              onChange={(e) => setSettings((prev) => ({ ...prev, base_price: Number(e.target.value) }))}
+              value={settings.public_price}
+              onChange={(e) => setSettings((prev) => ({ ...prev, public_price: Number(e.target.value) }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Agent Price (GHc)</Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={settings.agent_price}
+              onChange={(e) => setSettings((prev) => ({ ...prev, agent_price: Number(e.target.value), base_price: Number(e.target.value) }))}
             />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">

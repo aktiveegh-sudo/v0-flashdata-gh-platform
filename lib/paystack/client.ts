@@ -1,7 +1,16 @@
 import { supabase } from '@/lib/supabase/client'
 
 type PaystackInitializePayload = {
-  flow: 'wallet_topup' | 'dashboard_data' | 'dashboard_afa' | 'store_data' | 'store_service' | 'store_afa'
+  flow:
+    | 'wallet_topup'
+    | 'dashboard_data'
+    | 'dashboard_afa'
+    | 'store_data'
+    | 'store_service'
+    | 'store_afa'
+    | 'public_data'
+    | 'public_service'
+    | 'public_afa'
   amount?: number
   packageId?: string
   serviceId?: string

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { supabase } from '@/lib/supabase/client'
 import { ghanaCurrency } from '@/lib/admin/utils'
 import toast from 'react-hot-toast'
@@ -18,6 +19,8 @@ type PackageRow = {
   name: string
   amount: string
   cost_price: number
+  public_price: number
+  agent_price: number
   selling_price: number
   validity: string
   is_active: boolean
@@ -38,6 +41,9 @@ const emptyForm = {
   network: 'MTN',
   amount: '',
   cost_price: '',
+  public_price: '',
+  agent_price: '',
+  is_active: true,
 }
 
 export default function AdminPackagesPage() {
@@ -50,7 +56,7 @@ export default function AdminPackagesPage() {
     setLoading(true)
     const { data, error } = await supabase.client
       .from('data_packages')
-      .select('id,network,name,amount,cost_price,selling_price,validity,is_active')
+      .select('id,network,name,amount,cost_price,public_price,agent_price,selling_price,validity,is_active')
       .order('network', { ascending: true })
       .order('cost_price', { ascending: true })
 
@@ -90,21 +96,26 @@ export default function AdminPackagesPage() {
       name: `${form.network} ${form.amount}`.trim(),
       amount: form.amount,
       cost_price: Number(form.cost_price),
-      selling_price: editingId ? rows.find((pkg) => pkg.id === editingId)?.selling_price ?? Number(form.cost_price) : Number(form.cost_price),
+      public_price: Number(form.public_price),
+      agent_price: Number(form.agent_price),
+      selling_price: Number(form.agent_price),
       validity: 'Non-expiry',
+      is_active: Boolean(form.is_active),
     }
 
-    if (!payload.amount || Number.isNaN(payload.cost_price)) {
+    if (!payload.amount || Number.isNaN(payload.cost_price) || Number.isNaN(payload.public_price) || Number.isNaN(payload.agent_price)) {
       toast.error('Please fill all required fields')
       return
     }
 
-    if (Number.isNaN(payload.selling_price)) {
-      payload.selling_price = payload.cost_price
+    if (payload.cost_price < 0 || payload.public_price < 0 || payload.agent_price < 0) {
+      toast.error('All prices must be non-negative')
+      return
     }
 
-    if (payload.selling_price < payload.cost_price) {
-      payload.selling_price = payload.cost_price
+    if (payload.agent_price < payload.cost_price) {
+      toast.error('Agent price cannot be less than cost price')
+      return
     }
 
     if (editingId) {
@@ -134,6 +145,9 @@ export default function AdminPackagesPage() {
       network: pkg.network,
       amount: pkg.amount,
       cost_price: String(pkg.cost_price),
+      public_price: String(pkg.public_price ?? pkg.selling_price),
+      agent_price: String(pkg.agent_price ?? pkg.selling_price),
+      is_active: pkg.is_active,
     })
   }
 
@@ -164,7 +178,7 @@ export default function AdminPackagesPage() {
           <CardTitle>{editingId ? 'Edit Package' : 'Add New Package'}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={submitPackage} className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <form onSubmit={submitPackage} className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <div className="space-y-2">
               <Label>Network</Label>
               <Select value={form.network} onValueChange={(value) => setForm((prev) => ({ ...prev, network: value }))}>
@@ -182,10 +196,25 @@ export default function AdminPackagesPage() {
               <Input value={form.amount} onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))} placeholder="5GB" />
             </div>
             <div className="space-y-2">
-              <Label>Amount (GHc)</Label>
+              <Label>Cost Price (GHc)</Label>
               <Input type="number" min="0" step="0.01" value={form.cost_price} onChange={(e) => setForm((prev) => ({ ...prev, cost_price: e.target.value }))} />
             </div>
-            <div className="md:col-span-2 xl:col-span-5 flex flex-wrap gap-2">
+            <div className="space-y-2">
+              <Label>User Price (GHc)</Label>
+              <Input type="number" min="0" step="0.01" value={form.public_price} onChange={(e) => setForm((prev) => ({ ...prev, public_price: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Agent Price (GHc)</Label>
+              <Input type="number" min="0" step="0.01" value={form.agent_price} onChange={(e) => setForm((prev) => ({ ...prev, agent_price: e.target.value }))} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 xl:col-span-2">
+              <div>
+                <p className="text-sm font-medium">Active for Checkout</p>
+                <p className="text-xs text-muted-foreground">Visible on public and agent pages</p>
+              </div>
+              <Switch checked={form.is_active} onCheckedChange={(value) => setForm((prev) => ({ ...prev, is_active: value }))} />
+            </div>
+            <div className="md:col-span-2 xl:col-span-6 flex flex-wrap gap-2">
               <Button type="submit">
                 <Plus className="mr-2 h-4 w-4" />
                 {editingId ? 'Save Package' : 'Add Package'}
@@ -196,7 +225,7 @@ export default function AdminPackagesPage() {
                 </Button>
               )}
               <Badge variant="outline" className="h-10 px-3 py-2">Validity: Non-expiry</Badge>
-              <Badge variant="secondary" className="h-10 px-3 py-2">Selling price is managed by agents</Badge>
+              <Badge variant="secondary" className="h-10 px-3 py-2">One price for public users and one for agents</Badge>
             </div>
           </form>
         </CardContent>
@@ -212,7 +241,8 @@ export default function AdminPackagesPage() {
               <tr>
                 <th className="px-3 py-3">Network</th>
                 <th className="px-3 py-3">Data Volume</th>
-                <th className="px-3 py-3">Price</th>
+                <th className="px-3 py-3">User Price</th>
+                <th className="px-3 py-3">Agent Price</th>
                 <th className="px-3 py-3">Status</th>
                 <th className="px-3 py-3">Actions</th>
               </tr>
@@ -226,7 +256,8 @@ export default function AdminPackagesPage() {
                 <tr key={pkg.id} className="border-t border-border">
                   <td className="px-3 py-3">{pkg.network}</td>
                   <td className="px-3 py-3">{pkg.amount}</td>
-                  <td className="px-3 py-3">{ghanaCurrency(Number(pkg.cost_price || 0))}</td>
+                  <td className="px-3 py-3">{ghanaCurrency(Number(pkg.public_price || 0))}</td>
+                  <td className="px-3 py-3">{ghanaCurrency(Number(pkg.agent_price || pkg.selling_price || 0))}</td>
                   <td className="px-3 py-3">
                     <Badge variant={pkg.is_active ? 'default' : 'secondary'}>{pkg.is_active ? 'Active' : 'Inactive'}</Badge>
                   </td>

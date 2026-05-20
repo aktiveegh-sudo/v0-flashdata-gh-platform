@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
@@ -15,7 +16,8 @@ type ServiceRow = {
   name: string
   description: string | null
   category: string | null
-  price: number
+  public_price: number
+  agent_price: number
   image_url: string | null
   is_active: boolean
   created_at: string
@@ -25,8 +27,10 @@ const emptyForm = {
   name: '',
   description: '',
   category: 'General',
-  price: '',
+  public_price: '',
+  agent_price: '',
   image_url: '',
+  is_active: true,
 }
 
 export default function AdminAddServicePage() {
@@ -99,19 +103,21 @@ export default function AdminAddServicePage() {
 
     const normalizedName = form.name.trim()
     const normalizedCategory = form.category.trim() || 'General'
-    const parsedPrice = Number(form.price)
+    const parsedPublicPrice = Number(form.public_price)
+    const parsedAgentPrice = Number(form.agent_price)
 
     const payload = {
       name: normalizedName,
       description: form.description.trim() || null,
       category: normalizedCategory,
-      price: parsedPrice,
+      public_price: parsedPublicPrice,
+      agent_price: parsedAgentPrice,
       image_url: form.image_url || null,
-      is_active: true,
+      is_active: form.is_active,
     }
 
-    if (!payload.name || Number.isNaN(payload.price) || payload.price < 0) {
-      toast.error('Name and valid price are required')
+    if (!payload.name || Number.isNaN(payload.public_price) || Number.isNaN(payload.agent_price) || payload.public_price < 0 || payload.agent_price < 0) {
+      toast.error('Name and valid public/agent prices are required')
       return
     }
 
@@ -149,8 +155,10 @@ export default function AdminAddServicePage() {
       name: row.name,
       description: row.description || '',
       category: row.category || '',
-      price: String(row.price || ''),
+      public_price: String(row.public_price || ''),
+      agent_price: String(row.agent_price || ''),
       image_url: row.image_url || '',
+      is_active: row.is_active,
     })
   }
 
@@ -216,12 +224,23 @@ export default function AdminAddServicePage() {
               <Textarea value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} rows={4} />
             </div>
             <div className="space-y-2">
-              <Label>Price (GHS)</Label>
-              <Input type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))} />
+              <Label>User Price (GHS)</Label>
+              <Input type="number" min="0" step="0.01" value={form.public_price} onChange={(e) => setForm((prev) => ({ ...prev, public_price: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Agent Price (GHS)</Label>
+              <Input type="number" min="0" step="0.01" value={form.agent_price} onChange={(e) => setForm((prev) => ({ ...prev, agent_price: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label>Image URL (optional)</Label>
               <Input value={form.image_url} onChange={(e) => setForm((prev) => ({ ...prev, image_url: e.target.value }))} placeholder="https://..." />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 md:col-span-2">
+              <div>
+                <p className="text-sm font-medium">Active for Checkout</p>
+                <p className="text-xs text-muted-foreground">Visible on public and agent pages</p>
+              </div>
+              <Switch checked={form.is_active} onCheckedChange={(value) => setForm((prev) => ({ ...prev, is_active: value }))} />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Upload image</Label>
@@ -283,7 +302,9 @@ export default function AdminAddServicePage() {
                 <h3 className="font-semibold">{row.name}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{row.description || 'No description'}</p>
                 <p className="mt-2 text-sm">Category: <span className="font-medium">{row.category || '-'}</span></p>
-                <p className="text-sm">Price: <span className="font-medium">GHS {row.price.toFixed(2)}</span></p>
+                <p className="text-sm">User Price: <span className="font-medium">GHS {row.public_price.toFixed(2)}</span></p>
+                <p className="text-sm">Agent Price: <span className="font-medium">GHS {row.agent_price.toFixed(2)}</span></p>
+                <p className="text-sm">Status: <span className="font-medium">{row.is_active ? 'Active' : 'Inactive'}</span></p>
                 <div className="mt-3 flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => editService(row)}>
                     <Pencil className="mr-1 h-3.5 w-3.5" /> Edit

@@ -8,6 +8,9 @@ export type PaystackFlow =
   | 'store_data'
   | 'store_service'
   | 'store_afa'
+  | 'public_data'
+  | 'public_service'
+  | 'public_afa'
 
 type PaystackMetadata = {
   flow: PaystackFlow
@@ -453,7 +456,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
 
     const { data: packageRow, error: packageError } = await supabaseAdmin
       .from('data_packages')
-      .select('id,network,amount,selling_price,is_active')
+      .select('id,network,amount,agent_price,selling_price,is_active')
       .eq('id', metadata.packageId)
       .eq('is_active', true)
       .maybeSingle()
@@ -462,7 +465,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       throw new Error(packageError?.message || 'Data package not found')
     }
 
-    if (Number(packageRow.selling_price || 0) !== amount) {
+    const packageAgentPrice = Number(packageRow.agent_price || packageRow.selling_price || 0)
+
+    if (packageAgentPrice !== amount) {
       throw new Error('Paid amount does not match data package price')
     }
 
@@ -613,7 +618,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
 
     const { data: settings, error: settingsError } = await supabaseAdmin
       .from('afa_settings')
-      .select('base_price,is_active')
+      .select('base_price,agent_price,is_active')
       .eq('id', 1)
       .maybeSingle()
 
@@ -621,7 +626,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       throw new Error(settingsError?.message || 'AFA registration is unavailable')
     }
 
-    if (Number(settings.base_price || 0) !== amount) {
+    const afaAgentPrice = Number(settings.agent_price || settings.base_price || 0)
+
+    if (afaAgentPrice !== amount) {
       throw new Error('Paid amount does not match AFA price')
     }
 
@@ -687,6 +694,185 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       ok: true,
       redirectPath: metadata.redirectPath,
       message: 'AFA registration submitted successfully',
+    }
+  }
+
+  if (metadata.flow === 'public_service' || metadata.flow === 'public_data' || metadata.flow === 'public_afa') {
+    if (!metadata.storeId) {
+      throw new Error('Missing public checkout store details')
+    }
+
+    const { data: storeForPublic, error: storeForPublicError } = await supabaseAdmin
+      .from('agent_stores')
+      .select('id,agent_id,slug,brand_name')
+      .eq('id', metadata.storeId)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (storeForPublicError || !storeForPublic) {
+      throw new Error(storeForPublicError?.message || 'Public checkout store is unavailable')
+    }
+
+    const publicExistingOrder = await findStoreOrderByReference(storeForPublic.id, reference)
+
+    if (!publicExistingOrder) {
+      const publicCustomerName = (metadata.customerName || metadata.fullName || '').trim() || 'Public Customer'
+      const publicCustomerPhone = normalizeStoreCustomerPhone(metadata.customerPhone || metadata.phone || '') || 'N/A'
+      const publicCustomerEmail = (metadata.customerEmail || charge.customer?.email || '').trim() || `public-${storeForPublic.id.slice(0, 8)}@flashdata.gh`
+
+      let itemType: 'data' | 'service' = 'data'
+      let packageId: string | null = null
+      let serviceId: string | null = null
+      let itemLabel = 'Public purchase'
+      let customerNote = `Paystack Ref: ${reference} | Source: public checkout | Payment Status: paid`
+      let storeOrderStatus: 'pending' | 'accepted' | 'declined' | 'completed' = 'pending'
+
+      if (metadata.flow === 'public_service') {
+        if (!metadata.serviceId || !metadata.phone) {
+          throw new Error('Missing public service checkout details')
+        }
+
+        itemType = 'service'
+        serviceId = metadata.serviceId
+
+        const { data: serviceRow, error: serviceError } = await supabaseAdmin
+          .from('online_services')
+          .select('id,name,public_price,price,is_active')
+          .eq('id', metadata.serviceId)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (serviceError || !serviceRow) {
+          throw new Error(serviceError?.message || 'Public service not found')
+        }
+
+        const servicePublicPrice = Number(serviceRow.public_price || serviceRow.price || 0)
+        if (servicePublicPrice !== amount) {
+          throw new Error('Paid amount does not match public service price')
+        }
+
+        itemLabel = serviceRow.name || 'Public Service'
+      } else {
+        if (!metadata.packageId || !metadata.phone) {
+          throw new Error('Missing public data checkout details')
+        }
+
+        packageId = metadata.packageId
+
+        const { data: packageRow, error: packageError } = await supabaseAdmin
+          .from('data_packages')
+          .select('id,name,amount,network,public_price,selling_price,is_active')
+          .eq('id', metadata.packageId)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (packageError || !packageRow) {
+          throw new Error(packageError?.message || 'Public data package not found')
+        }
+
+        const packagePublicPrice = Number(packageRow.public_price || packageRow.selling_price || 0)
+        if (packagePublicPrice !== amount) {
+          throw new Error('Paid amount does not match public package price')
+        }
+
+        itemLabel = packageRow.name || 'Public Data'
+
+        if (metadata.flow === 'public_afa') {
+          const ghanaCardPattern = /^GHA-\d{9}-\d$/i
+          if (!metadata.fullName || !metadata.location || !metadata.ghanaCardNumber || !ghanaCardPattern.test(metadata.ghanaCardNumber)) {
+            throw new Error('Missing valid public AFA registration details')
+          }
+
+          customerNote = [
+            `Paystack Ref: ${reference}`,
+            'Source: public checkout',
+            'Payment Status: paid',
+            `Phone: ${metadata.phone || ''}`,
+            `Full Name: ${metadata.fullName || ''}`,
+            `Ghana Card: ${metadata.ghanaCardNumber || ''}`,
+            `Location: ${metadata.location || ''}`,
+          ].join(' | ')
+        } else {
+          customerNote = `${customerNote} | Recipient: ${metadata.phone || ''}`
+
+          try {
+            const delivery = await deliverDataBundleByProvider({
+              network: packageRow.network || '',
+              phone: metadata.phone || publicCustomerPhone,
+              packageSize: packageRow.amount || '',
+              requestId: `${reference}-PUBLIC`,
+              idempotencyKey: `public-${reference}`,
+            })
+
+            storeOrderStatus =
+              delivery.status === 'fulfilled' || delivery.status === 'success' || delivery.status === 'completed'
+                ? 'completed'
+                : 'pending'
+
+            customerNote = `${customerNote} | Provider: ${delivery.provider} | Delivery Status: ${delivery.status}${
+              delivery.orderId ? ` | Provider Order: ${delivery.orderId}` : ''
+            }`
+          } catch (deliveryError) {
+            const deliveryMessage = deliveryError instanceof Error ? deliveryError.message : 'SwiftData delivery failed'
+            storeOrderStatus = 'declined'
+            customerNote = `${customerNote} | Swift Error: ${deliveryMessage}`
+          }
+        }
+      }
+
+      const { data: createdPublicOrder, error: createPublicOrderError } = await supabaseAdmin
+        .from('agent_store_orders')
+        .insert({
+          store_id: storeForPublic.id,
+          item_type: itemType,
+          package_id: packageId,
+          service_id: serviceId,
+          customer_name: publicCustomerName,
+          customer_phone: publicCustomerPhone,
+          customer_email: publicCustomerEmail,
+          customer_note: customerNote,
+          quantity: 1,
+          total_price: amount,
+          status: storeOrderStatus,
+        })
+        .select('id')
+        .single()
+
+      if (createPublicOrderError) {
+        throw new Error(createPublicOrderError.message)
+      }
+
+      await insertStoreSaleTransaction({
+        sellerId: storeForPublic.agent_id,
+        amount,
+        reference,
+        description: `Public sale - ${itemLabel}`,
+        metadata: {
+          source: 'paystack',
+          checkout: 'public',
+          store_id: storeForPublic.id,
+          store_slug: storeForPublic.slug,
+          order_id: createdPublicOrder.id,
+          payment_reference: reference,
+        },
+      })
+
+      void notifyAdminsOfNewOrder({
+        kind: itemType === 'service' ? 'store_service' : metadata.flow === 'public_afa' ? 'store_afa' : 'store_data',
+        reference,
+        amount,
+        source: 'public',
+        storeName: storeForPublic.brand_name || storeForPublic.slug,
+        itemName: itemLabel,
+        customerName: publicCustomerName,
+        customerPhone: publicCustomerPhone,
+      })
+    }
+
+    return {
+      ok: true,
+      redirectPath: metadata.redirectPath,
+      message: 'Payment received and public order submitted successfully',
     }
   }
 
@@ -847,7 +1033,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       amount,
       source: 'store',
       storeName: store.brand_name || store.slug,
-      itemName,
+      itemName: itemLabel,
       customerName,
       customerPhone,
     })
