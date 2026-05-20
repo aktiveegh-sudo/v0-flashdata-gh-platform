@@ -111,18 +111,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <button
             onClick={() => toggleExpanded(item.label)}
             className={cn(
-              'flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-medium transition-all duration-200',
+              'flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all duration-200',
               isActive || isExpanded
-                ? 'bg-primary/12 text-primary shadow-sm shadow-primary/20'
-                : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+                ? 'bg-gradient-to-r from-[#f4c532]/22 via-[#f4c532]/10 to-transparent text-[#ffe079] shadow-sm shadow-[#d4a61f]/25'
+                : 'text-[#d5d9e4]/78 hover:bg-white/5 hover:text-[#f4f6fb]'
             )}
           >
             <div className="flex items-center gap-3">
               <div className={cn(
                 'flex h-8 w-8 items-center justify-center rounded-xl transition-all',
                 isActive || isExpanded
-                  ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/30'
-                  : 'bg-sidebar-accent/60'
+                  ? 'bg-[#f4c532] text-[#18120a] shadow-sm shadow-[#d4a61f]/35'
+                  : 'bg-white/[0.06] text-[#cfd5e2]'
               )}>
                 <item.icon className="h-4 w-4" />
               </div>
@@ -153,8 +153,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                       className={cn(
                         'block rounded-xl px-3 py-2 text-sm transition-all',
                         pathname === child.href || pathname.includes(child.href)
-                          ? 'bg-primary text-primary-foreground font-medium'
-                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                          ? 'bg-[#f4c532] text-[#121212] font-semibold'
+                          : 'text-[#c8cedc]/72 hover:bg-white/5 hover:text-[#f2f5ff]'
                       )}
                     >
                       {child.label}
@@ -173,23 +173,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         href={item.href}
         onClick={onClose}
         className={cn(
-          'relative flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-medium transition-all duration-200',
+          'relative flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all duration-200',
           isActive
-            ? 'bg-primary/12 text-primary shadow-sm shadow-primary/20'
-            : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+            ? 'bg-gradient-to-r from-[#f4c532]/22 via-[#f4c532]/10 to-transparent text-[#ffe079] shadow-sm shadow-[#d4a61f]/25'
+            : 'text-[#d5d9e4]/78 hover:bg-white/5 hover:text-[#f4f6fb]'
         )}
       >
         {isActive && (
           <motion.div
             layoutId="sidebar-active-indicator"
-            className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary"
+            className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-[#f4c532]"
           />
         )}
         <div className={cn(
           'flex h-8 w-8 items-center justify-center rounded-xl transition-all',
           isActive
-            ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/30'
-            : 'bg-sidebar-accent/60'
+            ? 'bg-[#f4c532] text-[#18120a] shadow-sm shadow-[#d4a61f]/35'
+            : 'bg-white/[0.06] text-[#cfd5e2]'
         )}>
           <item.icon className="h-4 w-4" />
         </div>
@@ -199,18 +199,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   }
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-gradient-to-b from-sidebar via-sidebar to-sidebar-accent/30">
+    <div className="flex h-full flex-col bg-[radial-gradient(circle_at_18%_22%,rgba(20,98,53,0.22),transparent_38%),linear-gradient(180deg,#03100d_0%,#06170f_42%,#05110d_100%)]">
       {/* Logo */}
-      <div className="flex h-20 items-center justify-between border-b border-sidebar-border/70 px-5">
+      <div className="flex h-20 items-center justify-between border-b border-white/10 px-5">
         <Link href="/dashboard/overview" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f4c532]/12 ring-1 ring-[#f4c532]/25">
             <GhanaFlagIcon className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-lg font-bold text-sidebar-foreground">
-              Flash<span className="text-primary">Data</span>
+            <span className="text-lg font-extrabold tracking-tight text-[#f4f6fb]">
+              SwiftData <span className="text-[#f4c532]">GH</span>
             </span>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-sidebar-foreground/55">Agent Dashboard</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#aeb7c8]/75">Agent Console</p>
           </div>
         </Link>
         <Button
@@ -229,8 +229,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="space-y-2">
           {/* Main Section */}
           <div className="mb-3">
-            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
-              Daily Use
+            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#7c8699]">
+              Core Services
             </p>
             {mainNavItems.map((item) => (
               <NavLink key={item.label} item={item} />
@@ -238,11 +238,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
 
           {/* Divider */}
-          <div className="my-4 border-t border-sidebar-border" />
+          <div className="my-4 border-t border-white/10" />
 
           {/* Store Section */}
           <div className="mb-3">
-            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#7c8699]">
               My Shop
             </p>
             {storeNavItems.map((item) => (
@@ -251,7 +251,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
 
           {/* Divider */}
-          <div className="my-4 border-t border-sidebar-border" />
+          <div className="my-4 border-t border-white/10" />
 
           {/* Bottom Section */}
           <div>
@@ -263,27 +263,35 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       </div>
 
       {/* User Profile Footer */}
-      <div className="border-t border-sidebar-border/70 p-4">
-        <div className="flex items-center gap-3 rounded-2xl border border-sidebar-border/70 bg-sidebar-accent/45 px-3 py-3">
-          <Avatar className="h-8 w-8 shrink-0">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+      <div className="border-t border-white/10 p-4">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 shrink-0 ring-2 ring-[#f4c532]/30">
+              <AvatarFallback className="bg-[#f4c532] text-[#1d1307] text-xs font-semibold">
               {user?.name ? getInitials(user.name) : <User className="h-4 w-4" />}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-sidebar-foreground">
-              {user?.name || 'User'}
-            </p>
-            <p className="truncate text-xs text-sidebar-foreground/50">
-              {user?.email || ''}
-            </p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-lg font-semibold leading-none text-[#f3f5fb]">
+                {user?.name || 'User'}
+              </p>
+              <p className="mt-1 truncate text-[11px] font-semibold uppercase tracking-[0.1em] text-[#f4c532]">GH-USER</p>
+            </div>
+            <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_2px_rgba(16,185,129,0.22)]" />
           </div>
+
+          <div className="mt-3 flex items-center justify-between text-xs">
+            <span className="rounded-full bg-white/8 px-2 py-0.5 font-semibold uppercase tracking-wide text-[#aeb7c8]">Regular</span>
+            <span className="text-[#aeb7c8]">Online</span>
+          </div>
+
           <button
             onClick={handleLogout}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-destructive transition-colors hover:bg-destructive/10"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-500/8 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/15"
             aria-label="Logout"
           >
             <LogOut className="h-4 w-4" />
+            Sign Out Securely
           </button>
         </div>
       </div>
@@ -293,7 +301,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-72 lg:border-r lg:border-sidebar-border/70 lg:bg-sidebar">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-72 lg:border-r lg:border-white/10">
         {sidebarContent}
       </aside>
 
@@ -313,7 +321,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 z-50 w-80 max-w-[88vw] border-r border-sidebar-border/70 bg-sidebar lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-80 max-w-[88vw] border-r border-white/10 lg:hidden"
             >
               {sidebarContent}
             </motion.aside>

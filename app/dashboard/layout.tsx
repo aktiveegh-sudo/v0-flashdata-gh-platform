@@ -166,7 +166,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="vibe-dashboard-bg min-h-screen">
+    <div className="agent-console vibe-dashboard-bg min-h-screen">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="lg:pl-72">
         <Header onMenuClick={() => setSidebarOpen(true)} />

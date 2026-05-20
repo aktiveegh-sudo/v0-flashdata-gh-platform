@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Menu, Search, Bell, User, Settings } from 'lucide-react'
+import { Menu, Search, Bell, Settings, ShieldCheck, WalletMinimal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -58,7 +58,8 @@ export function Header({ onMenuClick }: HeaderProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loadingNotifications, setLoadingNotifications] = useState(false)
   const [resolvedUserId, setResolvedUserId] = useState('')
-  const greeting = user?.name?.split(' ')[0] ? `Hi, ${user.name.split(' ')[0]}` : 'Welcome back'
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
   const pageTitle = pageLabels[pathname] ?? pageLabels[Object.keys(pageLabels).find((k) => pathname.startsWith(k)) ?? ''] ?? 'Dashboard'
 
@@ -182,54 +183,67 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-4">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#070c14]/92 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-3.5">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 lg:gap-4">
         <div className="flex min-w-0 items-center gap-2.5 lg:gap-4">
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10 rounded-2xl border border-border/70 bg-card/70 lg:hidden"
+          className="h-10 w-10 rounded-2xl border border-white/10 bg-white/5 text-slate-100 lg:hidden"
           onClick={onMenuClick}
           aria-label="Toggle menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
           <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">{greeting}</p>
-            <h2 className="truncate text-lg font-semibold text-foreground lg:text-xl">{pageTitle}</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{greeting}</p>
+            <h2 className="truncate text-lg font-semibold text-slate-100 lg:text-xl">{pageTitle}</h2>
           </div>
 
           <form onSubmit={handleSearch} className="hidden xl:block">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <Input
                 type="search"
-                placeholder="Search Agent Dashboard"
+                placeholder="Quick Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-11 w-72 rounded-2xl border-border/70 bg-card/75 pl-10 shadow-sm"
+                className="h-11 w-72 rounded-2xl border border-white/10 bg-[#0d111b] pl-10 text-slate-100 shadow-sm placeholder:text-slate-500"
               />
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-slate-400">⌘K</span>
             </div>
           </form>
         </div>
 
         <div className="flex items-center gap-1.5 lg:gap-3">
         {/* Mobile Search */}
-        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl border border-border/70 bg-card/70 xl:hidden" aria-label="Search">
+        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl border border-white/10 bg-white/5 text-slate-100 xl:hidden" aria-label="Search">
           <Search className="h-5 w-5" />
         </Button>
+
+          <div className="hidden items-center gap-2 lg:flex">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#f4c532]/45 bg-[#f4c532]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#f4c532]">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Secure
+            </div>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-slate-200">
+              <WalletMinimal className="h-3.5 w-3.5 text-[#f4c532]" />
+              Wallet
+              <span className="font-bold">C****</span>
+            </div>
+          </div>
 
           <ThemeSwitcher showQuickColors />
 
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-2xl border border-border/70 bg-card/70 hover:bg-primary/10" aria-label="Notifications">
+              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-2xl border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10" aria-label="Notifications">
               <Bell className="h-5 w-5" />
                 {unreadCount > 0 ? (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#f4c532] text-[10px] font-bold text-black">
                 {unreadCount}
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-50" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#f4c532] opacity-50" />
               </span>
                 ) : null}
             </Button>
@@ -267,14 +281,15 @@ export function Header({ onMenuClick }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-10 gap-2 rounded-2xl border border-border/70 bg-card/70 px-2.5 shadow-sm hover:bg-card">
-              <Avatar className="h-8 w-8 ring-2 ring-primary/20">
-                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold">
+              <Button variant="ghost" className="h-11 gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 shadow-sm hover:bg-white/10">
+              <Avatar className="h-8 w-8 ring-2 ring-[#f4c532]/40">
+                <AvatarFallback className="bg-gradient-to-br from-[#f4c532] to-[#d4a617] text-[#1b1207] text-xs font-bold">
                   {user ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden text-sm font-medium lg:inline-block">
-                {user?.name?.split(' ')[0] || 'User'}
+              <span className="hidden text-right lg:inline-flex lg:flex-col">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{greeting}</span>
+                <span className="text-sm font-semibold text-slate-100">{user?.name?.split(' ')[0] || 'User'}</span>
               </span>
             </Button>
           </DropdownMenuTrigger>

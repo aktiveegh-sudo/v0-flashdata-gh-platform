@@ -33,12 +33,12 @@ export function QuickActions() {
         >
           <Link
             href={action.href}
-            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all group"
+            className="group flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition-all hover:border-[#f4c532]/45 hover:bg-[#f4c532]/10"
           >
-            <div className={`p-3 rounded-xl bg-gradient-to-br ${action.gradient} group-hover:scale-110 transition-transform`}>
+            <div className={`rounded-xl bg-gradient-to-br p-3 ${action.gradient} transition-transform group-hover:scale-110`}>
               <action.icon className="w-5 h-5 text-white" />
             </div>
-            <span className="text-sm font-medium text-foreground text-center">{action.label}</span>
+            <span className="text-center text-sm font-semibold text-slate-100">{action.label}</span>
           </Link>
         </motion.div>
       ))}

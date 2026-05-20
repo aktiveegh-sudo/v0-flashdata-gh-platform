@@ -88,34 +88,29 @@ export default function OverviewPage() {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
-    >
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
       {/* Welcome Banner */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-6 text-primary-foreground">
+        <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#2a0810] via-[#20050d] to-[#12030a] p-6 text-red-50">
           {/* Decorative blobs */}
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -bottom-8 left-1/3 h-32 w-32 rounded-full bg-white/5 blur-xl" />
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-red-500/15 blur-2xl" />
+          <div className="absolute -bottom-8 left-1/3 h-32 w-32 rounded-full bg-amber-400/10 blur-xl" />
           <div className="relative z-10 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="flex items-center gap-1.5 text-sm font-medium text-primary-foreground/70">
+              <p className="flex items-center gap-1.5 text-sm font-medium text-red-100/80">
                 <Sparkles className="h-3.5 w-3.5" />
                 {greeting}
               </p>
               <h1 className="text-2xl font-bold lg:text-3xl">
                 {user?.name?.split(' ')[0] || 'User'}
               </h1>
-              <p className="mt-1 text-sm text-primary-foreground/70">
+              <p className="mt-1 text-sm text-red-100/75">
                 Here is a quick look at your account today.
               </p>
             </div>
             <div className="mt-3 sm:mt-0">
               <Link href="/dashboard/buy-data">
-                <Button size="sm" className="gap-2 bg-white/20 text-primary-foreground hover:bg-white/30 border-white/20 border">
+                <Button size="sm" className="gap-2 border border-[#f4c532]/45 bg-[#f4c532] text-[#18120a] hover:bg-[#e7b71d]">
                   <Wifi className="h-4 w-4" />
                   Buy Data
                 </Button>
@@ -152,7 +147,7 @@ export default function OverviewPage() {
       <motion.div variants={itemVariants}>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Shortcuts</CardTitle>
+            <CardTitle className="console-section-label">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
             <QuickActions />
@@ -166,9 +161,9 @@ export default function OverviewPage() {
         <motion.div variants={itemVariants}>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                <Wifi className="h-4 w-4 text-primary" />
-                Pick Network
+              <CardTitle className="flex items-center gap-2 console-section-label">
+                <Wifi className="h-4 w-4 text-[#f4c532]" />
+                Buy Data By Network
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -201,12 +196,12 @@ export default function OverviewPage() {
         <motion.div variants={itemVariants}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                <Wallet className="h-4 w-4 text-primary" />
+              <CardTitle className="flex items-center gap-2 console-section-label">
+                <Wallet className="h-4 w-4 text-[#f4c532]" />
                 Recent Activity
               </CardTitle>
               <Link href="/dashboard/transactions">
-                <Button variant="ghost" size="sm" className="gap-1 text-primary h-7 text-xs">
+                <Button variant="ghost" size="sm" className="h-7 gap-1 text-[#f4c532] text-xs hover:bg-[#f4c532]/10 hover:text-[#ffdc67]">
                   View All
                   <ArrowUpRight className="h-3 w-3" />
                 </Button>
@@ -225,7 +220,7 @@ export default function OverviewPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.3 + i * 0.05 }}
-                      className="flex items-center justify-between rounded-xl bg-muted/40 p-3 transition-colors hover:bg-muted/70"
+                      className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.05]"
                     >
                       <div className="flex items-center gap-3">
                         {tx.network ? (
@@ -247,7 +242,7 @@ export default function OverviewPage() {
                           <p className="text-sm font-medium leading-tight text-foreground">
                             {tx.description}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-slate-400">
                             {format(new Date(tx.date), 'MMM d - h:mm a')}
                           </p>
                         </div>

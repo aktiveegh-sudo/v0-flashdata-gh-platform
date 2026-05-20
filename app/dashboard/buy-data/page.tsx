@@ -187,8 +187,8 @@ function BuyDataContent() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Buy Data</h1>
-        <p className="text-muted-foreground">Choose a network, pick a bundle, and pay securely</p>
+        <h1 className="text-2xl font-bold text-slate-100 lg:text-3xl">Buy Data</h1>
+        <p className="text-slate-400">Choose a network, pick a bundle, and pay securely</p>
       </div>
 
       {loadingPackages ? (
@@ -205,7 +205,7 @@ function BuyDataContent() {
         </Card>
       ) : (
         <>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-3 md:grid-cols-3">
             {networks.map((network) => {
               const style = networkPalette[network] || { color: 'bg-slate-700', textColor: 'text-white', borderColor: 'border-slate-700' }
 
@@ -216,10 +216,10 @@ function BuyDataContent() {
                     setSelectedNetwork(network)
                     setSelectedPackageId('')
                   }}
-                  className={`flex items-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-all ${
+                  className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-base font-semibold transition-all ${
                     selectedNetwork === network
-                      ? `${style.color} ${style.textColor} ${style.borderColor}`
-                      : 'border-border bg-card text-foreground hover:border-primary/50'
+                      ? 'border-[#f4c532] bg-[#f4c532] text-[#16110a] shadow-[0_10px_28px_rgba(212,166,23,0.28)]'
+                      : 'border-white/10 bg-[#070d16] text-slate-100 hover:border-[#f4c532]/45'
                   }`}
                 >
                   <Wifi className="h-4 w-4" />
@@ -229,35 +229,38 @@ function BuyDataContent() {
             })}
           </div>
 
+          <p className="console-section-label">{selectedNetwork.toUpperCase()} available bundles</p>
+
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Select Package</CardTitle>
+                <CardTitle className="console-section-label">Select Package</CardTitle>
               </CardHeader>
               <CardContent>
                 {currentPackages.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No packages available for this network.</p>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {currentPackages.map((pkg) => (
                       <button
                         key={pkg.id}
                         onClick={() => handleStartCheckout(pkg.id)}
                         type="button"
-                        className={`relative rounded-xl border-2 p-4 text-left transition-all ${
+                        className={`relative rounded-2xl border p-4 text-left transition-all ${
                           selectedPackageId === pkg.id
-                            ? `${networkPalette[pkg.network]?.borderColor || 'border-primary'} ${networkPalette[pkg.network]?.color || 'bg-primary'} ${networkPalette[pkg.network]?.textColor || 'text-white'}`
-                            : `${networkPalette[pkg.network]?.borderColor || 'border-border'} ${networkPalette[pkg.network]?.color || 'bg-card'} ${networkPalette[pkg.network]?.textColor || 'text-foreground'} opacity-90 hover:opacity-100`
+                            ? 'console-gold-card'
+                            : 'border-[#f2c438]/70 bg-gradient-to-b from-[#f4c532] to-[#d4a617] text-[#111111] opacity-95 hover:opacity-100'
                         }`}
                       >
                         {selectedPackageId === pkg.id ? (
                           <div className="absolute right-2 top-2">
-                            <Check className={`h-5 w-5 ${networkPalette[pkg.network]?.textColor || 'text-primary'}`} />
+                            <Check className="h-5 w-5 text-black" />
                           </div>
                         ) : null}
-                        <p className="text-xs font-semibold uppercase tracking-wide opacity-90">{pkg.network}</p>
-                        <p className="text-xl font-bold">{pkg.amount}</p>
-                        <p className="text-lg font-semibold">GHc {pkg.selling_price.toFixed(2)}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide muted">{pkg.network}</p>
+                        <p className="text-[2rem] font-black leading-tight">{pkg.amount}</p>
+                        <p className="mt-1 text-2xl font-extrabold">GHc {pkg.selling_price.toFixed(2)}</p>
+                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] muted">No Expiry</p>
                       </button>
                     ))}
                   </div>
@@ -267,15 +270,15 @@ function BuyDataContent() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Quick Steps</CardTitle>
+                <CardTitle className="console-section-label">Quick Steps</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <CardContent className="space-y-3 text-sm text-slate-300">
                 <p>1. Pick your network</p>
                 <p>2. Tap a package card</p>
                 <p>3. Enter required details in popup</p>
                 <p>4. Pay on Paystack and return for verification</p>
                 <p>5. Your order is created only after payment is verified</p>
-                <p className="pt-2 text-xs">Packages are managed by admins only.</p>
+                <p className="pt-2 text-xs text-slate-400">Packages are managed by admins only.</p>
               </CardContent>
             </Card>
           </div>
