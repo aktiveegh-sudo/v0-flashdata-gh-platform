@@ -70,36 +70,26 @@ export default function AdminAddServicePage() {
     const { data: sessionData } = await supabase.auth.getSession()
     const accessToken = sessionData.session?.access_token || ''
 
-    const ensureBucket = await fetch('/api/admin/storage/ensure-service-images', {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch('/api/admin/storage/upload-service-image', {
       method: 'POST',
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      body: formData,
     })
 
-    if (!ensureBucket.ok) {
-      const payload = (await ensureBucket.json().catch(() => ({ error: 'Unable to initialize storage bucket' }))) as {
-        error?: string
-      }
+    const payload = (await response.json().catch(() => null)) as
+      | { success?: boolean; data?: { publicUrl?: string }; error?: string }
+      | null
+
+    if (!response.ok || !payload?.success || !payload?.data?.publicUrl) {
       setUploading(false)
-      toast.error(payload.error || 'Unable to initialize storage bucket')
+      toast.error(payload?.error || 'Unable to upload image')
       return
     }
 
-    const ext = file.name.split('.').pop() || 'png'
-    const filePath = `services/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
-    const { error: uploadError } = await supabase.client.storage.from('service-images').upload(filePath, file, {
-      upsert: true,
-      contentType: file.type,
-    })
-
-    if (uploadError) {
-      setUploading(false)
-      toast.error(uploadError.message)
-      return
-    }
-
-    const { data } = supabase.client.storage.from('service-images').getPublicUrl(filePath)
-    setForm((prev) => ({ ...prev, image_url: data.publicUrl }))
+    setForm((prev) => ({ ...prev, image_url: payload.data?.publicUrl || '' }))
     setUploading(false)
     toast.success('Image uploaded')
   }
