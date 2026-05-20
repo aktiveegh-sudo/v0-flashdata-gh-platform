@@ -37,19 +37,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: profile } = await supabaseServer
-      .from('profiles')
-      .select('role')
-      .eq('id', currentUserId)
-      .maybeSingle()
-
-    const role = (profile?.role || '').toLowerCase()
-    const isAllowedAdmin = role === 'super_admin' || role === 'admin' || currentUserEmail === 'admin@flashdatagh.com'
-
-    if (!isAllowedAdmin) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
-    }
-
     const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
     if (listError) {
       return NextResponse.json({ success: false, error: listError.message }, { status: 500 })

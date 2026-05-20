@@ -96,13 +96,8 @@ export default function OtherServicesPage() {
 
     setStoreId(store.id)
 
-    const [{ data: servicesData, error: servicesError }, { data: configured, error: configuredError }] = await Promise.all([
-      supabase.client
-        .from('online_services')
-        .select('id,name,category,price,description')
-        .eq('is_active', true)
-        .order('category')
-        .order('name'),
+    const [servicesResponse, { data: configured, error: configuredError }] = await Promise.all([
+      fetch('/api/services/active', { method: 'GET' }),
       supabase.client
         .from('agent_store_service_prices')
         .select('id,selling_price,is_active,online_services(id,name,category,price,description)')
@@ -110,8 +105,12 @@ export default function OtherServicesPage() {
         .order('created_at', { ascending: false }),
     ])
 
-    if (servicesError) {
-      toast.error(servicesError.message)
+    const servicesPayload = (await servicesResponse.json().catch(() => null)) as
+      | { success?: boolean; data?: BaseService[]; error?: string }
+      | null
+
+    if (!servicesResponse.ok || !servicesPayload?.success) {
+      toast.error(servicesPayload?.error || 'Unable to load services list')
       setLoading(false)
       return
     }
@@ -122,7 +121,7 @@ export default function OtherServicesPage() {
       return
     }
 
-    setBaseServices((servicesData as BaseService[] | null) ?? [])
+    setBaseServices(servicesPayload.data ?? [])
     setStoreServices((configured as StoreService[] | null) ?? [])
     setLoading(false)
   }
