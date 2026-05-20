@@ -1,16 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/api/rest'
 
 export async function GET() {
   try {
-    const supabaseServer = await createSupabaseServerClient()
-    const { data: authData, error: authError } = await supabaseServer.auth.getUser()
-
-    if (authError || !authData.user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
-
     const { data, error } = await supabaseAdmin
       .from('online_services')
       .select('id,name,category,price,description')
