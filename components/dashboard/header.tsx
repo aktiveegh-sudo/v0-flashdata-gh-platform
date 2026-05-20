@@ -33,21 +33,21 @@ type NotificationItem = {
 }
 
 const pageLabels: Record<string, string> = {
-  '/dashboard/overview': 'Overview',
-  '/dashboard/wallet': 'Wallet',
-  '/dashboard/afa': 'AFA Registration',
+  '/dashboard/overview': 'Home',
+  '/dashboard/wallet': 'My Money',
+  '/dashboard/afa': 'SIM Registration',
   '/dashboard/buy-data': 'Buy Data',
-  '/dashboard/transactions': 'Transactions',
-  '/dashboard/my-store': 'My Store',
-  '/dashboard/store-packages': 'Store Packages',
-  '/dashboard/other-services': 'Other Services',
-  '/dashboard/store-orders': 'Store Orders',
-  '/dashboard/store-transactions': 'Store Transactions',
-  '/dashboard/withdrawal': 'Withdrawal',
-  '/dashboard/store-settings': 'Store Settings',
-  '/dashboard/developer-api': 'Developer API',
-  '/dashboard/contact-support': 'Contact Support',
-  '/dashboard/settings': 'Settings',
+  '/dashboard/transactions': 'History',
+  '/dashboard/my-store': 'My Shop',
+  '/dashboard/store-packages': 'Shop Packages',
+  '/dashboard/other-services': 'Extra Services',
+  '/dashboard/store-orders': 'Shop Orders',
+  '/dashboard/store-transactions': 'Shop Payments',
+  '/dashboard/withdrawal': 'Cash Out',
+  '/dashboard/store-settings': 'Shop Settings',
+  '/dashboard/developer-api': 'Integrations',
+  '/dashboard/contact-support': 'Help',
+  '/dashboard/settings': 'Profile',
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
@@ -57,6 +57,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loadingNotifications, setLoadingNotifications] = useState(false)
+  const greeting = user?.name?.split(' ')[0] ? `Hi, ${user.name.split(' ')[0]}` : 'Welcome back'
 
   const pageTitle = pageLabels[pathname] ?? pageLabels[Object.keys(pageLabels).find((k) => pathname.startsWith(k)) ?? ''] ?? 'Dashboard'
 
@@ -156,57 +157,56 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-border/70 bg-background/75 px-4 backdrop-blur-xl lg:px-6">
-      {/* Left section */}
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 px-4 py-4 backdrop-blur-xl lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3 lg:gap-4">
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden"
+          className="h-10 w-10 rounded-2xl border border-border/70 bg-card/70 lg:hidden"
           onClick={onMenuClick}
           aria-label="Toggle menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
-        {/* Page title — desktop */}
-        <h2 className="vibe-title-gradient hidden text-base font-semibold lg:block">
-          {pageTitle}
-        </h2>
-
-        {/* Search - Desktop */}
-        <form onSubmit={handleSearch} className="hidden md:block">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search transactions, packages..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 border-primary/20 bg-white/60 pl-10 shadow-sm lg:w-80 dark:bg-card/70"
-            />
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">{greeting}</p>
+            <h2 className="truncate text-lg font-semibold text-foreground lg:text-xl">{pageTitle}</h2>
           </div>
-        </form>
-      </div>
 
-      {/* Right section */}
-      <div className="flex items-center gap-2">
+          <form onSubmit={handleSearch} className="hidden xl:block">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search your dashboard"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-11 w-72 rounded-2xl border-border/70 bg-card/75 pl-10 shadow-sm"
+              />
+            </div>
+          </form>
+        </div>
+
+        <div className="flex items-center gap-2 lg:gap-3">
         {/* Mobile Search */}
-        <Button variant="ghost" size="icon" className="md:hidden" aria-label="Search">
+        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl border border-border/70 bg-card/70 xl:hidden" aria-label="Search">
           <Search className="h-5 w-5" />
         </Button>
 
-        {/* Theme Switcher */}
-        <ThemeSwitcher />
+          <ThemeSwitcher showQuickColors />
 
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-primary/10" aria-label="Notifications">
+              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-2xl border border-border/70 bg-card/70 hover:bg-primary/10" aria-label="Notifications">
               <Bell className="h-5 w-5" />
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {unreadCount > 0 ? (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 {unreadCount}
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-50" />
               </span>
+                ) : null}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
@@ -242,7 +242,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2 rounded-xl border border-border/60 bg-card/60 px-2 shadow-sm hover:bg-card">
+              <Button variant="ghost" className="h-10 gap-2 rounded-2xl border border-border/70 bg-card/70 px-2.5 shadow-sm hover:bg-card">
               <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                 <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold">
                   {user ? getInitials(user.name) : 'U'}
@@ -270,11 +270,11 @@ export function Header({ onMenuClick }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push('/dashboard/store-settings')}>
               <Settings className="mr-2 h-4 w-4" />
-              Profile Settings
+              My Profile
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push('/dashboard/wallet')}>
               <span className="mr-2">💳</span>
-              My Wallet
+              Wallet
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
@@ -282,6 +282,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </header>
   )

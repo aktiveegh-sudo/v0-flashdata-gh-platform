@@ -214,8 +214,8 @@ export default function StoreOrdersPage() {
       className="space-y-6"
     >
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Store Orders</h1>
-        <p className="text-muted-foreground">Manage incoming public orders from your custom store link</p>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Shop Orders</h1>
+        <p className="text-muted-foreground">Review and manage incoming customer orders from your shop link</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

@@ -157,13 +157,13 @@ export default function AfaPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">AFA Registration</h1>
-        <p className="text-muted-foreground">Submit your details and pay the admin-configured registration fee.</p>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">SIM Registration</h1>
+        <p className="text-muted-foreground">Fill your details, pay securely, and we will process your registration</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Register for AFA</CardTitle>
+          <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Start Registration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {!settings.is_active ? (

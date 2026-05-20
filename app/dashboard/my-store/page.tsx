@@ -205,8 +205,8 @@ export default function MyStorePage() {
     >
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">My Store</h1>
-        <p className="text-muted-foreground">Manage your reseller store and track performance</p>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">My Shop</h1>
+        <p className="text-muted-foreground">Track sales, orders, and your public shop performance</p>
       </div>
 
       <Card className="border-primary/30 bg-primary/5">

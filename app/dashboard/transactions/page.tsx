@@ -88,8 +88,8 @@ export default function TransactionsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Transactions</h1>
-          <p className="text-muted-foreground">View and manage all your transactions</p>
+          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Activity History</h1>
+          <p className="text-muted-foreground">See all payments, purchases, and wallet updates in one place</p>
         </div>
         <Button variant="outline" className="gap-2" onClick={handleExport}>
           <Download className="h-4 w-4" />

@@ -128,8 +128,8 @@ export default function WalletPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Wallet</h1>
-          <p className="text-muted-foreground">Manage your wallet and view transactions</p>
+          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">My Money</h1>
+          <p className="text-muted-foreground">Top up your balance and check your recent activity</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

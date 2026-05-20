@@ -150,8 +150,8 @@ export default function ContactSupportPage() {
     >
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Contact Support</h1>
-        <p className="text-muted-foreground">Get help from our support team</p>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Help Center</h1>
+        <p className="text-muted-foreground">Get quick help from our team</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

@@ -188,7 +188,7 @@ function BuyDataContent() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Buy Data</h1>
-        <p className="text-muted-foreground">Live admin-managed data packages only</p>
+        <p className="text-muted-foreground">Choose a network, pick a bundle, and pay securely</p>
       </div>
 
       {loadingPackages ? (
@@ -267,7 +267,7 @@ function BuyDataContent() {
 
             <Card>
               <CardHeader>
-                <CardTitle>How It Works</CardTitle>
+                <CardTitle>Quick Steps</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p>1. Pick your network</p>

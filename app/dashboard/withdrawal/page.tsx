@@ -167,8 +167,8 @@ export default function WithdrawalPage() {
     >
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Withdrawal</h1>
-        <p className="text-muted-foreground">Withdraw your earnings to mobile money or bank</p>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Cash Out</h1>
+        <p className="text-muted-foreground">Send money from your wallet to mobile money or bank</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

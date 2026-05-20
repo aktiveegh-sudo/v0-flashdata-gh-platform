@@ -253,8 +253,8 @@ export default function OtherServicesPage() {
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Store Services</h1>
-          <p className="text-muted-foreground">Set pricing and availability for non-data services in your store</p>
+          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Extra Services</h1>
+          <p className="text-muted-foreground">Set prices and availability for other services in your shop</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

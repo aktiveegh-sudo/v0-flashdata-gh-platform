@@ -407,8 +407,8 @@ export default function StorePackagesPage() {
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Store Data Packages</h1>
-          <p className="text-muted-foreground">All available packages are listed below. Set your price and publish.</p>
+          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Shop Data Packages</h1>
+          <p className="text-muted-foreground">Choose what to sell, set your price, and publish to your shop</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent>
@@ -509,7 +509,7 @@ export default function StorePackagesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>AFA Registration Pricing</CardTitle>
+          <CardTitle>AFA Price Setup</CardTitle>
         </CardHeader>
         <CardContent>
           {!afaBasePackage ? (

@@ -92,8 +92,8 @@ export default function SettingsPage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences</p>
+        <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
+        <p className="text-muted-foreground">Update your details, security, and notification preferences</p>
       </motion.div>
 
       <div className="flex flex-col lg:flex-row gap-6">

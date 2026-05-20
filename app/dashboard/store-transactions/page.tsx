@@ -119,8 +119,8 @@ export default function StoreTransactionsPage() {
     >
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Store Transactions</h1>
-        <p className="text-muted-foreground">Track your store earnings and sales</p>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Shop Payments</h1>
+        <p className="text-muted-foreground">Track your earnings and customer payments</p>
       </div>
 
       {/* Stats */}

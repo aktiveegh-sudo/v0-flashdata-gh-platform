@@ -168,10 +168,14 @@ export default function DashboardLayout({
   return (
     <div className="vibe-dashboard-bg min-h-screen">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="lg:pl-64">
+      <div className="lg:pl-72">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="p-4 lg:p-6">
-          <div className="vibe-shell-panel rounded-3xl p-3 sm:p-4 lg:p-5">{children}</div>
+        <main className="px-4 pb-8 pt-5 lg:px-8 lg:pb-10 lg:pt-6">
+          <div className="mx-auto w-full max-w-7xl">
+            <div className="vibe-shell-panel rounded-[1.75rem] p-4 sm:p-6 lg:p-8">
+              <div className="dashboard-content">{children}</div>
+            </div>
+          </div>
         </main>
       </div>
       {whatsappChannelUrl ? (

@@ -18,7 +18,11 @@ const accentColors = [
   { id: 'purple', name: 'Purple', color: '#9333EA' },
 ] as const
 
-export function ThemeSwitcher() {
+interface ThemeSwitcherProps {
+  showQuickColors?: boolean
+}
+
+export function ThemeSwitcher({ showQuickColors = false }: ThemeSwitcherProps) {
   const { mode, accent, setMode, setAccent, toggleMode } = useThemeStore()
   const [isOpen, setIsOpen] = useState(false)
 
@@ -56,6 +60,29 @@ export function ThemeSwitcher() {
           )}
         </AnimatePresence>
       </Button>
+
+      {showQuickColors ? (
+        <div className="hidden items-center gap-1.5 rounded-full border border-border/70 bg-card/60 px-2 py-1.5 md:flex">
+          {accentColors.map((color) => {
+            const active = accent === color.id
+
+            return (
+              <button
+                key={color.id}
+                onClick={() => setAccent(color.id)}
+                className={`relative h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 ${
+                  active ? 'border-foreground/80' : 'border-transparent'
+                }`}
+                style={{ backgroundColor: color.color }}
+                title={`Use ${color.name}`}
+                aria-label={`Use ${color.name} accent color`}
+              >
+                {active ? <span className="absolute inset-0 rounded-full ring-1 ring-background" /> : null}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
 
       {/* Accent Color Picker */}
       <Popover open={isOpen} onOpenChange={setIsOpen}>

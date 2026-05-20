@@ -252,8 +252,8 @@ export default function StoreSettingsPage() {
       className="space-y-6"
     >
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Store Settings</h1>
-        <p className="text-muted-foreground">Control your store slug, branding, and public availability</p>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Shop Settings</h1>
+        <p className="text-muted-foreground">Customize your shop name, look, and contact details</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

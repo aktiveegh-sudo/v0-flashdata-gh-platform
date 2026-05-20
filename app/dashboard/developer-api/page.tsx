@@ -621,9 +621,9 @@ export default function DeveloperApiPage() {
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 pb-10">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Developer API</h1>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">API Tools</h1>
         <p className="text-muted-foreground mt-1">
-          Integrate Flashdata GH into your app — check balance, buy data, register AFA, and more.
+          Connect your app to Flashdata GH to check balance, buy data, register AFA, and more.
         </p>
       </div>
 
