@@ -130,7 +130,12 @@ export function Header({ onMenuClick }: HeaderProps) {
       )
       .subscribe()
 
+    const interval = window.setInterval(() => {
+      void loadNotifications()
+    }, 15000)
+
     return () => {
+      window.clearInterval(interval)
       void supabase.client.removeChannel(channel)
     }
   }, [user?.id])

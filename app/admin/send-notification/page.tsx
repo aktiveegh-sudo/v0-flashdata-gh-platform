@@ -45,6 +45,8 @@ export default function AdminSendNotificationPage() {
   const loadData = async () => {
     setLoading(true)
 
+    await supabase.client.rpc('sync_auth_users_to_profiles_wallets')
+
     const [usersRes, notificationsRes] = await Promise.all([
       supabase.client.from('profiles').select('id,full_name,phone').order('created_at', { ascending: false }),
       supabase.client
@@ -94,6 +96,21 @@ export default function AdminSendNotificationPage() {
 
     setSending(true)
 
+    let targetIds: string[] = []
+
+    if (target === 'all') {
+      const usersRes = await supabase.client.from('profiles').select('id')
+      if (usersRes.error) {
+        toast.error(usersRes.error.message)
+        setSending(false)
+        return
+      }
+
+      targetIds = (((usersRes.data as Array<{ id: string }> | null) || []).map((u) => u.id).filter(Boolean))
+    } else {
+      targetIds = [selectedUserId].filter(Boolean)
+    }
+
     if (editingId) {
       const targetUserId = target === 'single' ? selectedUserId : ''
       if (!targetUserId) {
@@ -129,8 +146,7 @@ export default function AdminSendNotificationPage() {
       return
     }
 
-    const targets = target === 'all' ? users.map((u) => u.id) : [selectedUserId]
-    const validTargets = targets.filter(Boolean)
+    const validTargets = targetIds
 
     if (validTargets.length === 0) {
       toast.error('No target users found')
@@ -143,6 +159,7 @@ export default function AdminSendNotificationPage() {
       title: title.trim(),
       message: message.trim(),
       type,
+      is_read: false,
     }))
 
     const { error } = await supabase.client.from('notifications').insert(payload)
