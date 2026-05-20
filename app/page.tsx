@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Bricolage_Grotesque, Space_Grotesk } from 'next/font/google'
 import { ArrowRight, BadgeCheck, RadioTower, Rocket, ShieldCheck, Store, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { getPublicSiteSettings } from '@/lib/site-settings'
 
 const headingFont = Bricolage_Grotesque({ subsets: ['latin'], weight: ['700', '800'] })
 const bodyFont = Space_Grotesk({ subsets: ['latin'], weight: ['400', '500', '700'] })
@@ -32,7 +33,12 @@ const featureCards = [
 
 const trustPoints = ['Fast delivery nationwide', 'Protected payment flow', 'Realtime confirmations', 'Built for Ghana users']
 
-export default function HomePage() {
+export default async function HomePage() {
+  const settings = await getPublicSiteSettings()
+  const siteName = settings?.site_name?.trim() || 'FlashData GH'
+  const heroText = settings?.hero_text?.trim() || 'The easiest way to buy data and digital services in Ghana.'
+  const heroVideoUrl = settings?.hero_video_url?.trim() || ''
+
   return (
     <main className={`min-h-screen overflow-hidden bg-[#050912] text-slate-50 ${bodyFont.className}`}>
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_13%_18%,rgba(255,193,69,0.2),transparent_34%),radial-gradient(circle_at_84%_0%,rgba(26,108,255,0.25),transparent_42%),radial-gradient(circle_at_76%_82%,rgba(21,195,154,0.16),transparent_38%),linear-gradient(165deg,#050912_0%,#060d19_46%,#04070d_100%)]" />
@@ -43,7 +49,7 @@ export default function HomePage() {
             <div className="flex items-center gap-3">
               <img src="/site-logo.png" alt="FlashData GH" className="h-11 w-11 rounded-xl object-cover ring-2 ring-amber-300/45" />
               <div>
-                <p className={`text-xl leading-none text-white ${headingFont.className}`}>FlashData GH</p>
+                <p className={`text-xl leading-none text-white ${headingFont.className}`}>{siteName}</p>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/80">Digital Service Hub</p>
               </div>
             </div>
@@ -56,7 +62,24 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div className="mt-12 grid items-start gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="relative mt-12 overflow-hidden rounded-3xl border border-white/10 bg-[#07101d]/70 p-5 shadow-[0_22px_54px_rgba(0,0,0,0.45)] backdrop-blur-sm sm:p-7">
+          {heroVideoUrl ? (
+            <>
+              <video
+                className="absolute inset-0 h-full w-full object-cover"
+                src={heroVideoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                aria-hidden
+              />
+              <div className="absolute inset-0 bg-[#030813]/70" />
+            </>
+          ) : null}
+
+          <div className="relative z-10 grid items-start gap-8 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/35 bg-amber-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-200">
               <Rocket className="h-3.5 w-3.5" />
@@ -64,7 +87,7 @@ export default function HomePage() {
             </div>
 
             <h1 className={`mt-5 max-w-3xl text-4xl leading-[0.95] text-white sm:text-5xl lg:text-7xl ${headingFont.className}`}>
-              The easiest way to buy data and digital services in Ghana.
+              {heroText}
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
@@ -119,6 +142,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+        </div>
         </div>
 
         <section className="mt-14">

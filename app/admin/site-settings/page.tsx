@@ -17,6 +17,7 @@ type SiteSettingsRow = {
   site_name: string
   logo_url: string | null
   hero_text: string | null
+  hero_video_url: string | null
   contact_email: string | null
   contact_phone: string | null
   whatsapp_channel_url: string | null
@@ -30,6 +31,7 @@ const defaultState = {
   site_name: 'FlashData GH',
   logo_url: '/site-logo.png',
   hero_text: '',
+  hero_video_url: '',
   contact_email: '',
   contact_phone: '',
   whatsapp_channel_url: '',
@@ -48,7 +50,7 @@ export default function AdminSiteSettingsPage() {
 
     const { data, error } = await supabase.client
       .from('site_settings')
-      .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider,order_notifications_enabled')
+      .select('id,site_name,logo_url,hero_text,hero_video_url,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider,order_notifications_enabled')
       .limit(1)
       .maybeSingle()
 
@@ -66,6 +68,7 @@ export default function AdminSiteSettingsPage() {
           site_name: 'FlashData GH',
           logo_url: '/site-logo.png',
           hero_text: 'Welcome to FlashData GH',
+          hero_video_url: null,
           contact_email: 'support@flashdatagh.com',
           contact_phone: null,
           whatsapp_channel_url: null,
@@ -73,7 +76,7 @@ export default function AdminSiteSettingsPage() {
           delivery_provider: 'swiftdata',
           order_notifications_enabled: false,
         })
-        .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider,order_notifications_enabled')
+        .select('id,site_name,logo_url,hero_text,hero_video_url,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider,order_notifications_enabled')
         .single()
 
       if (insertError || !inserted) {
@@ -87,6 +90,7 @@ export default function AdminSiteSettingsPage() {
         site_name: inserted.site_name,
         logo_url: inserted.logo_url || '',
         hero_text: inserted.hero_text || '',
+        hero_video_url: inserted.hero_video_url || '',
         contact_email: inserted.contact_email || '',
         contact_phone: inserted.contact_phone || '',
         whatsapp_channel_url: inserted.whatsapp_channel_url || '',
@@ -105,6 +109,7 @@ export default function AdminSiteSettingsPage() {
       site_name: row.site_name,
       logo_url: row.logo_url || '',
       hero_text: row.hero_text || '',
+      hero_video_url: row.hero_video_url || '',
       contact_email: row.contact_email || '',
       contact_phone: row.contact_phone || '',
       whatsapp_channel_url: row.whatsapp_channel_url || '',
@@ -128,6 +133,7 @@ export default function AdminSiteSettingsPage() {
       site_name: form.site_name,
       logo_url: form.logo_url || null,
       hero_text: form.hero_text || null,
+      hero_video_url: form.hero_video_url || null,
       contact_email: form.contact_email || null,
       contact_phone: form.contact_phone || null,
       whatsapp_channel_url: form.whatsapp_channel_url || null,
@@ -197,6 +203,15 @@ export default function AdminSiteSettingsPage() {
               <div className="space-y-2 md:col-span-2">
                 <Label>Hero Text</Label>
                 <Textarea value={form.hero_text} onChange={(e) => setForm((prev) => ({ ...prev, hero_text: e.target.value }))} rows={4} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Hero Background Video URL</Label>
+                <Input
+                  placeholder="https://.../hero-video.mp4"
+                  value={form.hero_video_url}
+                  onChange={(e) => setForm((prev) => ({ ...prev, hero_video_url: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Use a direct video file URL (MP4/WebM) to show as homepage hero background.</p>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Active Data Provider</Label>
