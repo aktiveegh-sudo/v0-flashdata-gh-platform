@@ -204,7 +204,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search your dashboard"
+                placeholder="Search Agent Dashboard"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-11 w-72 rounded-2xl border-border/70 bg-card/75 pl-10 shadow-sm"

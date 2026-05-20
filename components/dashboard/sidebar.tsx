@@ -206,9 +206,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
             <GhanaFlagIcon className="h-6 w-6" />
           </div>
-          <span className="text-lg font-bold text-sidebar-foreground">
-            Flash<span className="text-primary">Data</span>
-          </span>
+          <div>
+            <span className="text-lg font-bold text-sidebar-foreground">
+              Flash<span className="text-primary">Data</span>
+            </span>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-sidebar-foreground/55">Agent Dashboard</p>
+          </div>
         </Link>
         <Button
           variant="ghost"

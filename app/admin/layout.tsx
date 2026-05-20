@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       if (error || !data.session?.user) {
         clearAuth()
-        router.push('/')
+        router.push('/agent/auth')
         return
       }
 

@@ -91,7 +91,7 @@ export default function DashboardLayout({
 
       if (error || !data.session?.user) {
         clearAuth()
-        router.push('/')
+        router.push('/agent/auth')
         setCheckingSession(false)
         return
       }
@@ -113,7 +113,7 @@ export default function DashboardLayout({
       if (profile?.status === 'suspended') {
         clearAuth()
         await supabase.auth.signOut()
-        router.push('/')
+        router.push('/agent/auth')
         setCheckingSession(false)
         return
       }
