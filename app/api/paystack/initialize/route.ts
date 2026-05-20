@@ -189,6 +189,11 @@ export async function POST(request: NextRequest) {
         return jsonError('serviceId is required', 400)
       }
 
+      const normalizedServicePhone = normalizeToGhanaPhone(body.phone || '')
+      if (!normalizedServicePhone) {
+        return jsonError('A valid recipient number is required', 400)
+      }
+
       const { data: serviceRow, error: serviceError } = await supabaseAdmin
         .from('agent_store_service_prices')
         .select('service_id,selling_price')
@@ -210,8 +215,9 @@ export async function POST(request: NextRequest) {
           redirectPath: body.redirectPath || `/store/${store.slug}`,
           storeId: store.id,
           serviceId: serviceRow.service_id,
+          phone: normalizedServicePhone,
           customerName,
-          customerPhone,
+          customerPhone: normalizedServicePhone,
           customerEmail,
         },
       })

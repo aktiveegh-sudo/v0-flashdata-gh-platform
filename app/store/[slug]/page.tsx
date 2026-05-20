@@ -50,6 +50,7 @@ type StoreService = {
     name: string
     category: string
     description: string | null
+    image_url: string | null
   } | null
 }
 
@@ -105,7 +106,7 @@ export default function PublicAgentStorePage() {
           .order('selling_price', { ascending: true }),
         supabase.client
           .from('agent_store_service_prices')
-          .select('id,selling_price,online_services!inner(id,name,category,description)')
+          .select('id,selling_price,online_services!inner(id,name,category,description,image_url)')
           .eq('store_id', storeData.id)
           .eq('is_active', true)
           .order('selling_price', { ascending: true }),
@@ -185,7 +186,7 @@ export default function PublicAgentStorePage() {
   const submitStoreOrder = async () => {
     if (!store) return
 
-    if (checkoutType === 'data' && !recipientPhone.trim()) {
+    if (!recipientPhone.trim()) {
       toast.error('Please enter recipient number')
       return
     }
@@ -220,6 +221,8 @@ export default function PublicAgentStorePage() {
           flow: 'store_service',
           storeId: store.id,
           serviceId: selectedService.online_services.id,
+          phone: recipientPhone.trim(),
+          customerPhone: recipientPhone.trim(),
           redirectPath: `/store/${store.slug}`,
         })
         return
@@ -337,6 +340,13 @@ export default function PublicAgentStorePage() {
               ) : (
                 services.slice(0, 4).map((service) => (
                   <div key={service.id} className="rounded-2xl border border-white/70 bg-white/85 p-3 shadow-sm">
+                    {service.online_services?.image_url ? (
+                      <img
+                        src={service.online_services.image_url}
+                        alt={service.online_services?.name || 'Service image'}
+                        className="mb-2 h-24 w-full rounded-xl object-cover"
+                      />
+                    ) : null}
                     <p className="text-sm font-semibold text-slate-900">{service.online_services?.name}</p>
                     <p className="mt-1 text-xs text-slate-600">{service.online_services?.category}</p>
                     <p className="mt-2 text-sm font-bold" style={{ color: accent }}>{formatGhs(service.selling_price)}</p>
@@ -456,7 +466,7 @@ export default function PublicAgentStorePage() {
           </DialogHeader>
 
           <div className="space-y-3">
-            {checkoutType === 'data' ? (
+            {checkoutType === 'data' || checkoutType === 'service' ? (
               <div className="space-y-1.5">
                 <Label htmlFor="recipient">{isAfaRegistration ? 'Phone Number' : 'Recipient Number'}</Label>
                 <Input
