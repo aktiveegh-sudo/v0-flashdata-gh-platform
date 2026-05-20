@@ -39,7 +39,7 @@ export default function OverviewPage() {
 
   const stats = [
     {
-      label: 'Successful Transactions',
+      label: 'Completed Orders',
       value: String(successfulTransactions.length),
       icon: Package,
       gradient: 'from-violet-500 to-purple-600',
@@ -47,7 +47,7 @@ export default function OverviewPage() {
       delay: 0,
     },
     {
-      label: 'This Month Spend',
+      label: 'Spent This Month',
       value: `GHc ${thisMonthSpend.toFixed(2)}`,
       icon: TrendingUp,
       gradient: 'from-emerald-500 to-green-600',
@@ -55,7 +55,7 @@ export default function OverviewPage() {
       delay: 0.05,
     },
     {
-      label: 'Pending Transactions',
+      label: 'In Progress',
       value: String(pendingTransactions.length),
       icon: Wifi,
       gradient: 'from-sky-500 to-blue-600',
@@ -110,14 +110,14 @@ export default function OverviewPage() {
                 {user?.name?.split(' ')[0] || 'User'}
               </h1>
               <p className="mt-1 text-sm text-primary-foreground/70">
-                Here&apos;s what&apos;s happening with your account today.
+                Here is a quick look at your account today.
               </p>
             </div>
             <div className="mt-3 sm:mt-0">
               <Link href="/dashboard/buy-data">
                 <Button size="sm" className="gap-2 bg-white/20 text-primary-foreground hover:bg-white/30 border-white/20 border">
                   <Wifi className="h-4 w-4" />
-                  Buy Data Now
+                  Buy Data
                 </Button>
               </Link>
             </div>
@@ -152,7 +152,7 @@ export default function OverviewPage() {
       <motion.div variants={itemVariants}>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Quick Actions</CardTitle>
+            <CardTitle className="text-base font-semibold">Shortcuts</CardTitle>
           </CardHeader>
           <CardContent>
             <QuickActions />
@@ -168,7 +168,7 @@ export default function OverviewPage() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <Wifi className="h-4 w-4 text-primary" />
-                Buy Data by Network
+                Pick Network
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -203,7 +203,7 @@ export default function OverviewPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <Wallet className="h-4 w-4 text-primary" />
-                Recent Transactions
+                Recent Activity
               </CardTitle>
               <Link href="/dashboard/transactions">
                 <Button variant="ghost" size="sm" className="gap-1 text-primary h-7 text-xs">

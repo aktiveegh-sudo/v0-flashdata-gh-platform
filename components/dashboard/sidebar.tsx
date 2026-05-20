@@ -39,7 +39,7 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { label: 'Home', href: '/dashboard/overview', icon: Home },
   { label: 'My Money', href: '/dashboard/wallet', icon: Wallet },
-  { label: 'SIM Registration', href: '/dashboard/afa', icon: Wifi },
+  { label: 'AFA Registration', href: '/dashboard/afa', icon: Wifi },
   {
     label: 'Buy Data',
     href: '/dashboard/buy-data',

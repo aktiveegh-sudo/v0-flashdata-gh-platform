@@ -35,7 +35,7 @@ type NotificationItem = {
 const pageLabels: Record<string, string> = {
   '/dashboard/overview': 'Home',
   '/dashboard/wallet': 'My Money',
-  '/dashboard/afa': 'SIM Registration',
+  '/dashboard/afa': 'AFA Registration',
   '/dashboard/buy-data': 'Buy Data',
   '/dashboard/transactions': 'History',
   '/dashboard/my-store': 'My Shop',

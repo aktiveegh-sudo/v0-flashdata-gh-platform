@@ -157,7 +157,7 @@ export default function AfaPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">SIM Registration</h1>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">AFA Registration</h1>
         <p className="text-muted-foreground">Fill your details, pay securely, and we will process your registration</p>
       </div>
 
