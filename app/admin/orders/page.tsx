@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -82,7 +82,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<StatusFilter>('all')
 
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     setLoading(true)
     const [dashboardDataResult, afaResult, storeResult] = await Promise.all([
       supabase.client
@@ -179,11 +179,24 @@ export default function AdminOrdersPage() {
 
     setRows(filteredRows)
     setLoading(false)
-  }
+  }, [status])
 
   useEffect(() => {
     void loadOrders()
-  }, [status])
+  }, [loadOrders])
+
+  useEffect(() => {
+    const channel = supabase.client
+      .channel('admin-orders-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => void loadOrders())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'afa_registrations' }, () => void loadOrders())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_store_orders' }, () => void loadOrders())
+      .subscribe()
+
+    return () => {
+      void supabase.client.removeChannel(channel)
+    }
+  }, [loadOrders])
 
   const retryOrder = async (row: UnifiedOrderRow) => {
     if (!row.retryTargetOrderId) {
