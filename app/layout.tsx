@@ -39,21 +39,9 @@ export const metadata: Metadata = {
     description: 'Your trusted partner for instant data bundles, airtime, and bill payments in Ghana.',
   },
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/site-logo.png',
+    shortcut: '/site-logo.png',
+    apple: '/site-logo.png',
   },
 }
 

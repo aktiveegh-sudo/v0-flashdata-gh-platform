@@ -27,7 +27,7 @@ type SiteSettingsRow = {
 const defaultState = {
   id: 1,
   site_name: 'FlashData GH',
-  logo_url: '',
+  logo_url: '/site-logo.png',
   hero_text: '',
   contact_email: '',
   contact_phone: '',
@@ -62,7 +62,7 @@ export default function AdminSiteSettingsPage() {
         .insert({
           id: 1,
           site_name: 'FlashData GH',
-          logo_url: '',
+          logo_url: '/site-logo.png',
           hero_text: 'Welcome to FlashData GH',
           contact_email: 'support@flashdatagh.com',
           contact_phone: null,

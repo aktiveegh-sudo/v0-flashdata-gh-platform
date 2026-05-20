@@ -59,48 +59,7 @@ export function GlobalLoader() {
 
 export function GhanaFlagIcon({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      {/* Background circle */}
-      <circle cx="20" cy="20" r="18" fill="currentColor" className="text-primary/10" />
-      
-      {/* Ghana flag stripes */}
-      <rect x="8" y="10" width="24" height="6" rx="1" fill="#CE1126" />
-      <rect x="8" y="16" width="24" height="6" rx="0" fill="#FCD116" />
-      <rect x="8" y="22" width="24" height="6" rx="1" fill="#006B3F" />
-      
-      {/* Black star */}
-      <path
-        d="M20 14L21.2 17.5H25L21.9 19.7L23 23L20 21L17 23L18.1 19.7L15 17.5H18.8L20 14Z"
-        fill="#000000"
-      />
-      
-      {/* Data/signal icon overlay */}
-      <circle cx="30" cy="30" r="8" fill="currentColor" className="text-primary" />
-      <path
-        d="M27 30C27 28.34 28.34 27 30 27"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M25 30C25 27.24 27.24 25 30 25"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M23 30C23 26.13 26.13 23 30 23"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <circle cx="30" cy="30" r="2" fill="white" />
-    </svg>
+    <img src="/site-logo.png" alt="FlashData GH logo" className={className} />
   )
 }
 
