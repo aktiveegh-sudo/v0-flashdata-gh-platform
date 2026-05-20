@@ -56,6 +56,11 @@ type FulfillmentResult = {
 }
 
 const paystackBaseUrl = 'https://api.paystack.co'
+const swiftDataBaseUrl = process.env.SWIFTDATA_API_BASE_URL || 'https://lsocdjpflecduumopijn.supabase.co/functions/v1/developer-api'
+const swiftDataDeveloperKey =
+  process.env.SWIFTDATA_DEVELOPER_KEY ||
+  process.env.SWIFTDATA_API_KEY ||
+  'swft_live_6248da12791040318e54c5259fdbe981'
 
 const getPaystackSecretKey = () => {
   const secret = process.env.PAYSTACK_SECRET_KEY
@@ -74,6 +79,57 @@ const toKobo = (amount: number) => Math.round(Number(amount || 0) * 100)
 const fromKobo = (amount: number) => Number((Number(amount || 0) / 100).toFixed(2))
 
 const normalizeStoreCustomerPhone = (value: string) => value.trim()
+
+const toSwiftNetwork = (network: string) => {
+  const value = String(network || '').trim().toUpperCase()
+  if (value === 'MTN' || value === 'YELLO' || value === 'MTN_XPRESS') return 'MTN'
+  if (value === 'TELECEL' || value === 'VODAFONE' || value === 'VOD') return 'TELECEL'
+  if (value === 'AIRTELTIGO' || value === 'AT') return 'AT'
+  if (value === 'GLO') return 'GLO'
+  return value
+}
+
+const deliverSwiftDataBundle = async (input: {
+  network: string
+  phone: string
+  packageSize: string
+  requestId: string
+  idempotencyKey: string
+}) => {
+  if (!swiftDataDeveloperKey) {
+    throw new Error('Missing SwiftData developer key')
+  }
+
+  const response = await fetch(`${swiftDataBaseUrl}/buy`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${swiftDataDeveloperKey}`,
+      'Content-Type': 'application/json',
+      'X-Idempotency-Key': input.idempotencyKey,
+    },
+    body: JSON.stringify({
+      network: toSwiftNetwork(input.network),
+      phone: input.phone,
+      package_size: input.packageSize,
+      request_id: input.requestId,
+      allow_duplicate: true,
+    }),
+  })
+
+  const payload = (await response.json().catch(() => null)) as
+    | { status?: string; order_id?: string; error?: string; message?: string }
+    | null
+
+  if (!response.ok) {
+    throw new Error(payload?.error || payload?.message || `SwiftData delivery failed (${response.status})`)
+  }
+
+  return {
+    status: payload?.status || 'processing',
+    orderId: payload?.order_id || null,
+    raw: payload,
+  }
+}
 
 const findStoreOrderByReference = async (storeId: string, reference: string) => {
   const paymentPrefix = `Paystack Ref: ${reference}`
@@ -316,6 +372,78 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       if (transactionError) {
         throw new Error('Unable to log Paystack data transaction')
       }
+
+      try {
+        const delivery = await deliverSwiftDataBundle({
+          network: packageRow.network,
+          phone: metadata.phone,
+          packageSize: packageRow.amount,
+          requestId: reference,
+          idempotencyKey: `dash-${reference}`,
+        })
+
+        const deliveredStatus =
+          delivery.status === 'fulfilled' || delivery.status === 'success' || delivery.status === 'completed'
+            ? 'success'
+            : 'pending'
+
+        await supabaseAdmin
+          .from('orders')
+          .update({
+            status: deliveredStatus,
+            metadata: {
+              source: 'paystack',
+              payment_channel: charge.channel,
+              swift_status: delivery.status,
+              swift_order_id: delivery.orderId,
+              swift_response: delivery.raw,
+            },
+          })
+          .eq('id', createdOrder.id)
+
+        await supabaseAdmin
+          .from('transactions')
+          .update({
+            status: deliveredStatus,
+            metadata: {
+              source: 'paystack',
+              channel: charge.channel,
+              order_id: createdOrder.id,
+              order_reference: reference,
+              swift_status: delivery.status,
+              swift_order_id: delivery.orderId,
+            },
+          })
+          .eq('reference', `${reference}-PAY`)
+      } catch (deliveryError) {
+        const deliveryMessage = deliveryError instanceof Error ? deliveryError.message : 'SwiftData delivery failed'
+
+        await supabaseAdmin
+          .from('orders')
+          .update({
+            status: 'failed',
+            metadata: {
+              source: 'paystack',
+              payment_channel: charge.channel,
+              swift_error: deliveryMessage,
+            },
+          })
+          .eq('id', createdOrder.id)
+
+        await supabaseAdmin
+          .from('transactions')
+          .update({
+            status: 'failed',
+            metadata: {
+              source: 'paystack',
+              channel: charge.channel,
+              order_id: createdOrder.id,
+              order_reference: reference,
+              swift_error: deliveryMessage,
+            },
+          })
+          .eq('reference', `${reference}-PAY`)
+      }
     }
 
     return {
@@ -426,6 +554,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
     let serviceId: string | null = null
     let itemLabel = 'Store purchase'
     let customerNote = `Paystack Ref: ${reference} | Payment Status: paid`
+    let storeOrderStatus: 'pending' | 'accepted' | 'declined' | 'completed' = 'pending'
 
     if (metadata.flow === 'store_service') {
       if (!metadata.serviceId) {
@@ -488,6 +617,29 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         ].join(' | ')
       } else {
         customerNote = `${customerNote} | Recipient: ${metadata.phone || ''}`
+
+        try {
+          const delivery = await deliverSwiftDataBundle({
+            network: packageRow.data_packages?.network || '',
+            phone: metadata.phone || customerPhone,
+            packageSize: packageRow.data_packages?.amount || '',
+            requestId: `${reference}-STORE`,
+            idempotencyKey: `store-${reference}`,
+          })
+
+          storeOrderStatus =
+            delivery.status === 'fulfilled' || delivery.status === 'success' || delivery.status === 'completed'
+              ? 'completed'
+              : 'pending'
+
+          customerNote = `${customerNote} | Swift Status: ${delivery.status}${
+            delivery.orderId ? ` | Swift Order: ${delivery.orderId}` : ''
+          }`
+        } catch (deliveryError) {
+          const deliveryMessage = deliveryError instanceof Error ? deliveryError.message : 'SwiftData delivery failed'
+          storeOrderStatus = 'declined'
+          customerNote = `${customerNote} | Swift Error: ${deliveryMessage}`
+        }
       }
     }
 
@@ -504,7 +656,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         customer_note: customerNote,
         quantity: 1,
         total_price: amount,
-        status: 'pending',
+        status: storeOrderStatus,
       })
       .select('id')
       .single()
