@@ -63,11 +63,11 @@ export function AdminHeader({ userName, userEmail, onLogout }: AdminHeaderProps)
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
   return (
-    <header className="sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur lg:px-6">
+    <header className="sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-background/70 px-4 py-3 backdrop-blur-xl lg:px-6">
       <form className="hidden flex-1 md:block">
         <div className="relative max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search users, orders, packages..." className="h-11 pl-10" />
+          <Input placeholder="Search users, orders, packages..." className="h-11 border-primary/20 bg-white/65 pl-10 shadow-sm dark:bg-card/70" />
         </div>
       </form>
 
@@ -76,7 +76,7 @@ export function AdminHeader({ userName, userEmail, onLogout }: AdminHeaderProps)
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="icon" className="relative h-11 w-11">
+            <Button type="button" variant="outline" size="icon" className="relative h-11 w-11 rounded-xl border-border/70 bg-card/70 shadow-sm">
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
                 <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
@@ -104,7 +104,7 @@ export function AdminHeader({ userName, userEmail, onLogout }: AdminHeaderProps)
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" className="h-11 gap-2 px-2 sm:px-3">
+            <Button type="button" variant="outline" className="h-11 gap-2 rounded-xl border-border/70 bg-card/70 px-2 shadow-sm sm:px-3">
               <Avatar className="h-7 w-7">
                 <AvatarFallback>{userName.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>

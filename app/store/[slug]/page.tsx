@@ -270,7 +270,7 @@ export default function PublicAgentStorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fff7ed] text-slate-900">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe9d4_0%,#fff7ed_38%,#fffdf8_100%)] text-slate-900">
       <section
         className="relative overflow-hidden"
         style={{
@@ -318,7 +318,7 @@ export default function PublicAgentStorePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
-          className="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-100 via-orange-50 to-rose-100 p-6 lg:p-8"
+          className="rounded-3xl border border-amber-200/80 bg-gradient-to-r from-amber-100 via-orange-50 to-rose-100 p-6 shadow-[0_20px_60px_rgba(217,119,6,0.12)] lg:p-8"
         >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -336,11 +336,11 @@ export default function PublicAgentStorePage() {
                 <div className="rounded-2xl border border-white/70 bg-white/70 p-3 text-sm text-slate-700">No extra services listed yet.</div>
               ) : (
                 services.slice(0, 4).map((service) => (
-                  <div key={service.id} className="rounded-2xl border border-white/70 bg-white/75 p-3">
+                  <div key={service.id} className="rounded-2xl border border-white/70 bg-white/85 p-3 shadow-sm">
                     <p className="text-sm font-semibold text-slate-900">{service.online_services?.name}</p>
                     <p className="mt-1 text-xs text-slate-600">{service.online_services?.category}</p>
                     <p className="mt-2 text-sm font-bold" style={{ color: accent }}>{formatGhs(service.selling_price)}</p>
-                    <Button size="sm" className="mt-3 w-full" onClick={() => startServiceCheckout(service)}>
+                    <Button size="sm" className="mt-3 w-full bg-slate-900 text-white hover:bg-slate-800" onClick={() => startServiceCheckout(service)}>
                       Pay Now
                     </Button>
                   </div>
@@ -356,7 +356,7 @@ export default function PublicAgentStorePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
-          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8"
+          className="rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-[0_16px_46px_rgba(15,23,42,0.08)] backdrop-blur-sm lg:p-8"
         >
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-slate-900 lg:text-3xl">Buy Data Bundles</h2>
@@ -389,7 +389,7 @@ export default function PublicAgentStorePage() {
                     <button
                       key={item.id}
                       onClick={() => startCheckout(item)}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white"
+                      className="rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-slate-400 hover:shadow-md"
                     >
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{item.data_packages?.network}</p>
                       <p className="mt-1 text-sm font-semibold text-slate-900">{item.data_packages?.amount}</p>

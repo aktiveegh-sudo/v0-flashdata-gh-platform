@@ -111,10 +111,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <button
             onClick={() => toggleExpanded(item.label)}
             className={cn(
-              'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
+              'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
               isActive || isExpanded
-                ? 'bg-primary/10 text-primary'
-                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                ? 'bg-primary/12 text-primary shadow-sm'
+                : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
             )}
           >
             <div className="flex items-center gap-3">
@@ -173,10 +173,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         href={item.href}
         onClick={onClose}
         className={cn(
-          'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
+          'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
           isActive
-            ? 'bg-primary/10 text-primary'
-            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+            ? 'bg-primary/12 text-primary shadow-sm'
+            : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
         )}
       >
         {isActive && (
@@ -199,9 +199,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   }
 
   const sidebarContent = (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-gradient-to-b from-sidebar via-sidebar to-sidebar-accent/20">
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+      <div className="flex h-16 items-center justify-between border-b border-sidebar-border/70 px-4">
         <Link href="/dashboard/overview" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
             <GhanaFlagIcon className="h-6 w-6" />
@@ -260,8 +260,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       </div>
 
       {/* User Profile Footer */}
-      <div className="border-t border-sidebar-border p-3">
-        <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/40 px-3 py-2.5">
+      <div className="border-t border-sidebar-border/70 p-3">
+        <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-sidebar-accent/45 px-3 py-2.5">
           <Avatar className="h-8 w-8 shrink-0">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
               {user?.name ? getInitials(user.name) : <User className="h-4 w-4" />}
@@ -290,7 +290,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64 lg:border-r lg:border-sidebar-border lg:bg-sidebar">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64 lg:border-r lg:border-sidebar-border/70 lg:bg-sidebar">
         {sidebarContent}
       </aside>
 
@@ -310,7 +310,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 z-50 w-72 bg-sidebar lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-72 border-r border-sidebar-border/70 bg-sidebar lg:hidden"
             >
               {sidebarContent}
             </motion.aside>

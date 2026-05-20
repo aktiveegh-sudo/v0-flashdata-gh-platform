@@ -156,7 +156,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/95 px-4 backdrop-blur-sm lg:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-border/70 bg-background/75 px-4 backdrop-blur-xl lg:px-6">
       {/* Left section */}
       <div className="flex items-center gap-4">
         <Button
@@ -169,7 +169,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </Button>
         {/* Page title — desktop */}
-        <h2 className="hidden text-base font-semibold text-foreground lg:block">
+        <h2 className="vibe-title-gradient hidden text-base font-semibold lg:block">
           {pageTitle}
         </h2>
 
@@ -182,7 +182,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               placeholder="Search transactions, packages..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 bg-muted/50 pl-10 lg:w-80"
+              className="w-64 border-primary/20 bg-white/60 pl-10 shadow-sm lg:w-80 dark:bg-card/70"
             />
           </div>
         </form>
@@ -201,7 +201,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+            <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-primary/10" aria-label="Notifications">
               <Bell className="h-5 w-5" />
               <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 {unreadCount}
@@ -242,7 +242,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2 px-2">
+            <Button variant="ghost" className="gap-2 rounded-xl border border-border/60 bg-card/60 px-2 shadow-sm hover:bg-card">
               <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                 <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold">
                   {user ? getInitials(user.name) : 'U'}

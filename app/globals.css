@@ -179,6 +179,42 @@
   }
 }
 
+@layer utilities {
+  .vibe-dashboard-bg {
+    background-image:
+      radial-gradient(circle at 10% 10%, oklch(0.93 0.06 145 / 0.55), transparent 36%),
+      radial-gradient(circle at 90% 0%, oklch(0.93 0.08 85 / 0.35), transparent 30%),
+      linear-gradient(165deg, oklch(0.985 0.01 110) 0%, oklch(0.965 0.015 130) 45%, oklch(0.955 0.02 110) 100%);
+  }
+
+  .dark .vibe-dashboard-bg {
+    background-image:
+      radial-gradient(circle at 10% 8%, oklch(0.36 0.08 145 / 0.28), transparent 40%),
+      radial-gradient(circle at 95% 0%, oklch(0.42 0.08 85 / 0.24), transparent 32%),
+      linear-gradient(165deg, oklch(0.13 0.02 250) 0%, oklch(0.16 0.03 250) 48%, oklch(0.14 0.025 250) 100%);
+  }
+
+  .vibe-shell-panel {
+    background: color-mix(in oklab, var(--card) 86%, white 14%);
+    border: 1px solid color-mix(in oklab, var(--border) 75%, var(--primary) 25%);
+    box-shadow: 0 10px 32px oklch(0.28 0.03 250 / 0.08);
+    backdrop-filter: blur(10px);
+  }
+
+  .dark .vibe-shell-panel {
+    background: color-mix(in oklab, var(--card) 92%, black 8%);
+    border: 1px solid color-mix(in oklab, var(--border) 82%, var(--primary) 18%);
+    box-shadow: 0 14px 32px oklch(0.03 0.01 250 / 0.45);
+  }
+
+  .vibe-title-gradient {
+    background: linear-gradient(100deg, oklch(0.58 0.2 145), oklch(0.64 0.17 95), oklch(0.52 0.18 250));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

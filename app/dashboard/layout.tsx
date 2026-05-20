@@ -166,18 +166,20 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="vibe-dashboard-bg min-h-screen">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="lg:pl-64">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="p-4 lg:p-6">
+          <div className="vibe-shell-panel rounded-3xl p-3 sm:p-4 lg:p-5">{children}</div>
+        </main>
       </div>
       {whatsappChannelUrl ? (
         <a
           href={whatsappChannelUrl}
           target="_blank"
           rel="noreferrer"
-          className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:bg-green-600"
+          className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:-translate-y-0.5 hover:bg-green-600"
           aria-label="Open WhatsApp channel"
         >
           <MessageCircle className="h-4 w-4" />
