@@ -55,17 +55,20 @@ type FulfillmentResult = {
   message: string
 }
 
-const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY
 const paystackBaseUrl = 'https://api.paystack.co'
 
-if (!paystackSecretKey) {
-  throw new Error('Missing PAYSTACK_SECRET_KEY environment variable')
+const getPaystackSecretKey = () => {
+  const secret = process.env.PAYSTACK_SECRET_KEY
+  if (!secret) {
+    throw new Error('Missing PAYSTACK_SECRET_KEY environment variable')
+  }
+  return secret
 }
 
-const paystackHeaders = {
-  Authorization: `Bearer ${paystackSecretKey}`,
+const getPaystackHeaders = () => ({
+  Authorization: `Bearer ${getPaystackSecretKey()}`,
   'Content-Type': 'application/json',
-}
+})
 
 const toKobo = (amount: number) => Math.round(Number(amount || 0) * 100)
 const fromKobo = (amount: number) => Number((Number(amount || 0) / 100).toFixed(2))
@@ -143,7 +146,7 @@ const ensureSuccessfulCharge = (payload: PaystackVerifyResponse) => {
 export const initializePaystackTransaction = async (args: PaystackInitializeArgs) => {
   const response = await fetch(`${paystackBaseUrl}/transaction/initialize`, {
     method: 'POST',
-    headers: paystackHeaders,
+    headers: getPaystackHeaders(),
     body: JSON.stringify({
       email: args.email,
       amount: toKobo(args.amount),
@@ -171,7 +174,7 @@ export const initializePaystackTransaction = async (args: PaystackInitializeArgs
 export const verifyPaystackTransaction = async (reference: string) => {
   const response = await fetch(`${paystackBaseUrl}/transaction/verify/${encodeURIComponent(reference)}`, {
     method: 'GET',
-    headers: paystackHeaders,
+    headers: getPaystackHeaders(),
   })
 
   const payload = (await response.json()) as PaystackVerifyResponse
@@ -188,7 +191,7 @@ export const verifyPaystackSignature = (rawBody: string, signature: string | nul
     return false
   }
 
-  const digest = crypto.createHmac('sha512', paystackSecretKey).update(rawBody).digest('hex')
+  const digest = crypto.createHmac('sha512', getPaystackSecretKey()).update(rawBody).digest('hex')
   return digest === signature
 }
 
