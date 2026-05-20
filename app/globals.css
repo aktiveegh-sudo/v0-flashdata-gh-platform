@@ -291,6 +291,50 @@
   .dark .dashboard-content [data-slot='select-trigger'] {
     background: color-mix(in oklab, var(--background) 72%, var(--card) 28%);
   }
+
+  @media (max-width: 640px) {
+    .dashboard-content {
+      gap: 1rem;
+    }
+
+    .dashboard-content .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+      margin-top: 1rem;
+    }
+
+    .dashboard-content [data-slot='card'] {
+      border-radius: 1rem;
+    }
+
+    .dashboard-content [data-slot='card-header'] {
+      padding-top: 1rem;
+      padding-bottom: 0.75rem;
+      gap: 0.35rem;
+    }
+
+    .dashboard-content [data-slot='card-content'] {
+      padding-bottom: 1rem;
+    }
+
+    .dashboard-content [data-slot='button'] {
+      min-height: 2.65rem;
+      padding-left: 0.85rem;
+      padding-right: 0.85rem;
+      font-size: 0.92rem;
+    }
+
+    .dashboard-content [data-slot='button'][data-size='icon'] {
+      min-height: 2.5rem;
+      min-width: 2.5rem;
+      padding: 0;
+    }
+
+    .dashboard-content [data-slot='input'],
+    .dashboard-content textarea,
+    .dashboard-content [data-slot='select-trigger'] {
+      min-height: 2.6rem;
+      font-size: 0.95rem;
+    }
+  }
 }
 
 /* Custom scrollbar */

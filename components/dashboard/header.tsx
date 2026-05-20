@@ -157,9 +157,9 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 px-4 py-4 backdrop-blur-xl lg:px-8">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3 lg:gap-4">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-4">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 lg:gap-4">
+        <div className="flex min-w-0 items-center gap-2.5 lg:gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -188,7 +188,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           </form>
         </div>
 
-        <div className="flex items-center gap-2 lg:gap-3">
+        <div className="flex items-center gap-1.5 lg:gap-3">
         {/* Mobile Search */}
         <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl border border-border/70 bg-card/70 xl:hidden" aria-label="Search">
           <Search className="h-5 w-5" />
