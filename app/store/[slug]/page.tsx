@@ -126,7 +126,7 @@ export default function PublicAgentStorePage() {
     void loadStore()
   }, [slug])
 
-  const accent = store?.theme_color || '#f97316'
+  const accent = '#facc15'
 
   const networks = useMemo(() => {
     const set = new Set<string>()
@@ -250,8 +250,8 @@ export default function PublicAgentStorePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fff7ed]">
-        <div className="flex items-center gap-2 text-slate-600">
+      <div className="flex min-h-screen items-center justify-center bg-[#050505]">
+        <div className="flex items-center gap-2 text-zinc-200">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading store...
         </div>
@@ -261,11 +261,11 @@ export default function PublicAgentStorePage() {
 
   if (!store) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fff7ed] p-6">
-        <Card className="w-full max-w-md border-amber-200 bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-[#050505] p-6">
+        <Card className="w-full max-w-md border-yellow-400/30 bg-white/5 text-white backdrop-blur-xl">
           <CardContent className="p-8 text-center">
-            <p className="text-lg font-semibold text-slate-900">Store not found</p>
-            <p className="mt-2 text-sm text-slate-600">This storefront link is unavailable right now.</p>
+            <p className="text-lg font-semibold text-white">Store not found</p>
+            <p className="mt-2 text-sm text-zinc-300">This storefront link is unavailable right now.</p>
           </CardContent>
         </Card>
       </div>
@@ -273,39 +273,41 @@ export default function PublicAgentStorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffe9d4_0%,#fff7ed_38%,#fffdf8_100%)] text-slate-900">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#1a1a1a_0%,#090909_45%,#000000_100%)] text-white">
       <section
         className="relative overflow-hidden"
         style={{
           background: store.cover_url
-            ? `linear-gradient(120deg, rgba(15,23,42,.78), rgba(15,23,42,.58)), url(${store.cover_url}) center/cover`
-            : 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #334155 100%)',
+            ? `linear-gradient(120deg, rgba(0,0,0,.84), rgba(0,0,0,.66)), url(${store.cover_url}) center/cover`
+            : 'linear-gradient(135deg, #050505 0%, #0b0b0b 50%, #171717 100%)',
         }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,.22),transparent_42%)]" />
+        <div className="absolute -left-24 top-10 h-64 w-64 rounded-full bg-yellow-300/20 blur-3xl" />
+        <div className="absolute -right-12 top-24 h-72 w-72 rounded-full bg-yellow-200/10 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,.18),transparent_46%)]" />
         <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 lg:px-6 lg:pt-24">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
-            className="max-w-3xl"
+            className="max-w-3xl rounded-3xl border border-yellow-300/25 bg-white/5 p-6 shadow-[0_0_70px_rgba(250,204,21,0.2)] backdrop-blur-xl lg:p-8"
           >
-            <Badge className="mb-5 border-0 bg-white/20 text-white">
+            <Badge className="mb-5 border-0 bg-yellow-300/90 text-black">
               <Sparkles className="mr-1.5 h-3.5 w-3.5" />
               Welcome to {store.brand_name}
             </Badge>
             <h1 className="text-4xl font-black leading-tight text-white lg:text-6xl">
               Your own plug for data and digital essentials.
             </h1>
-            <p className="mt-4 max-w-2xl text-base text-slate-100 lg:text-lg">
+            <p className="mt-4 max-w-2xl text-base text-zinc-200 lg:text-lg">
               {store.tagline || store.description || 'Buy quickly, pay securely, and get served fast from this independent store.'}
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <a href="#data-section">
-                <Button className="bg-orange-500 text-white hover:bg-orange-600">Buy Data Now</Button>
+                <Button className="border border-yellow-300 bg-yellow-300 text-black shadow-[0_0_25px_rgba(250,204,21,0.45)] hover:bg-yellow-200">Buy Data Now</Button>
               </a>
               <a href="#services-banner">
-                <Button variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20">
+                <Button variant="outline" className="border-yellow-300/50 bg-black/35 text-yellow-200 backdrop-blur-md hover:bg-yellow-300/10">
                   Explore Services
                 </Button>
               </a>
@@ -321,25 +323,25 @@ export default function PublicAgentStorePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
-          className="rounded-3xl border border-amber-200/80 bg-gradient-to-r from-amber-100 via-orange-50 to-rose-100 p-6 shadow-[0_20px_60px_rgba(217,119,6,0.12)] lg:p-8"
+          className="rounded-3xl border border-yellow-300/20 bg-white/5 p-6 shadow-[0_10px_60px_rgba(250,204,21,0.14)] backdrop-blur-xl lg:p-8"
         >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">More than data</p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900 lg:text-3xl">Explore other services in this store</h2>
-              <p className="mt-2 max-w-2xl text-sm text-slate-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-yellow-300">More than data</p>
+              <h2 className="mt-2 text-2xl font-bold text-white lg:text-3xl">Explore other services in this store</h2>
+              <p className="mt-2 max-w-2xl text-sm text-zinc-300">
                 Recharge products, digital tools, and other helpful services curated by this seller.
               </p>
-              <a href="#contact-footer" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-slate-900 underline-offset-4 hover:underline">
+              <a href="#contact-footer" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-yellow-200 underline-offset-4 hover:underline">
                 Contact store for custom requests <ArrowRight className="h-4 w-4" />
               </a>
             </div>
             <div className="grid w-full gap-2 sm:grid-cols-2 lg:max-w-md">
               {services.length === 0 ? (
-                <div className="rounded-2xl border border-white/70 bg-white/70 p-3 text-sm text-slate-700">No extra services listed yet.</div>
+                <div className="rounded-2xl border border-white/20 bg-black/45 p-3 text-sm text-zinc-300 backdrop-blur-md">No extra services listed yet.</div>
               ) : (
                 services.slice(0, 4).map((service) => (
-                  <div key={service.id} className="rounded-2xl border border-white/70 bg-white/85 p-3 shadow-sm">
+                  <div key={service.id} className="rounded-2xl border border-yellow-300/20 bg-white/10 p-3 shadow-[0_0_30px_rgba(250,204,21,0.08)] backdrop-blur-md transition hover:border-yellow-300/50 hover:shadow-[0_0_40px_rgba(250,204,21,0.2)]">
                     {service.online_services?.image_url ? (
                       <img
                         src={service.online_services.image_url}
@@ -347,10 +349,10 @@ export default function PublicAgentStorePage() {
                         className="mb-2 h-24 w-full rounded-xl object-cover"
                       />
                     ) : null}
-                    <p className="text-sm font-semibold text-slate-900">{service.online_services?.name}</p>
-                    <p className="mt-1 text-xs text-slate-600">{service.online_services?.category}</p>
+                    <p className="text-sm font-semibold text-white">{service.online_services?.name}</p>
+                    <p className="mt-1 text-xs text-zinc-300">{service.online_services?.category}</p>
                     <p className="mt-2 text-sm font-bold" style={{ color: accent }}>{formatGhs(service.selling_price)}</p>
-                    <Button size="sm" className="mt-3 w-full bg-slate-900 text-white hover:bg-slate-800" onClick={() => startServiceCheckout(service)}>
+                    <Button size="sm" className="mt-3 w-full border border-yellow-300 bg-yellow-300 text-black hover:bg-yellow-200" onClick={() => startServiceCheckout(service)}>
                       Pay Now
                     </Button>
                   </div>
@@ -366,11 +368,11 @@ export default function PublicAgentStorePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
-          className="rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-[0_16px_46px_rgba(15,23,42,0.08)] backdrop-blur-sm lg:p-8"
+          className="rounded-3xl border border-yellow-300/20 bg-white/5 p-6 shadow-[0_10px_60px_rgba(250,204,21,0.08)] backdrop-blur-xl lg:p-8"
         >
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900 lg:text-3xl">Buy Data Bundles</h2>
-            <p className="mt-2 text-sm text-slate-600">Switch network, tap your package, enter recipient number, and pay.</p>
+            <h2 className="text-2xl font-bold text-white lg:text-3xl">Buy Data Bundles</h2>
+            <p className="mt-2 text-sm text-zinc-300">Switch network, tap your package, enter recipient number, and pay.</p>
           </div>
 
           {store.allow_data ? (
@@ -382,8 +384,8 @@ export default function PublicAgentStorePage() {
                     onClick={() => setActiveNetwork(network)}
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                       activeNetwork === network
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        ? 'border border-yellow-300 bg-yellow-300 text-black shadow-[0_0_20px_rgba(250,204,21,0.5)]'
+                        : 'border border-white/15 bg-white/10 text-zinc-100 hover:border-yellow-300/50 hover:bg-white/15'
                     }`}
                   >
                     {network}
@@ -392,17 +394,17 @@ export default function PublicAgentStorePage() {
               </div>
 
               {filteredPackages.length === 0 ? (
-                <p className="text-sm text-slate-600">No data packages available for this network yet.</p>
+                <p className="text-sm text-zinc-300">No data packages available for this network yet.</p>
               ) : (
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {filteredPackages.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => startCheckout(item)}
-                      className="rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-slate-400 hover:shadow-md"
+                      className="rounded-2xl border border-white/15 bg-gradient-to-b from-white/10 to-white/5 p-4 text-left shadow-sm backdrop-blur-md transition hover:-translate-y-1 hover:border-yellow-300/60 hover:shadow-[0_0_24px_rgba(250,204,21,0.2)]"
                     >
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{item.data_packages?.network}</p>
-                      <p className="mt-1 text-sm font-semibold text-slate-900">{item.data_packages?.amount}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-300">{item.data_packages?.network}</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{item.data_packages?.amount}</p>
                       <p className="mt-3 text-lg font-bold" style={{ color: accent }}>{formatGhs(item.selling_price)}</p>
                     </button>
                   ))}
@@ -410,25 +412,25 @@ export default function PublicAgentStorePage() {
               )}
             </>
           ) : (
-            <p className="text-sm text-slate-600">This store has disabled data sales at the moment.</p>
+            <p className="text-sm text-zinc-300">This store has disabled data sales at the moment.</p>
           )}
         </motion.section>
       </main>
 
-      <footer id="contact-footer" className="border-t border-slate-200 bg-slate-900 text-slate-200">
+      <footer id="contact-footer" className="border-t border-yellow-300/20 bg-black text-slate-200">
         <div className="mx-auto max-w-6xl px-4 py-10 lg:px-6">
           <h3 className="text-xl font-bold text-white">Contact {store.brand_name}</h3>
           <p className="mt-2 text-sm text-slate-300">Need help with payment or order updates? Reach the store directly.</p>
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/60 p-4">
+            <div className="rounded-2xl border border-yellow-300/20 bg-white/5 p-4 backdrop-blur-md">
               <p className="flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4 text-orange-300" />
+                <Phone className="h-4 w-4 text-yellow-300" />
                 {store.contact_phone || 'Phone not provided'}
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/60 p-4">
+            <div className="rounded-2xl border border-yellow-300/20 bg-white/5 p-4 backdrop-blur-md">
               <p className="flex items-center gap-2 text-sm">
-                <Mail className="h-4 w-4 text-orange-300" />
+                <Mail className="h-4 w-4 text-yellow-300" />
                 {store.contact_email || 'Email not provided'}
               </p>
             </div>
@@ -449,7 +451,7 @@ export default function PublicAgentStorePage() {
       ) : null}
 
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="border-yellow-300/20 bg-zinc-950/95 text-white backdrop-blur-xl sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               {checkoutType === 'service'
@@ -512,16 +514,16 @@ export default function PublicAgentStorePage() {
               </>
             ) : null}
 
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+            <div className="rounded-xl border border-yellow-300/25 bg-yellow-300/10 p-3 text-sm text-yellow-100">
               <p className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> Secure Paystack checkout will open next.</p>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCheckoutOpen(false)}>
+            <Button variant="outline" className="border-white/20 bg-white/5 text-zinc-100 hover:bg-white/10" onClick={() => setCheckoutOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => void submitStoreOrder()} disabled={submitting} style={{ backgroundColor: accent }}>
+            <Button className="border border-yellow-300 bg-yellow-300 text-black hover:bg-yellow-200" onClick={() => void submitStoreOrder()} disabled={submitting}>
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Pay {formatGhs(checkoutType === 'service' ? selectedService?.selling_price || 0 : selectedPackage?.selling_price || 0)}
             </Button>
