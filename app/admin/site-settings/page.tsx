@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Save } from 'lucide-react'
+import { Loader2, Save, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -44,6 +44,7 @@ export default function AdminSiteSettingsPage() {
   const [form, setForm] = useState(defaultState)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingHeroVideo, setUploadingHeroVideo] = useState(false)
 
   const loadSettings = async () => {
     setLoading(true)
@@ -125,6 +126,45 @@ export default function AdminSiteSettingsPage() {
     void loadSettings()
   }, [])
 
+  const uploadHeroVideo = async (file: File) => {
+    if (file.type !== 'video/mp4') {
+      toast.error('Only MP4 files are allowed')
+      return
+    }
+
+    const maxFileSizeBytes = 50 * 1024 * 1024
+    if (file.size > maxFileSizeBytes) {
+      toast.error('Video size must be 50MB or less')
+      return
+    }
+
+    setUploadingHeroVideo(true)
+
+    try {
+      const body = new FormData()
+      body.append('file', file)
+
+      const response = await fetch('/api/admin/storage/upload-hero-video', {
+        method: 'POST',
+        body,
+      })
+
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.success || !payload?.data?.publicUrl) {
+        toast.error(payload?.error || 'Failed to upload hero video')
+        setUploadingHeroVideo(false)
+        return
+      }
+
+      setForm((prev) => ({ ...prev, hero_video_url: payload.data.publicUrl as string }))
+      toast.success('Hero video uploaded. Save settings to publish it.')
+      setUploadingHeroVideo(false)
+    } catch {
+      toast.error('Failed to upload hero video')
+      setUploadingHeroVideo(false)
+    }
+  }
+
   const saveSettings = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -205,13 +245,49 @@ export default function AdminSiteSettingsPage() {
                 <Textarea value={form.hero_text} onChange={(e) => setForm((prev) => ({ ...prev, hero_text: e.target.value }))} rows={4} />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label>Hero Background Video URL</Label>
-                <Input
-                  placeholder="https://.../hero-video.mp4"
-                  value={form.hero_video_url}
-                  onChange={(e) => setForm((prev) => ({ ...prev, hero_video_url: e.target.value }))}
-                />
-                <p className="text-xs text-muted-foreground">Use a direct video file URL (MP4/WebM) to show as homepage hero background.</p>
+                <Label>Hero Background Video (MP4)</Label>
+                <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Input
+                      type="file"
+                      accept="video/mp4"
+                      disabled={uploadingHeroVideo}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          void uploadHeroVideo(file)
+                        }
+                        e.currentTarget.value = ''
+                      }}
+                    />
+                    {uploadingHeroVideo ? (
+                      <div className="inline-flex items-center text-sm text-muted-foreground">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {form.hero_video_url ? (
+                    <>
+                      <video className="max-h-44 w-full rounded-md border border-border bg-black object-cover" controls muted playsInline>
+                        <source src={form.hero_video_url} type="video/mp4" />
+                      </video>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setForm((prev) => ({ ...prev, hero_video_url: '' }))}
+                        >
+                          <Upload className="mr-2 h-3.5 w-3.5" /> Remove Video
+                        </Button>
+                        <p className="text-xs text-muted-foreground">Click Save Settings to apply this hero video to homepage.</p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Upload an MP4 file to use as the homepage hero background video.</p>
+                  )}
+                </div>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Active Data Provider</Label>
