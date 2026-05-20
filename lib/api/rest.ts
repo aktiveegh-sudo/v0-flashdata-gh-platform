@@ -16,6 +16,19 @@ type WalletRow = {
 
 type TransactionType = 'data_purchase' | 'online_service'
 
+type OrderNotificationKind = 'data' | 'afa' | 'service' | 'store_data' | 'store_service' | 'store_afa'
+
+type NotifyAdminsOfNewOrderInput = {
+  kind: OrderNotificationKind
+  reference: string
+  amount: number
+  source: 'dashboard' | 'store' | 'api'
+  customerName?: string | null
+  customerPhone?: string | null
+  storeName?: string | null
+  itemName?: string | null
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -204,4 +217,81 @@ export const createPendingTransaction = async (input: {
   }
 
   return null
+}
+
+const getOrderNotificationKindLabel = (kind: OrderNotificationKind) => {
+  switch (kind) {
+    case 'afa':
+      return 'AFA'
+    case 'service':
+      return 'Service'
+    case 'store_data':
+      return 'Store Data'
+    case 'store_service':
+      return 'Store Service'
+    case 'store_afa':
+      return 'Store AFA'
+    default:
+      return 'Data'
+  }
+}
+
+export const notifyAdminsOfNewOrder = async (input: NotifyAdminsOfNewOrderInput) => {
+  try {
+    const { data: settings, error: settingsError } = await supabaseAdmin
+      .from('site_settings')
+      .select('order_notifications_enabled')
+      .eq('id', 1)
+      .maybeSingle()
+
+    if (settingsError) {
+      throw new Error(settingsError.message)
+    }
+
+    if (!settings?.order_notifications_enabled) {
+      return
+    }
+
+    const { data: admins, error: adminError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('role', 'super_admin')
+
+    if (adminError) {
+      throw new Error(adminError.message)
+    }
+
+    const adminIds = ((admins || []) as Array<{ id: string }>).map((admin) => admin.id).filter(Boolean)
+    if (adminIds.length === 0) {
+      return
+    }
+
+    const kindLabel = getOrderNotificationKindLabel(input.kind)
+    const sourceLabel = input.source === 'dashboard' ? 'Dashboard' : input.source === 'store' ? 'Store' : 'API'
+    const messageParts = [
+      `Ref ${input.reference}`,
+      `${Number(input.amount || 0).toFixed(2)} GHS`,
+      sourceLabel,
+      input.storeName || null,
+      input.itemName || null,
+      input.customerName || null,
+      input.customerPhone || null,
+    ].filter(Boolean)
+
+    const { error } = await supabaseAdmin.from('notifications').insert(
+      adminIds.map((userId) => ({
+        user_id: userId,
+        title: `New ${kindLabel} order`,
+        message: messageParts.join(' | '),
+        type: 'info',
+        is_read: false,
+      }))
+    )
+
+    if (error) {
+      throw new Error(error.message)
+    }
+  } catch (error) {
+    console.error('Failed to create admin order notification', error)
+  }
 }

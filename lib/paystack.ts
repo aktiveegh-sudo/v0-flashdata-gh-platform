@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { createPendingTransaction, generateReference, supabaseAdmin } from '@/lib/api/rest'
+import { createPendingTransaction, generateReference, notifyAdminsOfNewOrder, supabaseAdmin } from '@/lib/api/rest'
 
 export type PaystackFlow =
   | 'wallet_topup'
@@ -516,6 +516,14 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         throw new Error('Unable to log Paystack data transaction')
       }
 
+      void notifyAdminsOfNewOrder({
+        kind: 'data',
+        reference,
+        amount,
+        source: 'dashboard',
+        customerPhone: metadata.phone,
+      })
+
       try {
         const delivery = await deliverDataBundleByProvider({
           network: packageRow.network,
@@ -664,6 +672,15 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       if (transactionError) {
         throw new Error('Unable to log Paystack AFA transaction')
       }
+
+      void notifyAdminsOfNewOrder({
+        kind: 'afa',
+        reference,
+        amount,
+        source: 'dashboard',
+        customerName: metadata.fullName,
+        customerPhone: metadata.phone,
+      })
     }
 
     return {
@@ -822,6 +839,17 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         order_id: createdOrder.id,
         payment_reference: reference,
       },
+    })
+
+    void notifyAdminsOfNewOrder({
+      kind: itemType === 'service' ? 'store_service' : metadata.flow === 'store_afa' ? 'store_afa' : 'store_data',
+      reference,
+      amount,
+      source: 'store',
+      storeName: store.brand_name || store.slug,
+      itemName,
+      customerName,
+      customerPhone,
     })
   }
 

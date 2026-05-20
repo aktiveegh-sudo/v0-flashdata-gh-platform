@@ -22,6 +22,7 @@ type SiteSettingsRow = {
   whatsapp_channel_url: string | null
   maintenance_mode: boolean
   delivery_provider: 'swiftdata' | 'secondary'
+  order_notifications_enabled: boolean
 }
 
 const defaultState = {
@@ -34,6 +35,7 @@ const defaultState = {
   whatsapp_channel_url: '',
   maintenance_mode: false,
   delivery_provider: 'swiftdata' as const,
+  order_notifications_enabled: false,
 }
 
 export default function AdminSiteSettingsPage() {
@@ -46,7 +48,7 @@ export default function AdminSiteSettingsPage() {
 
     const { data, error } = await supabase.client
       .from('site_settings')
-      .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider')
+      .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider,order_notifications_enabled')
       .limit(1)
       .maybeSingle()
 
@@ -69,8 +71,9 @@ export default function AdminSiteSettingsPage() {
           whatsapp_channel_url: null,
           maintenance_mode: false,
           delivery_provider: 'swiftdata',
+          order_notifications_enabled: false,
         })
-        .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider')
+        .select('id,site_name,logo_url,hero_text,contact_email,contact_phone,whatsapp_channel_url,maintenance_mode,delivery_provider,order_notifications_enabled')
         .single()
 
       if (insertError || !inserted) {
@@ -89,6 +92,7 @@ export default function AdminSiteSettingsPage() {
         whatsapp_channel_url: inserted.whatsapp_channel_url || '',
         maintenance_mode: !!inserted.maintenance_mode,
         delivery_provider: inserted.delivery_provider === 'secondary' ? 'secondary' : 'swiftdata',
+        order_notifications_enabled: !!inserted.order_notifications_enabled,
       })
 
       setLoading(false)
@@ -106,6 +110,7 @@ export default function AdminSiteSettingsPage() {
       whatsapp_channel_url: row.whatsapp_channel_url || '',
       maintenance_mode: !!row.maintenance_mode,
       delivery_provider: row.delivery_provider === 'secondary' ? 'secondary' : 'swiftdata',
+      order_notifications_enabled: !!row.order_notifications_enabled,
     })
 
     setLoading(false)
@@ -128,6 +133,7 @@ export default function AdminSiteSettingsPage() {
       whatsapp_channel_url: form.whatsapp_channel_url || null,
       maintenance_mode: form.maintenance_mode,
       delivery_provider: form.delivery_provider,
+      order_notifications_enabled: form.order_notifications_enabled,
       updated_at: new Date().toISOString(),
     }
 
@@ -216,6 +222,16 @@ export default function AdminSiteSettingsPage() {
                   <p className="text-sm text-muted-foreground">When enabled, user actions can be restricted by frontend checks.</p>
                 </div>
                 <Switch checked={form.maintenance_mode} onCheckedChange={(value) => setForm((prev) => ({ ...prev, maintenance_mode: value }))} />
+              </div>
+              <div className="md:col-span-2 flex items-center justify-between rounded-lg border border-border p-3">
+                <div>
+                  <p className="font-medium">Allow Order Notifications</p>
+                  <p className="text-sm text-muted-foreground">Enable this so the site can notify admins whenever a new order or registration is created.</p>
+                </div>
+                <Switch
+                  checked={form.order_notifications_enabled}
+                  onCheckedChange={(value) => setForm((prev) => ({ ...prev, order_notifications_enabled: value }))}
+                />
               </div>
               <div className="md:col-span-2">
                 <Button type="submit" disabled={saving}>

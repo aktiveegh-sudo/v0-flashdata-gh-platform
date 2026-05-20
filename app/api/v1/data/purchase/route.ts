@@ -4,6 +4,7 @@ import {
   createPendingTransaction,
   consumeUsage,
   debitWallet,
+  notifyAdminsOfNewOrder,
   refundWallet,
   generateReference,
   jsonError,
@@ -102,6 +103,14 @@ export async function POST(request: NextRequest) {
     await refundWallet(walletId, amount)
     return transactionError
   }
+
+  void notifyAdminsOfNewOrder({
+    kind: 'data',
+    reference,
+    amount,
+    source: 'api',
+    customerPhone: normalizedPhone,
+  })
 
   return jsonOk(
     {
