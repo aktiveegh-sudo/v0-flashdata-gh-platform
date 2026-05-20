@@ -7,26 +7,46 @@ const isBucketMissing = (message: string) => {
   return text.includes('not found') || text.includes('does not exist') || text.includes('bucket')
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabaseServer = await createSupabaseServerClient()
-    const { data: authData, error: authError } = await supabaseServer.auth.getUser()
 
-    if (authError || !authData.user) {
+    const authHeader = request.headers.get('authorization') || ''
+    const bearer = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : ''
+
+    let currentUserId = ''
+    let currentUserEmail = ''
+
+    if (bearer) {
+      const { data: tokenUser, error: tokenError } = await supabaseAdmin.auth.getUser(bearer)
+      if (!tokenError && tokenUser.user) {
+        currentUserId = tokenUser.user.id
+        currentUserEmail = (tokenUser.user.email || '').toLowerCase()
+      }
+    }
+
+    if (!currentUserId) {
+      const { data: authData, error: authError } = await supabaseServer.auth.getUser()
+      if (!authError && authData.user) {
+        currentUserId = authData.user.id
+        currentUserEmail = (authData.user.email || '').toLowerCase()
+      }
+    }
+
+    if (!currentUserId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
     const { data: profile } = await supabaseServer
       .from('profiles')
       .select('role')
-      .eq('id', authData.user.id)
+      .eq('id', currentUserId)
       .maybeSingle()
 
-    const isSuperAdmin =
-      profile?.role === 'super_admin' ||
-      (authData.user.email || '').toLowerCase() === 'admin@flashdatagh.com'
+    const role = (profile?.role || '').toLowerCase()
+    const isAllowedAdmin = role === 'super_admin' || role === 'admin' || currentUserEmail === 'admin@flashdatagh.com'
 
-    if (!isSuperAdmin) {
+    if (!isAllowedAdmin) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 

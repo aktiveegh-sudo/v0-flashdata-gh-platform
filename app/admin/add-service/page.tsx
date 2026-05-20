@@ -60,8 +60,12 @@ export default function AdminAddServicePage() {
   const onUploadImage = async (file: File) => {
     setUploading(true)
 
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token || ''
+
     const ensureBucket = await fetch('/api/admin/storage/ensure-service-images', {
       method: 'POST',
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
     })
 
     if (!ensureBucket.ok) {

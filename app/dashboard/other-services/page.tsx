@@ -131,6 +131,22 @@ export default function OtherServicesPage() {
     void loadData()
   }, [])
 
+  useEffect(() => {
+    const channel = supabase.client
+      .channel(`dashboard-other-services-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'online_services' }, () => {
+        void loadData()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_store_service_prices' }, () => {
+        void loadData()
+      })
+      .subscribe()
+
+    return () => {
+      void supabase.client.removeChannel(channel)
+    }
+  }, [])
+
   const resetForm = () => {
     setFormData({
       baseServiceId: '',
