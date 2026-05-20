@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase/client'
+
 type PaystackInitializePayload = {
   flow: 'wallet_topup' | 'dashboard_data' | 'dashboard_afa' | 'store_data' | 'store_service' | 'store_afa'
   amount?: number
@@ -16,9 +18,15 @@ type PaystackInitializePayload = {
 }
 
 export const startPaystackCheckout = async (payload: PaystackInitializePayload) => {
+  const { data: sessionData } = await supabase.auth.getSession()
+  const accessToken = sessionData.session?.access_token
+
   const response = await fetch('/api/paystack/initialize', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
     body: JSON.stringify(payload),
   })
 

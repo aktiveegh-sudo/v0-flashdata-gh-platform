@@ -22,6 +22,32 @@ type InitializeBody = {
 
 const jsonError = (message: string, status = 400) => NextResponse.json({ success: false, error: message }, { status })
 
+const getAuthenticatedDashboardUser = async (request: NextRequest) => {
+  const supabaseServer = await createSupabaseServerClient()
+  const { data: cookieAuth, error: cookieError } = await supabaseServer.auth.getUser()
+
+  if (!cookieError && cookieAuth.user) {
+    return cookieAuth.user
+  }
+
+  const authHeader = request.headers.get('authorization') || ''
+  if (!authHeader.toLowerCase().startsWith('bearer ')) {
+    return null
+  }
+
+  const token = authHeader.slice(7).trim()
+  if (!token) {
+    return null
+  }
+
+  const { data: tokenAuth, error: tokenError } = await supabaseAdmin.auth.getUser(token)
+  if (tokenError || !tokenAuth.user) {
+    return null
+  }
+
+  return tokenAuth.user
+}
+
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => ({}))) as InitializeBody
   const origin = request.headers.get('origin') || new URL(request.url).origin
@@ -32,14 +58,13 @@ export async function POST(request: NextRequest) {
 
   try {
     if (body.flow === 'wallet_topup' || body.flow === 'dashboard_data' || body.flow === 'dashboard_afa') {
-      const supabaseServer = await createSupabaseServerClient()
-      const { data: authData, error: authError } = await supabaseServer.auth.getUser()
+      const authUser = await getAuthenticatedDashboardUser(request)
 
-      if (authError || !authData.user) {
+      if (!authUser) {
         return jsonError('Please login again', 401)
       }
 
-      const email = authData.user.email || ''
+      const email = authUser.email || ''
       if (!email) {
         return jsonError('Authenticated user must have an email address', 400)
       }
@@ -57,7 +82,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             flow: body.flow,
             redirectPath: body.redirectPath || '/dashboard/wallet',
-            userId: authData.user.id,
+            userId: authUser.id,
             paymentMethod: body.paymentMethod || '',
           },
           channels: body.paymentMethod === 'card' ? ['card'] : ['mobile_money', 'card'],
@@ -90,7 +115,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             flow: body.flow,
             redirectPath: body.redirectPath || '/dashboard/buy-data',
-            userId: authData.user.id,
+            userId: authUser.id,
             packageId: packageRow.id,
             phone: normalizedPhone,
           },
@@ -126,7 +151,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           flow: body.flow,
           redirectPath: body.redirectPath || '/dashboard/afa',
-          userId: authData.user.id,
+            userId: authUser.id,
           phone: normalizedPhone,
           fullName,
           ghanaCardNumber,
