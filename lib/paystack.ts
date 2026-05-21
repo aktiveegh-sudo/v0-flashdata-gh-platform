@@ -102,6 +102,7 @@ const getPaystackHeaders = () => ({
 
 const toKobo = (amount: number) => Math.round(Number(amount || 0) * 100)
 const fromKobo = (amount: number) => Number((Number(amount || 0) / 100).toFixed(2))
+const amountsDifferMeaningfully = (a: number, b: number) => Math.abs(Number(a || 0) - Number(b || 0)) > 0.01
 
 const normalizeStoreCustomerPhone = (value: string) => value.trim()
 
@@ -497,9 +498,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
 
     const packageAgentPrice = Number(packageRow.agent_price || packageRow.selling_price || 0)
 
-    if (packageAgentPrice !== amount) {
-      throw new Error('Paid amount does not match data package price')
-    }
+    const hasDashboardDataAmountDrift = amountsDifferMeaningfully(packageAgentPrice, amount)
 
     const { data: existingOrder, error: existingOrderError } = await supabaseAdmin
       .from('orders')
@@ -524,6 +523,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
           metadata: {
             source: 'paystack',
             payment_channel: charge.channel,
+            amount_validation: hasDashboardDataAmountDrift ? 'price_changed_after_checkout' : 'ok',
+            package_price_now: packageAgentPrice,
+            amount_paid: amount,
           },
         })
         .select('id')
@@ -658,9 +660,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
 
     const afaAgentPrice = Number(settings.agent_price || settings.base_price || 0)
 
-    if (afaAgentPrice !== amount) {
-      throw new Error('Paid amount does not match AFA price')
-    }
+    const hasDashboardAfaAmountDrift = amountsDifferMeaningfully(afaAgentPrice, amount)
 
     const { data: existingRegistration, error: existingRegistrationError } = await supabaseAdmin
       .from('afa_registrations')
@@ -703,6 +703,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
           channel: charge.channel,
           registration_id: createdRegistration.id,
           registration_reference: reference,
+          amount_validation: hasDashboardAfaAmountDrift ? 'price_changed_after_checkout' : 'ok',
+          afa_price_now: afaAgentPrice,
+          amount_paid: amount,
         },
       })
 
@@ -777,11 +780,12 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         }
 
         const servicePublicPrice = Number(serviceRow.public_price || serviceRow.price || 0)
-        if (servicePublicPrice !== amount) {
-          throw new Error('Paid amount does not match public service price')
-        }
+        const hasPublicServiceAmountDrift = amountsDifferMeaningfully(servicePublicPrice, amount)
 
         itemLabel = serviceRow.name || 'Public Service'
+        if (hasPublicServiceAmountDrift) {
+          customerNote = `${customerNote} | Amount Drift: expected ${servicePublicPrice} got ${amount}`
+        }
       } else {
         if (!metadata.packageId || !metadata.phone) {
           throw new Error('Missing public data checkout details')
@@ -801,11 +805,12 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         }
 
         const packagePublicPrice = Number(packageRow.public_price || packageRow.selling_price || 0)
-        if (packagePublicPrice !== amount) {
-          throw new Error('Paid amount does not match public package price')
-        }
+        const hasPublicPackageAmountDrift = amountsDifferMeaningfully(packagePublicPrice, amount)
 
         itemLabel = packageRow.name || 'Public Data'
+        if (hasPublicPackageAmountDrift) {
+          customerNote = `${customerNote} | Amount Drift: expected ${packagePublicPrice} got ${amount}`
+        }
 
         if (metadata.flow === 'public_afa') {
           const ghanaCardPattern = /^GHA-\d{9}-\d$/i
@@ -954,11 +959,12 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         throw new Error(serviceError?.message || 'Store service not found')
       }
 
-      if (Number(serviceRow.selling_price || 0) !== amount) {
-        throw new Error('Paid amount does not match service price')
-      }
+      const hasStoreServiceAmountDrift = amountsDifferMeaningfully(Number(serviceRow.selling_price || 0), amount)
 
       itemLabel = serviceRow.online_services?.name || 'Store Service'
+      if (hasStoreServiceAmountDrift) {
+        customerNote = `${customerNote} | Amount Drift: expected ${Number(serviceRow.selling_price || 0)} got ${amount}`
+      }
     } else {
       if (!metadata.packageId) {
         throw new Error('Missing store data checkout details')
@@ -978,11 +984,12 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         throw new Error(packageError?.message || 'Store data package not found')
       }
 
-      if (Number(packageRow.selling_price || 0) !== amount) {
-        throw new Error('Paid amount does not match store package price')
-      }
+      const hasStorePackageAmountDrift = amountsDifferMeaningfully(Number(packageRow.selling_price || 0), amount)
 
       itemLabel = packageRow.data_packages?.name || 'Store Data'
+      if (hasStorePackageAmountDrift) {
+        customerNote = `${customerNote} | Amount Drift: expected ${Number(packageRow.selling_price || 0)} got ${amount}`
+      }
 
       if (metadata.flow === 'store_afa') {
         customerNote = [

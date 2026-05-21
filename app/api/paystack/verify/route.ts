@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { fulfillPaystackPayment } from '@/lib/paystack'
 
 export async function GET(request: NextRequest) {
-  const reference = new URL(request.url).searchParams.get('reference') || ''
+  const params = new URL(request.url).searchParams
+  const reference = params.get('reference') || params.get('trxref') || ''
 
   if (!reference) {
     return NextResponse.json({ success: false, error: 'reference is required' }, { status: 400 })

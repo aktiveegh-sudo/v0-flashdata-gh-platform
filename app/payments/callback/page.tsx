@@ -42,7 +42,10 @@ function PaymentsCallbackContent() {
 
       const redirectTarget = result.data?.redirectPath || nextPath
       window.setTimeout(() => {
-        router.replace(redirectTarget)
+        const successUrl = `/payments/success?reference=${encodeURIComponent(reference)}&message=${encodeURIComponent(
+          result.data?.message || 'Payment verified successfully'
+        )}&next=${encodeURIComponent(redirectTarget)}`
+        router.replace(successUrl)
       }, 1800)
     }
 
@@ -77,7 +80,7 @@ function PaymentsCallbackContent() {
                 <CheckCircle2 className="h-5 w-5" />
                 {message}
               </div>
-              <p className="text-sm text-muted-foreground">Redirecting you now...</p>
+              <p className="text-sm text-muted-foreground">Taking you to your payment success page...</p>
             </div>
           )}
         </CardContent>
