@@ -132,12 +132,6 @@ export default function AdminSiteSettingsPage() {
       return
     }
 
-    const maxFileSizeBytes = 200 * 1024 * 1024
-    if (file.size > maxFileSizeBytes) {
-      toast.error('Video size must be 200MB or less')
-      return
-    }
-
     setUploadingHeroVideo(true)
 
     try {
@@ -305,7 +299,7 @@ export default function AdminSiteSettingsPage() {
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Upload an MP4 file (up to 200MB) to use as the homepage hero background video.</p>
+                    <p className="text-xs text-muted-foreground">Upload an MP4 file to use as the homepage hero background video.</p>
                   )}
                 </div>
               </div>

@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase/client'
 import { useLoadingStore } from '@/lib/store'
-import { startPaystackCheckout } from '@/lib/paystack/client'
 import toast from 'react-hot-toast'
 
 type DataPackageRow = {
@@ -137,7 +136,7 @@ function BuyDataContent() {
     setIsCheckoutOpen(true)
   }
 
-  const handlePaystackCheckout = async () => {
+  const handleWalletCheckout = async () => {
     const normalizedPhone = normalizeToGhanaPhone(phoneNumber)
     if (!normalizedPhone) {
       toast.error('Enter a valid Ghana phone number')
@@ -161,25 +160,47 @@ function BuyDataContent() {
           return
         }
 
-        await startPaystackCheckout({
-          flow: 'dashboard_afa',
-          phone: normalizedPhone,
-          fullName: afaFullName.trim(),
-          ghanaCardNumber: afaGhanaCardNumber.trim().toUpperCase(),
-          location: afaLocation.trim(),
-          redirectPath: '/dashboard/afa',
+        const response = await fetch('/api/dashboard/purchase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            flow: 'afa',
+            phone: normalizedPhone,
+            fullName: afaFullName.trim(),
+            ghanaCardNumber: afaGhanaCardNumber.trim().toUpperCase(),
+            location: afaLocation.trim(),
+          }),
         })
+
+        const result = (await response.json().catch(() => null)) as { success?: boolean; error?: string }
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.error || 'Unable to process wallet payment')
+        }
+
+        toast.success('AFA registration submitted and wallet deducted successfully')
+        window.location.reload()
         return
       }
 
-      await startPaystackCheckout({
-        flow: 'dashboard_data',
-        packageId: selectedPackage.id,
-        phone: normalizedPhone,
-        redirectPath: '/dashboard/buy-data',
+      const response = await fetch('/api/dashboard/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          flow: 'data',
+          packageId: selectedPackage.id,
+          phone: normalizedPhone,
+        }),
       })
+
+      const result = (await response.json().catch(() => null)) as { success?: boolean; error?: string }
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Unable to process wallet payment')
+      }
+
+      toast.success('Data purchase submitted and wallet deducted successfully')
+      window.location.reload()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to start Paystack payment')
+      toast.error(error instanceof Error ? error.message : 'Unable to process wallet payment')
       setPaystackLoading(false)
       setLoading(false)
     }
@@ -360,12 +381,12 @@ function BuyDataContent() {
 
                 <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-muted-foreground">
                   <AlertCircle className="h-5 w-5" />
-                  <span className="text-sm">You will be redirected to Paystack. The order reaches admin only after payment verification succeeds.</span>
+                  <span className="text-sm">This order uses your wallet balance. Balance is deducted only when purchase is successful.</span>
                 </div>
 
                 <div className="grid gap-2">
                   <Button
-                    onClick={() => void handlePaystackCheckout()}
+                    onClick={() => void handleWalletCheckout()}
                     className="w-full"
                     size="lg"
                     disabled={
@@ -375,7 +396,7 @@ function BuyDataContent() {
                       (isAfaRegistration && (!afaFullName.trim() || !afaGhanaCardNumber.trim() || !afaLocation.trim()))
                     }
                   >
-                    {paystackLoading ? 'Redirecting...' : 'Pay with Paystack'}
+                    {paystackLoading ? 'Processing...' : 'Buy with Wallet'}
                   </Button>
                 </div>
               </div>

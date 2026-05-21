@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/api/rest'
 
 const allowedMimeTypes = ['video/mp4']
-const maxFileSizeBytes = 200 * 1024 * 1024
+const bucketFileSizeLimitBytes = 2 * 1024 * 1024 * 1024
 const bucketName = 'hero-videos'
 
 const isBucketMissing = (message: string) => {
@@ -66,7 +66,7 @@ const ensureBucket = async () => {
     if (!currentPublic) {
       const { error: updateError } = await supabaseAdmin.storage.updateBucket(bucketName, {
         public: true,
-        fileSizeLimit: maxFileSizeBytes,
+        fileSizeLimit: bucketFileSizeLimitBytes,
         allowedMimeTypes,
       })
 
@@ -80,7 +80,7 @@ const ensureBucket = async () => {
 
   const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
     public: true,
-    fileSizeLimit: maxFileSizeBytes,
+    fileSizeLimit: bucketFileSizeLimitBytes,
     allowedMimeTypes,
   })
 
@@ -119,10 +119,6 @@ export async function POST(request: Request) {
 
     if (!allowedMimeTypes.includes(fileType)) {
       return NextResponse.json({ success: false, error: 'Only MP4 video files are allowed' }, { status: 400 })
-    }
-
-    if (fileSize > maxFileSizeBytes) {
-      return NextResponse.json({ success: false, error: 'Video size must be 200MB or less' }, { status: 400 })
     }
 
     const filePath = `home-hero/${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`

@@ -144,53 +144,45 @@ export const getUserWallet = async (userId: string) => {
 }
 
 export const debitWallet = async (userId: string, amount: number) => {
-  const { wallet, error } = await getUserWallet(userId)
-  if (error || !wallet) {
-    return { walletId: null as string | null, error }
+  const { data, error } = await supabaseAdmin.rpc('wallet_apply_delta', {
+    p_user_id: userId,
+    p_delta: -Number(amount || 0),
+    p_reason: 'wallet_debit',
+    p_reference: generateReference('WLT-DB'),
+    p_metadata: { source: 'api' },
+  })
+
+  if (error) {
+    const status = error.message.toLowerCase().includes('insufficient') ? 402 : 500
+    return { walletId: null as string | null, error: jsonError(error.message, status) }
   }
 
-  const currentBalance = Number(wallet.balance || 0)
-  if (currentBalance < amount) {
-    return { walletId: null as string | null, error: jsonError('Insufficient wallet balance', 402) }
+  const row = Array.isArray(data) ? data[0] : null
+  if (!row?.wallet_id) {
+    return { walletId: null as string | null, error: jsonError('Unable to debit wallet', 500) }
   }
 
-  const nextBalance = Number((currentBalance - amount).toFixed(2))
-
-  const { error: updateError } = await supabaseAdmin
-    .from('wallets')
-    .update({
-      balance: nextBalance,
-      last_updated: new Date().toISOString(),
-    })
-    .eq('id', wallet.id)
-
-  if (updateError) {
-    return { walletId: null as string | null, error: jsonError(updateError.message, 500) }
-  }
-
-  return { walletId: wallet.id, error: null as NextResponse | null }
+  return { walletId: String(row.wallet_id), error: null as NextResponse | null }
 }
 
 export const refundWallet = async (walletId: string, amount: number) => {
   const { data: wallet, error: walletError } = await supabaseAdmin
     .from('wallets')
-    .select('id,balance')
+    .select('user_id')
     .eq('id', walletId)
     .maybeSingle()
 
-  if (walletError || !wallet) {
+  if (walletError || !wallet?.user_id) {
     return
   }
 
-  const nextBalance = Number((Number(wallet.balance || 0) + amount).toFixed(2))
-
-  await supabaseAdmin
-    .from('wallets')
-    .update({
-      balance: nextBalance,
-      last_updated: new Date().toISOString(),
-    })
-    .eq('id', walletId)
+  await supabaseAdmin.rpc('wallet_apply_delta', {
+    p_user_id: wallet.user_id,
+    p_delta: Number(amount || 0),
+    p_reason: 'wallet_refund',
+    p_reference: generateReference('WLT-RF'),
+    p_metadata: { source: 'api' },
+  })
 }
 
 export const createPendingTransaction = async (input: {

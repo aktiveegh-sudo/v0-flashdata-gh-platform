@@ -440,6 +440,36 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       if (error) {
         throw new Error(error.message)
       }
+
+      // Fallback for environments where wallet trigger is missing/outdated.
+      const { data: insertedTransaction } = await supabaseAdmin
+        .from('transactions')
+        .select('id,wallet_applied')
+        .eq('reference', reference)
+        .maybeSingle()
+
+      if (!insertedTransaction?.wallet_applied) {
+        const { error: walletDeltaError } = await supabaseAdmin.rpc('wallet_apply_delta', {
+          p_user_id: metadata.userId,
+          p_delta: amount,
+          p_reason: 'wallet_topup_paystack',
+          p_reference: reference,
+          p_metadata: {
+            source: 'paystack',
+            flow: metadata.flow,
+            channel: charge.channel,
+          },
+        })
+
+        if (walletDeltaError) {
+          throw new Error(walletDeltaError.message)
+        }
+
+        await supabaseAdmin
+          .from('transactions')
+          .update({ wallet_applied: true })
+          .eq('reference', reference)
+      }
     }
 
     return {
