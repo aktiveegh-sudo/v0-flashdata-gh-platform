@@ -20,6 +20,7 @@ export type StoreService = {
 }
 
 export type StoreRecord = {
+  storeId: string
   name: string
   slug: string
   active: boolean
@@ -102,7 +103,7 @@ export const getStoreRecordBySlug = async (slug: string): Promise<StoreRecord | 
   ])
 
   const storePackages = ((packagesResult.data || []) as AgentStorePackageRow[]).map((item) => ({
-    id: item.id,
+    id: item.data_packages?.id || item.id,
     network: item.data_packages?.network || 'Unknown',
     name: item.data_packages?.name || 'Data Package',
     amount: item.data_packages?.amount || '',
@@ -111,7 +112,7 @@ export const getStoreRecordBySlug = async (slug: string): Promise<StoreRecord | 
   }))
 
   const storeServices = ((servicesResult.data || []) as AgentStoreServiceRow[]).map((item) => ({
-    id: item.id,
+    id: item.online_services?.id || item.id,
     name: item.online_services?.name || 'Service',
     category: item.online_services?.category || 'Service',
     price: toNumber(item.selling_price),
@@ -119,6 +120,7 @@ export const getStoreRecordBySlug = async (slug: string): Promise<StoreRecord | 
   }))
 
   return {
+    storeId: store.id,
     name: store.brand_name,
     slug: store.slug,
     active: store.is_active,

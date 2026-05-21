@@ -26,7 +26,7 @@ export default async function PublicAgentStorePage({ params }: StorePageProps) {
         <section>
           <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-yellow-100">
             <Sparkles className="h-3.5 w-3.5" />
-            Independent store
+            Official partner store
           </div>
 
           <h2 className="mt-5 max-w-2xl text-4xl font-black tracking-tight text-white sm:text-5xl">
@@ -34,7 +34,7 @@ export default async function PublicAgentStorePage({ params }: StorePageProps) {
           </h2>
 
           <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg">
-            Buy data instantly, explore services, and complete orders with a clean agent-store experience.
+            Buy data bundles and digital services quickly with secure checkout and fast delivery updates.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
