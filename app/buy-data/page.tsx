@@ -23,6 +23,13 @@ type PublicPackage = {
 
 const formatGhs = (value: number) => `GHc ${Number(value || 0).toFixed(2)}`
 
+const networkTheme: Record<string, string> = {
+  MTN: 'border-yellow-300 bg-yellow-50',
+  Telecel: 'border-red-300 bg-red-50',
+  'Airtel-Tigo': 'border-blue-300 bg-blue-50',
+  AFA: 'border-zinc-900 bg-zinc-100',
+}
+
 export default function PublicBuyDataPage() {
   const [packages, setPackages] = useState<PublicPackage[]>([])
   const [activeNetwork, setActiveNetwork] = useState('')
@@ -48,6 +55,7 @@ export default function PublicBuyDataPage() {
         ...item,
         public_price: Number(item.public_price || item.selling_price || 0),
       })))
+
       setPackages(list)
       setActiveNetwork(list.find((pkg) => pkg.network)?.network || '')
       setLoading(false)
@@ -127,23 +135,28 @@ export default function PublicBuyDataPage() {
   if (packages.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white p-6">
-        <Card className="max-w-md"><CardContent className="p-6 text-center">No active public packages available yet.</CardContent></Card>
+        <Card className="max-w-md border-zinc-200"><CardContent className="p-6 text-center">No active public packages available yet.</CardContent></Card>
       </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-10 lg:px-8">
+    <main className="min-h-screen bg-white px-4 py-10 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Public Buy Data</p>
-          <h1 className="mt-2 text-3xl font-black text-zinc-900 sm:text-4xl">Buy Data Without Account</h1>
-          <p className="mt-2 text-zinc-600">Packages shown here are activated by admin for public users.</p>
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">Buy Data</p>
+          <h1 className="mt-2 text-3xl font-black text-black sm:text-5xl">Choose Your Data Bundle</h1>
+          <p className="mt-2 text-zinc-600">Simple, fast and easy checkout.</p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           {networks.map((network) => (
-            <Button key={network} variant={activeNetwork === network ? 'default' : 'outline'} className="rounded-xl" onClick={() => setActiveNetwork(network)}>
+            <Button
+              key={network}
+              variant={activeNetwork === network ? 'default' : 'outline'}
+              className={`rounded-full ${activeNetwork === network ? 'bg-black text-white hover:bg-zinc-800' : ''}`}
+              onClick={() => setActiveNetwork(network)}
+            >
               {network}
             </Button>
           ))}
@@ -151,13 +164,15 @@ export default function PublicBuyDataPage() {
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((pkg) => (
-            <Card key={pkg.id} className="rounded-2xl border-zinc-200">
+            <Card key={pkg.id} className={`rounded-2xl border-2 ${networkTheme[pkg.network] || 'border-zinc-200 bg-zinc-50'}`}>
               <CardContent className="space-y-3 p-5">
-                <p className="text-sm font-semibold text-zinc-500">{pkg.network}</p>
-                <h2 className="text-lg font-bold text-zinc-900">{pkg.name}</h2>
-                <p className="text-sm text-zinc-600">{pkg.amount}</p>
-                <p className="text-xl font-black text-sky-700">{formatGhs(pkg.public_price)}</p>
-                <Button className="w-full rounded-xl" onClick={() => openCheckout(pkg)}>Buy Now</Button>
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-700">{pkg.network}</p>
+                <h2 className="text-lg font-black text-black">{pkg.name}</h2>
+                <p className="text-sm text-zinc-700">{pkg.amount}</p>
+                <p className="text-2xl font-black text-black">{formatGhs(pkg.public_price)}</p>
+                <Button className="w-full rounded-xl bg-black text-white hover:bg-zinc-800" onClick={() => openCheckout(pkg)}>
+                  Buy Now
+                </Button>
               </CardContent>
             </Card>
           ))}
@@ -184,7 +199,7 @@ export default function PublicBuyDataPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => void submit()} disabled={submitting}>{submitting ? 'Processing...' : 'Proceed to Pay'}</Button>
+            <Button className="bg-black text-white hover:bg-zinc-800" onClick={() => void submit()} disabled={submitting}>{submitting ? 'Processing...' : 'Proceed to Pay'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

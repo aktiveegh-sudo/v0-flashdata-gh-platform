@@ -91,32 +91,32 @@ export default function PublicOtherServicesPage() {
   if (services.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white p-6">
-        <Card className="max-w-md"><CardContent className="p-6 text-center">No active public services found yet.</CardContent></Card>
+        <Card className="max-w-md border-zinc-200"><CardContent className="p-6 text-center">No active public services found yet.</CardContent></Card>
       </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-10 lg:px-8">
+    <main className="min-h-screen bg-white px-4 py-10 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Public Other Services</p>
-          <h1 className="mt-2 text-3xl font-black text-zinc-900 sm:text-4xl">Buy Services Without Account</h1>
-          <p className="mt-2 text-zinc-600">Services shown here are activated by admin for public users.</p>
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">Other Services</p>
+          <h1 className="mt-2 text-3xl font-black text-black sm:text-5xl">Simple Service Payments</h1>
+          <p className="mt-2 text-zinc-600">Pick a service and checkout fast.</p>
         </div>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((service) => (
-            <Card key={service.id} className="rounded-2xl border-zinc-200">
+            <Card key={service.id} className="rounded-2xl border border-zinc-200 bg-white">
               <CardContent className="space-y-3 p-5">
                 {service.image_url ? (
                   <img src={service.image_url} alt={service.name} className="h-32 w-full rounded-xl object-cover" />
                 ) : null}
-                <p className="text-sm font-semibold text-zinc-500">{service.category}</p>
-                <h2 className="text-lg font-bold text-zinc-900">{service.name}</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-600">{service.category}</p>
+                <h2 className="text-lg font-black text-black">{service.name}</h2>
                 <p className="text-sm text-zinc-600">{service.description || 'Quick digital service fulfillment.'}</p>
-                <p className="text-xl font-black text-emerald-700">{formatGhs(service.public_price)}</p>
-                <Button className="w-full rounded-xl" onClick={() => openCheckout(service)}>Pay Now</Button>
+                <p className="text-2xl font-black text-black">{formatGhs(service.public_price)}</p>
+                <Button className="w-full rounded-xl bg-black text-white hover:bg-zinc-800" onClick={() => openCheckout(service)}>Pay Now</Button>
               </CardContent>
             </Card>
           ))}
@@ -134,7 +134,7 @@ export default function PublicOtherServicesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => void submit()} disabled={submitting}>{submitting ? 'Processing...' : 'Proceed to Pay'}</Button>
+            <Button className="bg-black text-white hover:bg-zinc-800" onClick={() => void submit()} disabled={submitting}>{submitting ? 'Processing...' : 'Proceed to Pay'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
