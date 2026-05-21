@@ -24,76 +24,76 @@ export default async function PublicAgentStorePage({ params }: StorePageProps) {
     <StoreShell store={store} slug={store.slug} activeTab="home">
       <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
         <section>
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-100">
+          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-yellow-100">
             <Sparkles className="h-3.5 w-3.5" />
             Independent store
           </div>
 
-          <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          <h2 className="mt-5 max-w-2xl text-4xl font-black tracking-tight text-white sm:text-5xl">
             {store.heroText}
           </h2>
 
-          <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-            This tenant storefront is isolated from the main website and keeps all navigation, catalog, and checkout inside the store domain.
+          <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg">
+            Buy data instantly, explore services, and complete orders with a clean agent-store experience.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild className="rounded-full px-5">
+            <Button asChild className="rounded-full bg-yellow-300 px-5 font-semibold text-black hover:bg-yellow-200">
               <Link href={`/${store.slug}/buy-data`}>
                 Buy Data <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild variant="outline" className="rounded-full px-5 text-white">
+            <Button asChild variant="outline" className="rounded-full border-yellow-300/40 bg-transparent px-5 text-zinc-100 hover:bg-yellow-300/10 hover:text-white">
               <Link href={`/${store.slug}/services`}>View Services</Link>
             </Button>
           </div>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2">
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-              <BadgeCheck className="h-4 w-4 text-emerald-300" />
+            <div className="flex items-center gap-2 rounded-2xl border border-yellow-300/15 bg-zinc-900/80 px-4 py-3 text-sm text-zinc-200">
+              <BadgeCheck className="h-4 w-4 text-yellow-300" />
               Fast data fulfillment
             </div>
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-              <BadgeCheck className="h-4 w-4 text-emerald-300" />
-              Mobile-friendly tenant layout
+            <div className="flex items-center gap-2 rounded-2xl border border-yellow-300/15 bg-zinc-900/80 px-4 py-3 text-sm text-zinc-200">
+              <BadgeCheck className="h-4 w-4 text-yellow-300" />
+              Simple checkout on mobile
             </div>
           </div>
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          <Card className="border-white/10 bg-white/5 text-white">
+          <Card className="border-yellow-300/20 bg-zinc-900/80 text-white">
             <CardContent className="p-5">
-              <p className="text-sm uppercase tracking-[0.16em] text-slate-400">Catalog summary</p>
+              <p className="text-sm uppercase tracking-[0.16em] text-zinc-400">Catalog summary</p>
               <div className="mt-4 space-y-3">
                 {store.dataPackages.slice(0, 3).map((item) => (
-                  <div key={item.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                  <div key={item.id} className="flex items-center justify-between rounded-2xl border border-yellow-300/20 bg-black/40 px-4 py-3">
                     <div>
                       <p className="text-sm font-medium text-white">{item.name}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-zinc-400">
                         {item.network} {item.validity}
                       </p>
                     </div>
-                    <p className="text-sm font-semibold text-emerald-200">{formatGhs(item.price)}</p>
+                    <p className="text-sm font-semibold text-yellow-300">{formatGhs(item.price)}</p>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5 text-white">
+          <Card className="border-yellow-300/20 bg-zinc-900/80 text-white">
             <CardContent className="p-5">
-              <p className="text-sm uppercase tracking-[0.16em] text-slate-400">Live services</p>
+              <p className="text-sm uppercase tracking-[0.16em] text-zinc-400">Live services</p>
               <div className="mt-4 space-y-3">
                 {store.services.slice(0, 3).map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                  <div key={item.id} className="rounded-2xl border border-yellow-300/20 bg-black/40 px-4 py-3">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-medium text-white">{item.name}</p>
-                        <p className="text-xs text-slate-400">{item.category}</p>
+                        <p className="text-xs text-zinc-400">{item.category}</p>
                       </div>
-                      <p className="text-sm font-semibold text-emerald-200">{formatGhs(item.price)}</p>
+                      <p className="text-sm font-semibold text-yellow-300">{formatGhs(item.price)}</p>
                     </div>
-                    <p className="mt-2 text-xs leading-5 text-slate-300">{item.description}</p>
+                    <p className="mt-2 text-xs leading-5 text-zinc-300">{item.description}</p>
                   </div>
                 ))}
               </div>
