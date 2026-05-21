@@ -15,12 +15,11 @@ const formatStat = [
 
 export default async function HomePage() {
   const settings = await getPublicSiteSettings()
-  const siteName = settings?.site_name?.trim() || 'Aktivee Data'
   const heroText = settings?.hero_text?.trim() || 'Cheapest Non-Expiry Data Bundles Ghana'
   const heroVideoUrl = settings?.hero_video_url?.trim() || ''
 
   return (
-    <MainSiteShell activeTab="home" siteName={siteName}>
+    <MainSiteShell activeTab="home">
       <section className="relative overflow-hidden rounded-3xl border border-yellow-300/20 bg-[#0b111f] p-6 sm:p-10">
         {heroVideoUrl ? (
           <>

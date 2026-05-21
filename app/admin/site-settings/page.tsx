@@ -141,10 +141,14 @@ export default function AdminSiteSettingsPage() {
     setUploadingHeroVideo(true)
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData.session?.access_token
+
       const response = await fetch('/api/admin/storage/upload-hero-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({
           fileName: file.name,
