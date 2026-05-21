@@ -21,23 +21,23 @@ export default async function PublicAgentStorePage({ params }: StorePageProps) {
   }
 
   return (
-    <StoreShell store={store} slug={store.slug} activeTab="home">
-      <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-        <section>
+    <StoreShell store={store} slug={store.slug} activeTab="home" framelessContent>
+      <div className="space-y-10">
+        <section className="text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-yellow-100">
             <Sparkles className="h-3.5 w-3.5" />
             Official partner store
           </div>
 
-          <h2 className="mt-5 max-w-2xl text-4xl font-black tracking-tight text-white sm:text-5xl">
+          <h2 className="mx-auto mt-5 max-w-4xl text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
             {store.heroText}
           </h2>
 
-          <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg">
+          <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-zinc-300 sm:text-lg">
             Buy data bundles and digital services quickly with secure checkout and fast delivery updates.
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button asChild className="rounded-full bg-yellow-300 px-5 font-semibold text-black hover:bg-yellow-200">
               <Link href={`/${store.slug}/buy-data`}>
                 Buy Data <ArrowRight className="ml-2 h-4 w-4" />
@@ -48,19 +48,19 @@ export default async function PublicAgentStorePage({ params }: StorePageProps) {
             </Button>
           </div>
 
-          <div className="mt-10 grid gap-3 sm:grid-cols-2">
-            <div className="flex items-center gap-2 rounded-2xl border border-yellow-300/15 bg-zinc-900/80 px-4 py-3 text-sm text-zinc-200">
+          <div className="mx-auto mt-10 grid max-w-3xl gap-3 sm:grid-cols-2">
+            <div className="flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/15 bg-zinc-900/80 px-4 py-3 text-sm text-zinc-200">
               <BadgeCheck className="h-4 w-4 text-yellow-300" />
               Fast data fulfillment
             </div>
-            <div className="flex items-center gap-2 rounded-2xl border border-yellow-300/15 bg-zinc-900/80 px-4 py-3 text-sm text-zinc-200">
+            <div className="flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/15 bg-zinc-900/80 px-4 py-3 text-sm text-zinc-200">
               <BadgeCheck className="h-4 w-4 text-yellow-300" />
               Simple checkout on mobile
             </div>
           </div>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+        <section className="grid gap-4 lg:grid-cols-2">
           <Card className="border-yellow-300/20 bg-zinc-900/80 text-white">
             <CardContent className="p-5">
               <p className="text-sm uppercase tracking-[0.16em] text-zinc-400">Catalog summary</p>

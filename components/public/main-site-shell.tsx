@@ -11,6 +11,9 @@ type MainSiteShellProps = {
 const navClass =
   'rounded-full border border-yellow-300/20 bg-transparent px-4 py-2 text-xs font-semibold uppercase tracking-[0.11em] text-zinc-200 hover:border-yellow-300/70 hover:bg-yellow-300/10'
 
+const mobileLinkClass =
+  'block rounded-xl border border-yellow-300/20 bg-black/40 px-3 py-2 text-xs font-semibold uppercase tracking-[0.11em] text-zinc-100 hover:bg-yellow-300/10'
+
 export function MainSiteShell({ children, activeTab = 'home' }: MainSiteShellProps) {
   return (
     <main className="min-h-screen bg-[#05070b] text-zinc-100">
@@ -34,6 +37,19 @@ export function MainSiteShell({ children, activeTab = 'home' }: MainSiteShellPro
           </nav>
 
           <div className="flex items-center gap-2">
+            <details className="relative md:hidden">
+              <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-yellow-300/30 bg-transparent text-lg text-yellow-300">
+                <span aria-hidden>☰</span>
+                <span className="sr-only">Open menu</span>
+              </summary>
+              <div className="absolute right-0 z-30 mt-2 w-52 rounded-2xl border border-yellow-300/20 bg-black/95 p-2 shadow-xl backdrop-blur-md">
+                <Link href="/" className={mobileLinkClass}>Home</Link>
+                <Link href="/buy-data" className={`${mobileLinkClass} mt-2`}>Products</Link>
+                <Link href="/other-services" className={`${mobileLinkClass} mt-2`}>Services</Link>
+                <Link href="/become-agent" className={`${mobileLinkClass} mt-2`}>Become Agent</Link>
+                <Link href="/dashboard" className={`${mobileLinkClass} mt-2`}>Dashboard</Link>
+              </div>
+            </details>
             <Link href="/dashboard">
               <Button className="h-9 rounded-full bg-yellow-300 px-4 text-xs font-semibold uppercase tracking-[0.11em] text-black hover:bg-yellow-200">
                 Dashboard
