@@ -16,7 +16,7 @@ type PublicPackage = {
   network: string
   name: string
   amount: string
-  user_price: number
+  public_price: number
   selling_price?: number
   is_active: boolean
 }
@@ -39,14 +39,14 @@ export default function PublicBuyDataPage() {
     const load = async () => {
       const { data } = await supabase.client
         .from('data_packages')
-        .select('id,network,name,amount,user_price,is_active')
+        .select('id,network,name,amount,public_price,is_active')
         .eq('is_active', true)
         .order('network', { ascending: true })
-        .order('user_price', { ascending: true })
+        .order('public_price', { ascending: true })
 
       const list = (((data as PublicPackage[] | null) || []).map((item) => ({
         ...item,
-        user_price: Number(item.user_price || item.selling_price || 0),
+        public_price: Number(item.public_price || item.selling_price || 0),
       })))
       setPackages(list)
       setActiveNetwork(list.find((pkg) => pkg.network)?.network || '')
@@ -156,7 +156,7 @@ export default function PublicBuyDataPage() {
                 <p className="text-sm font-semibold text-zinc-500">{pkg.network}</p>
                 <h2 className="text-lg font-bold text-zinc-900">{pkg.name}</h2>
                 <p className="text-sm text-zinc-600">{pkg.amount}</p>
-                <p className="text-xl font-black text-sky-700">{formatGhs(pkg.user_price)}</p>
+                <p className="text-xl font-black text-sky-700">{formatGhs(pkg.public_price)}</p>
                 <Button className="w-full rounded-xl" onClick={() => openCheckout(pkg)}>Buy Now</Button>
               </CardContent>
             </Card>

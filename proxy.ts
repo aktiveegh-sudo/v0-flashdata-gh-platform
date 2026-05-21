@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const STATIC_ASSET_PATTERN = /\.(?:css|js|mjs|map|png|jpg|jpeg|gif|webp|svg|ico|txt|xml|json)$/i
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.hostname).toLowerCase()
   const { pathname, search } = request.nextUrl
 

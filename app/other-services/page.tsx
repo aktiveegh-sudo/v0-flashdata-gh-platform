@@ -17,7 +17,7 @@ type ServiceRow = {
   category: string
   description: string | null
   image_url: string | null
-  user_price: number
+  public_price: number
   price?: number
   is_active: boolean
 }
@@ -36,13 +36,13 @@ export default function PublicOtherServicesPage() {
     const load = async () => {
       const { data } = await supabase.client
         .from('online_services')
-        .select('id,name,category,description,image_url,user_price,is_active')
+        .select('id,name,category,description,image_url,public_price,is_active')
         .eq('is_active', true)
-        .order('user_price', { ascending: true })
+        .order('public_price', { ascending: true })
 
       const rows = (((data as ServiceRow[] | null) || []).map((row) => ({
         ...row,
-        user_price: Number(row.user_price || row.price || 0),
+        public_price: Number(row.public_price || row.price || 0),
       })))
 
       setServices(rows)
@@ -115,7 +115,7 @@ export default function PublicOtherServicesPage() {
                 <p className="text-sm font-semibold text-zinc-500">{service.category}</p>
                 <h2 className="text-lg font-bold text-zinc-900">{service.name}</h2>
                 <p className="text-sm text-zinc-600">{service.description || 'Quick digital service fulfillment.'}</p>
-                <p className="text-xl font-black text-emerald-700">{formatGhs(service.user_price)}</p>
+                <p className="text-xl font-black text-emerald-700">{formatGhs(service.public_price)}</p>
                 <Button className="w-full rounded-xl" onClick={() => openCheckout(service)}>Pay Now</Button>
               </CardContent>
             </Card>
