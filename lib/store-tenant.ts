@@ -1,3 +1,7 @@
+import 'server-only'
+
+import { supabaseAdmin } from '@/lib/api/rest'
+
 export type StoreDataPackage = {
   id: string
   network: string
@@ -27,48 +31,102 @@ export type StoreRecord = {
   services: StoreService[]
 }
 
-const mockStores: Record<string, StoreRecord> = {
-  amadata: {
-    name: 'Ama Data Hub',
-    slug: 'amadata',
-    active: true,
-    description: 'Fast data bundles and digital services for customers who want a clean, focused buying experience.',
-    heroText: 'Buy data and services instantly from Ama Data Hub.',
-    themeColor: '#16a34a',
-    logoUrl: null,
-    dataPackages: [
-      { id: 'pkg-1', network: 'MTN', name: 'MTN 1.5GB', amount: '1.5GB', price: 15.5, validity: '30 Days' },
-      { id: 'pkg-2', network: 'Telecel', name: 'Telecel 3GB', amount: '3GB', price: 28, validity: '30 Days' },
-      { id: 'pkg-3', network: 'Airtel-Tigo', name: 'AT 500MB', amount: '500MB', price: 6, validity: '24 Hours' },
-    ],
-    services: [
-      { id: 'svc-1', name: 'Airtime Top-up', category: 'Airtime', price: 1, description: 'Recharge any network quickly.' },
-      { id: 'svc-2', name: 'Bill Payment', category: 'Bills', price: 2, description: 'Utility and subscription payments.' },
-    ],
-  },
-  netplus: {
-    name: 'NetPlus Store',
-    slug: 'netplus',
-    active: true,
-    description: 'A compact storefront for mobile data and top-up purchases.',
-    heroText: 'Simple, fast, and built for daily data reselling.',
-    themeColor: '#0f766e',
-    logoUrl: null,
-    dataPackages: [
-      { id: 'pkg-4', network: 'MTN', name: 'MTN 500MB', amount: '500MB', price: 6.5, validity: '7 Days' },
-      { id: 'pkg-5', network: 'Telecel', name: 'Telecel 1GB', amount: '1GB', price: 11, validity: '7 Days' },
-    ],
-    services: [
-      { id: 'svc-3', name: 'Airtime Top-up', category: 'Airtime', price: 1, description: 'Instant airtime recharge.' },
-    ],
-  },
+type AgentStoreRow = {
+  id: string
+  brand_name: string
+  slug: string
+  tagline: string | null
+  description: string | null
+  logo_url: string | null
+  cover_url: string | null
+  theme_color: string | null
+  allow_data: boolean
+  allow_online_services: boolean
+  is_active: boolean
 }
 
-export const getMockStoreBySlug = (slug: string): StoreRecord | null => {
+type AgentStorePackageRow = {
+  id: string
+  selling_price: number | string
+  data_packages: {
+    id: string
+    network: string
+    name: string
+    amount: string
+    validity: string
+  } | null
+}
+
+type AgentStoreServiceRow = {
+  id: string
+  selling_price: number | string
+  online_services: {
+    id: string
+    name: string
+    category: string
+    description: string | null
+  } | null
+}
+
+const toNumber = (value: number | string) => Number(value || 0)
+
+export const getStoreRecordBySlug = async (slug: string): Promise<StoreRecord | null> => {
   const normalizedSlug = slug.trim().toLowerCase()
   if (!normalizedSlug) {
     return null
   }
 
-  return mockStores[normalizedSlug] || null
+  const { data: store, error: storeError } = await supabaseAdmin
+    .from('agent_stores')
+    .select('id,brand_name,slug,tagline,description,logo_url,cover_url,theme_color,allow_data,allow_online_services,is_active')
+    .eq('slug', normalizedSlug)
+    .maybeSingle<AgentStoreRow>()
+
+  if (storeError || !store || !store.is_active) {
+    return null
+  }
+
+  const [packagesResult, servicesResult] = await Promise.all([
+    supabaseAdmin
+      .from('agent_store_packages')
+      .select('id,selling_price,data_packages!inner(id,network,name,amount,validity)')
+      .eq('store_id', store.id)
+      .eq('is_active', true)
+      .order('selling_price', { ascending: true }),
+    supabaseAdmin
+      .from('agent_store_service_prices')
+      .select('id,selling_price,online_services!inner(id,name,category,description)')
+      .eq('store_id', store.id)
+      .eq('is_active', true)
+      .order('selling_price', { ascending: true }),
+  ])
+
+  const storePackages = ((packagesResult.data || []) as AgentStorePackageRow[]).map((item) => ({
+    id: item.id,
+    network: item.data_packages?.network || 'Unknown',
+    name: item.data_packages?.name || 'Data Package',
+    amount: item.data_packages?.amount || '',
+    price: toNumber(item.selling_price),
+    validity: item.data_packages?.validity || 'N/A',
+  }))
+
+  const storeServices = ((servicesResult.data || []) as AgentStoreServiceRow[]).map((item) => ({
+    id: item.id,
+    name: item.online_services?.name || 'Service',
+    category: item.online_services?.category || 'Service',
+    price: toNumber(item.selling_price),
+    description: item.online_services?.description || 'Digital service available at this store.',
+  }))
+
+  return {
+    name: store.brand_name,
+    slug: store.slug,
+    active: store.is_active,
+    description: store.description?.trim() || store.tagline?.trim() || `${store.brand_name} store`,
+    heroText: store.tagline?.trim() || store.description?.trim() || `Shop at ${store.brand_name}`,
+    themeColor: store.theme_color || '#0ea5e9',
+    logoUrl: store.logo_url,
+    dataPackages: store.allow_data ? storePackages : [],
+    services: store.allow_online_services ? storeServices : [],
+  }
 }
