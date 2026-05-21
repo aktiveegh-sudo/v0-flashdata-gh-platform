@@ -1,117 +1,111 @@
 import Link from 'next/link'
-import { ArrowRight, BadgeCheck, Store } from 'lucide-react'
+import { ArrowRight, BadgeCheck, Clock3, ShieldCheck, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { MainSiteShell } from '@/components/public/main-site-shell'
 import { getPublicSiteSettings } from '@/lib/site-settings'
 
 export const dynamic = 'force-dynamic'
 
-const networkCards = [
-  { name: 'MTN Bundles', color: 'bg-yellow-300 text-black' },
-  { name: 'Telecel Bundles', color: 'bg-red-500 text-white' },
-  { name: 'AirtelTigo Bundles', color: 'bg-blue-600 text-white' },
-  { name: 'AFA Registration', color: 'bg-black text-white border border-white/20' },
+const formatStat = [
+  { value: '10,287', label: 'Bundles delivered' },
+  { value: '99.4%', label: 'Delivery success' },
+  { value: '10-60 min', label: 'Average delivery time' },
+  { value: '281', label: 'Active resellers' },
 ]
 
 export default async function HomePage() {
   const settings = await getPublicSiteSettings()
-  const siteName = settings?.site_name?.trim() || 'FlashData GH'
-  const heroText = settings?.hero_text?.trim() || 'Fast and simple data buying for everyone.'
+  const siteName = settings?.site_name?.trim() || 'Aktivee Data'
+  const heroText = settings?.hero_text?.trim() || 'Cheapest Non-Expiry Data Bundles Ghana'
   const heroVideoUrl = settings?.hero_video_url?.trim() || ''
 
   return (
-    <main className="min-h-screen bg-white text-black">
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <img src="/site-logo.png" alt={siteName} className="h-10 w-10 rounded-xl object-cover" />
-            <div>
-              <p className="text-lg font-black leading-none">{siteName}</p>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-600">Data & Services</p>
-            </div>
-          </div>
-          <nav className="hidden items-center gap-2 sm:flex">
-            <Link href="/buy-data"><Button variant="outline" className="rounded-full">Buy Data</Button></Link>
-            <Link href="/other-services"><Button variant="outline" className="rounded-full">Other Services</Button></Link>
-            <Link href="/agent/auth"><Button className="rounded-full bg-black text-white hover:bg-zinc-800">Agent Login</Button></Link>
-          </nav>
-        </div>
-      </header>
+    <MainSiteShell activeTab="home" siteName={siteName}>
+      <section className="relative overflow-hidden rounded-3xl border border-yellow-300/20 bg-[#0b111f] p-6 sm:p-10">
+        {heroVideoUrl ? (
+          <>
+            <video
+              className="absolute inset-0 h-full w-full object-cover"
+              src={heroVideoUrl}
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              aria-hidden
+            />
+            <div className="absolute inset-0 bg-black/60" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_8%,rgba(250,204,21,0.28),transparent_42%)]" />
+        )}
 
-      <section className="mx-auto w-full max-w-6xl px-4 pb-8 pt-8 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl border border-black/10 bg-black p-6 text-center text-white sm:p-10">
-          {heroVideoUrl ? (
-            <>
-              <video
-                className="absolute inset-0 h-full w-full object-cover"
-                src={heroVideoUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="metadata"
-                aria-hidden
-              />
-              <div className="absolute inset-0 bg-black/65" />
-            </>
-          ) : (
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.35),transparent_45%)]" />
-          )}
+        <div className="relative z-10 max-w-3xl">
+          <p className="inline-flex rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-200">
+            Trusted by 10,000+ Ghanaians
+          </p>
+          <h1 className="mt-5 text-4xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">
+            {heroText}
+          </h1>
+          <p className="mt-4 max-w-2xl text-sm text-zinc-200 sm:text-base">
+            Buy MTN, Telecel and AirtelTigo data in seconds. Build your own mini-store and grow daily income.
+          </p>
 
-          <div className="relative z-10 mx-auto max-w-3xl">
-            <p className="inline-flex items-center rounded-full bg-yellow-300 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-black">
-              Trusted in Ghana
-            </p>
-            <h1 className="mt-5 text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">{heroText}</h1>
-            <p className="mx-auto mt-4 max-w-2xl text-sm text-zinc-200 sm:text-base">
-              Buy data in seconds. No stress. No complex steps.
-            </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/buy-data">
-                <Button className="h-11 rounded-full bg-yellow-300 px-6 text-sm font-black text-black hover:bg-yellow-200">
-                  Buy Data <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/become-agent">
-                <Button variant="outline" className="h-11 rounded-full border-white/35 bg-white/10 px-6 text-sm font-bold text-white hover:bg-white/20">
-                  Become Agent
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {networkCards.map((card) => (
-            <div key={card.name} className={`rounded-2xl p-4 shadow-sm ${card.color}`}>
-              <p className="text-sm font-black">{card.name}</p>
-              <p className="mt-1 text-xs opacity-90">Ready for purchase</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="mt-8 grid gap-3 sm:grid-cols-2">
-          {['Instant order confirmation', 'Simple and easy navigation', 'Secure payment checkout', 'Built for mobile users'].map((point) => (
-            <div key={point} className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm">
-              <BadgeCheck className="h-4 w-4 text-yellow-500" />
-              {point}
-            </div>
-          ))}
-        </section>
-
-        <section className="mt-8 rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-600">For Sellers</p>
-              <h2 className="mt-1 text-xl font-black">Launch your own store</h2>
-            </div>
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Link href="/buy-data">
+              <Button className="h-11 rounded-full bg-yellow-300 px-6 text-sm font-black text-black hover:bg-yellow-200">
+                Buy Data Now <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
             <Link href="/become-agent">
-              <Button className="rounded-full bg-black text-white hover:bg-zinc-800">
-                <Store className="mr-2 h-4 w-4" /> Become an Agent
+              <Button variant="outline" className="h-11 rounded-full border-yellow-300/40 bg-transparent px-6 text-sm font-semibold text-white hover:bg-yellow-300/10">
+                Become an Agent
               </Button>
             </Link>
           </div>
-        </section>
+        </div>
       </section>
-    </main>
+
+      <section className="mt-6 grid gap-3 border-y border-yellow-300/20 py-4 sm:grid-cols-2 lg:grid-cols-4">
+        {formatStat.map((stat) => (
+          <div key={stat.label} className="rounded-2xl border border-yellow-300/15 bg-black/30 p-4">
+            <p className="text-xl font-black text-yellow-300">{stat.value}</p>
+            <p className="mt-1 text-xs uppercase tracking-[0.12em] text-zinc-400">{stat.label}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="mt-10">
+        <p className="text-center text-xs font-semibold uppercase tracking-[0.16em] text-yellow-300">Why people choose us</p>
+        <h2 className="mt-2 text-center text-3xl font-black text-white">Ghana&apos;s Data Bundle Store</h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { icon: Clock3, title: 'Instant Delivery', text: 'Data and pins delivered in seconds.' },
+            { icon: ShieldCheck, title: 'Secure Payments', text: 'Momo and card payments protected.' },
+            { icon: TrendingUp, title: 'Agent Economy', text: 'Sell data, build your store, earn profits.' },
+            { icon: BadgeCheck, title: 'Real Profits', text: 'Wallet, withdrawals and rewards.' },
+          ].map((item) => (
+            <article key={item.title} className="rounded-2xl border border-yellow-300/20 bg-[#0a0f1a] p-5">
+              <item.icon className="h-5 w-5 text-yellow-300" />
+              <h3 className="mt-3 text-lg font-black text-white">{item.title}</h3>
+              <p className="mt-2 text-sm text-zinc-400">{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10 rounded-3xl border border-yellow-300/20 bg-yellow-300 p-6 text-black sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]">One-time setup fee</p>
+            <h2 className="mt-2 text-3xl font-black">Launch your own data store.</h2>
+            <p className="mt-2 text-sm text-black/80">Get a mini-store, wallet, referral link, API access and rewards.</p>
+          </div>
+          <Link href="/become-agent">
+            <Button className="rounded-full bg-black px-6 text-sm font-semibold text-yellow-300 hover:bg-zinc-900">Start Earning Today</Button>
+          </Link>
+        </div>
+      </section>
+    </MainSiteShell>
   )
 }
