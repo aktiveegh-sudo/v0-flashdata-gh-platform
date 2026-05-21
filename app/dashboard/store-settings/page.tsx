@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { ColorWheel } from '@/components/ui/color-wheel'
 import { supabase } from '@/lib/supabase/client'
+import { getStorePublicUrl } from '@/lib/store-domain'
 import toast from 'react-hot-toast'
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -165,8 +166,7 @@ export default function StoreSettingsPage() {
 
   const publicLink = useMemo(() => {
     if (!slug) return ''
-    if (typeof window === 'undefined') return `/store/${slug}`
-    return `${window.location.origin}/store/${slug}`
+    return getStorePublicUrl(slug)
   }, [slug])
 
   const previewThemeColor = useMemo(() => normalizeHexColor(themeColor), [themeColor])

@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase/client'
+import { getStorePublicUrl } from '@/lib/store-domain'
 import toast from 'react-hot-toast'
 import {
   LineChart,
@@ -102,11 +103,7 @@ export default function MyStorePage() {
       return ''
     }
 
-    if (typeof window === 'undefined') {
-      return `/store/${storeSlug}`
-    }
-
-    return `${window.location.origin}/store/${storeSlug}`
+    return getStorePublicUrl(storeSlug)
   }, [storeSlug])
 
   const copyStoreLink = async () => {
