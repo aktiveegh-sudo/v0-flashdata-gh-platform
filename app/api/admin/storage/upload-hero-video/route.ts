@@ -62,17 +62,14 @@ const ensureBucket = async () => {
 
   const existingBucket = (buckets || []).find((bucket) => bucket.name === bucketName || bucket.id === bucketName)
   if (existingBucket) {
-    const currentPublic = Boolean((existingBucket as { public?: boolean }).public)
-    if (!currentPublic) {
-      const { error: updateError } = await supabaseAdmin.storage.updateBucket(bucketName, {
-        public: true,
-        fileSizeLimit: bucketFileSizeLimitBytes,
-        allowedMimeTypes,
-      })
+    const { error: updateError } = await supabaseAdmin.storage.updateBucket(bucketName, {
+      public: true,
+      fileSizeLimit: bucketFileSizeLimitBytes,
+      allowedMimeTypes,
+    })
 
-      if (updateError) {
-        return updateError.message
-      }
+    if (updateError) {
+      return updateError.message
     }
 
     return null
