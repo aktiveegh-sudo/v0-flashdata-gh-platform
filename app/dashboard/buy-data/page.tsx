@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase/client'
 import { useLoadingStore } from '@/lib/store'
+import { compareNetworks, networkCardTheme, normalizeNetwork, sortNetworks } from '@/lib/network-order'
 import toast from 'react-hot-toast'
 
 type DataPackageRow = {
@@ -20,12 +21,6 @@ type DataPackageRow = {
   amount: string
   agent_price: number
   selling_price?: number
-}
-
-const networkPalette: Record<string, { color: string; textColor: string; borderColor: string }> = {
-  MTN: { color: 'bg-yellow-500', textColor: 'text-black', borderColor: 'border-yellow-500' },
-  'Airtel-Tigo': { color: 'bg-blue-600', textColor: 'text-white', borderColor: 'border-blue-600' },
-  Telecel: { color: 'bg-red-500', textColor: 'text-white', borderColor: 'border-red-500' },
 }
 
 function BuyDataContent() {
@@ -66,13 +61,22 @@ function BuyDataContent() {
       const rows = ((data as DataPackageRow[] | null) || []).map((row) => ({
         ...row,
         agent_price: Number(row.agent_price || row.selling_price || 0),
-      }))
+      })).sort((a, b) => {
+        const networkComparison = compareNetworks(a.network, b.network)
+        if (networkComparison !== 0) return networkComparison
+        return Number(a.agent_price || 0) - Number(b.agent_price || 0)
+      })
 
       setPackages(rows)
 
-      const availableNetworks = Array.from(new Set(rows.map((row) => row.network).filter(Boolean)))
+      const availableNetworks = sortNetworks(Array.from(new Set(rows.map((row) => row.network).filter(Boolean))))
       if (availableNetworks.length > 0) {
-        const preferred = networkParam && availableNetworks.includes(networkParam) ? networkParam : availableNetworks[0]
+        const preferredFromParam =
+          networkParam
+            ? availableNetworks.find((network) => normalizeNetwork(network) === normalizeNetwork(networkParam))
+            : ''
+
+        const preferred = preferredFromParam || availableNetworks[0]
         setSelectedNetwork(preferred)
       }
 
@@ -83,7 +87,7 @@ function BuyDataContent() {
   }, [networkParam])
 
   const networks = useMemo(
-    () => Array.from(new Set(packages.map((pkg) => pkg.network).filter(Boolean))),
+    () => sortNetworks(Array.from(new Set(packages.map((pkg) => pkg.network).filter(Boolean)))),
     [packages]
   )
 
@@ -229,8 +233,6 @@ function BuyDataContent() {
         <>
           <div className="grid gap-3 md:grid-cols-3">
             {networks.map((network) => {
-              const style = networkPalette[network] || { color: 'bg-slate-700', textColor: 'text-white', borderColor: 'border-slate-700' }
-
               return (
                 <button
                   key={network}
@@ -268,21 +270,21 @@ function BuyDataContent() {
                         key={pkg.id}
                         onClick={() => handleStartCheckout(pkg.id)}
                         type="button"
-                        className={`relative rounded-2xl border p-4 text-left transition-all ${
+                        className={`relative rounded-2xl border p-4 text-left transition-all ${networkCardTheme(pkg.network).card} ${
                           selectedPackageId === pkg.id
-                            ? 'console-gold-card'
-                            : 'border-[#f2c438]/70 bg-gradient-to-b from-[#f4c532] to-[#d4a617] text-[#111111] opacity-95 hover:opacity-100'
+                            ? 'ring-2 ring-black/30'
+                            : 'opacity-95 hover:opacity-100'
                         }`}
                       >
                         {selectedPackageId === pkg.id ? (
                           <div className="absolute right-2 top-2">
-                            <Check className="h-5 w-5 text-black" />
+                            <Check className="h-5 w-5" />
                           </div>
                         ) : null}
-                        <p className="text-xs font-semibold uppercase tracking-wide muted">{pkg.network}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide">{pkg.network}</p>
                         <p className="text-[2rem] font-black leading-tight">{pkg.amount}</p>
                         <p className="mt-1 text-2xl font-extrabold">GHc {pkg.agent_price.toFixed(2)}</p>
-                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] muted">No Expiry</p>
+                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em]">No Expiry</p>
                       </button>
                     ))}
                   </div>

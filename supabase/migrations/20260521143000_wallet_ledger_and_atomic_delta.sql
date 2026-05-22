@@ -20,17 +20,39 @@ create table if not exists public.wallet_ledger (
 
 alter table public.wallet_ledger enable row level security;
 
-create policy if not exists wallet_ledger_owner_select
-  on public.wallet_ledger
-  for select
-  to authenticated
-  using (auth.uid() = user_id);
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'wallet_ledger'
+      and policyname = 'wallet_ledger_owner_select'
+  ) then
+    create policy wallet_ledger_owner_select
+      on public.wallet_ledger
+      for select
+      to authenticated
+      using (auth.uid() = user_id);
+  end if;
+end $$;
 
-create policy if not exists wallet_ledger_admin_select
-  on public.wallet_ledger
-  for select
-  to authenticated
-  using (public.is_super_admin(auth.uid()));
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'wallet_ledger'
+      and policyname = 'wallet_ledger_admin_select'
+  ) then
+    create policy wallet_ledger_admin_select
+      on public.wallet_ledger
+      for select
+      to authenticated
+      using (public.is_super_admin(auth.uid()));
+  end if;
+end $$;
 
 create index if not exists idx_wallet_ledger_user_created_at
   on public.wallet_ledger (user_id, created_at desc);

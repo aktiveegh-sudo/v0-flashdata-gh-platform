@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { MainSiteShell } from '@/components/public/main-site-shell'
 import { supabase } from '@/lib/supabase/client'
 import { startPaystackCheckout } from '@/lib/paystack/client'
+import { compareNetworks, networkCardTheme, sortNetworks } from '@/lib/network-order'
 import toast from 'react-hot-toast'
 
 type PublicPackage = {
@@ -23,13 +24,6 @@ type PublicPackage = {
 }
 
 const formatGhs = (value: number) => `GHc ${Number(value || 0).toFixed(2)}`
-
-const networkTheme: Record<string, string> = {
-  MTN: 'border-yellow-300 bg-yellow-300 text-black',
-  Telecel: 'border-red-300 bg-red-500 text-white',
-  'Airtel-Tigo': 'border-blue-300 bg-blue-600 text-white',
-  AFA: 'border-zinc-500 bg-zinc-700 text-white',
-}
 
 export default function PublicBuyDataPage() {
   const [packages, setPackages] = useState<PublicPackage[]>([])
@@ -55,7 +49,11 @@ export default function PublicBuyDataPage() {
       const list = (((data as PublicPackage[] | null) || []).map((item) => ({
         ...item,
         public_price: Number(item.public_price || item.selling_price || 0),
-      })))
+      }))).sort((a, b) => {
+        const networkComparison = compareNetworks(a.network, b.network)
+        if (networkComparison !== 0) return networkComparison
+        return Number(a.public_price || 0) - Number(b.public_price || 0)
+      })
 
       setPackages(list)
       setActiveNetwork(list.find((pkg) => pkg.network)?.network || '')
@@ -70,7 +68,7 @@ export default function PublicBuyDataPage() {
     for (const pkg of packages) {
       if (pkg.network) uniq.add(pkg.network)
     }
-    return Array.from(uniq)
+    return sortNetworks(Array.from(uniq))
   }, [packages])
 
   const filtered = useMemo(() => {
@@ -186,18 +184,18 @@ export default function PublicBuyDataPage() {
 
       <section className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {filtered.map((pkg) => (
-          <Card key={pkg.id} className="rounded-2xl border border-yellow-300/25 bg-yellow-300 text-black">
+          <Card key={pkg.id} className={`rounded-2xl border ${networkCardTheme(pkg.network).card}`}>
             <CardContent className="space-y-3 p-5">
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-black/80">{pkg.network}</p>
-                <div className={`rounded-full border px-2 py-1 text-[10px] font-bold ${networkTheme[pkg.network] || 'border-black/20 bg-white/40 text-black'}`}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em]">{pkg.network}</p>
+                <div className={`rounded-full px-2 py-1 text-[10px] font-bold ${networkCardTheme(pkg.network).badge}`}>
                   {pkg.amount}
                 </div>
               </div>
               <h2 className="text-3xl font-black">{pkg.name}</h2>
-              <p className="text-xs uppercase tracking-[0.1em] text-black/70">MTN Bundle</p>
+              <p className="text-xs uppercase tracking-[0.1em]">{pkg.network} Bundle</p>
               <p className="text-3xl font-black">{formatGhs(pkg.public_price)}</p>
-              <Button className="w-full rounded-full bg-black text-yellow-300 hover:bg-zinc-900" onClick={() => openCheckout(pkg)}>
+              <Button className={`w-full rounded-full ${networkCardTheme(pkg.network).button}`} onClick={() => openCheckout(pkg)}>
                 Buy
               </Button>
             </CardContent>

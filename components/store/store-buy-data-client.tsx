@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { startPaystackCheckout } from '@/lib/paystack/client'
+import { compareNetworks, networkCardTheme, sortNetworks } from '@/lib/network-order'
 import type { StoreRecord } from '@/lib/store-tenant'
 import toast from 'react-hot-toast'
 
@@ -18,7 +19,17 @@ type StoreBuyDataClientProps = {
 const formatGhs = (value: number) => `GHc ${Number(value || 0).toFixed(2)}`
 
 export function StoreBuyDataClient({ store }: StoreBuyDataClientProps) {
-  const [activeNetwork, setActiveNetwork] = useState(store.dataPackages[0]?.network || '')
+  const orderedStorePackages = useMemo(
+    () =>
+      [...store.dataPackages].sort((a, b) => {
+        const networkComparison = compareNetworks(a.network, b.network)
+        if (networkComparison !== 0) return networkComparison
+        return Number(a.price || 0) - Number(b.price || 0)
+      }),
+    [store.dataPackages]
+  )
+
+  const [activeNetwork, setActiveNetwork] = useState('')
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null)
   const [recipientPhone, setRecipientPhone] = useState('')
   const [fullName, setFullName] = useState('')
@@ -27,22 +38,28 @@ export function StoreBuyDataClient({ store }: StoreBuyDataClientProps) {
   const [submitting, setSubmitting] = useState(false)
 
   const selectedPackage = useMemo(
-    () => store.dataPackages.find((item) => item.id === selectedPackageId) || null,
-    [selectedPackageId, store.dataPackages]
+    () => orderedStorePackages.find((item) => item.id === selectedPackageId) || null,
+    [orderedStorePackages, selectedPackageId]
   )
 
   const networkTabs = useMemo(() => {
     const items = new Set<string>()
-    for (const pkg of store.dataPackages) {
+    for (const pkg of orderedStorePackages) {
       if (pkg.network) items.add(pkg.network)
     }
-    return Array.from(items)
-  }, [store.dataPackages])
+    return sortNetworks(Array.from(items))
+  }, [orderedStorePackages])
+
+  useEffect(() => {
+    if (!activeNetwork && networkTabs.length > 0) {
+      setActiveNetwork(networkTabs[0])
+    }
+  }, [activeNetwork, networkTabs])
 
   const visiblePackages = useMemo(() => {
-    if (!activeNetwork) return store.dataPackages
-    return store.dataPackages.filter((item) => item.network === activeNetwork)
-  }, [activeNetwork, store.dataPackages])
+    if (!activeNetwork) return orderedStorePackages
+    return orderedStorePackages.filter((item) => item.network === activeNetwork)
+  }, [activeNetwork, orderedStorePackages])
 
   const isAfa = (selectedPackage?.network || '').trim().toUpperCase() === 'AFA'
 
@@ -126,16 +143,16 @@ export function StoreBuyDataClient({ store }: StoreBuyDataClientProps) {
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visiblePackages.map((item) => (
-          <Card key={item.id} className="rounded-2xl border border-yellow-300/20 bg-yellow-300 text-black">
+          <Card key={item.id} className={`rounded-2xl border ${networkCardTheme(item.network).card}`}>
             <CardContent className="p-5">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-3xl font-black leading-none">{item.amount || item.name}</p>
-                <span className="rounded-full bg-black/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]">{item.network}</span>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${networkCardTheme(item.network).badge}`}>{item.network}</span>
               </div>
-              <p className="mt-2 text-sm font-semibold text-black/75">{item.name}</p>
-              <p className="mt-2 text-sm text-black/70">{item.validity}</p>
+              <p className="mt-2 text-sm font-semibold">{item.name}</p>
+              <p className="mt-2 text-sm">{item.validity}</p>
               <p className="mt-4 text-3xl font-black">{formatGhs(item.price)}</p>
-              <Button className="mt-4 w-full rounded-full bg-black text-yellow-300 hover:bg-zinc-900" onClick={() => openCheckout(item.id)}>
+              <Button className={`mt-4 w-full rounded-full ${networkCardTheme(item.network).button}`} onClick={() => openCheckout(item.id)}>
                 Buy
               </Button>
             </CardContent>
