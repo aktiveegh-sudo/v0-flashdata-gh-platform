@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { createPendingTransaction, generateReference, notifyAdminsOfNewOrder, supabaseAdmin } from '@/lib/api/rest'
+import { getOptionalSecret, getRequiredSecret } from '@/lib/secrets'
 
 export type PaystackFlow =
   | 'wallet_topup'
@@ -15,6 +16,9 @@ export type PaystackFlow =
 type PaystackMetadata = {
   flow: PaystackFlow
   redirectPath: string
+  baseAmount?: number
+  chargeAmount?: number
+  chargeRate?: number
   userId?: string
   storeId?: string
   packageId?: string
@@ -76,32 +80,24 @@ type DeliveryResult = {
 
 const paystackBaseUrl = 'https://api.paystack.co'
 const swiftDataBaseUrl = process.env.SWIFTDATA_API_BASE_URL || 'https://lsocdjpflecduumopijn.supabase.co/functions/v1/developer-api'
-const swiftDataDeveloperKey =
-  process.env.SWIFTDATA_DEVELOPER_KEY ||
-  process.env.SWIFTDATA_API_KEY ||
-  'swft_live_6248da12791040318e54c5259fdbe981'
 const secondaryDataBaseUrl =
   process.env.SECONDARY_DATA_API_BASE_URL ||
   process.env.HUBNET_API_BASE_URL ||
   'https://console.hubnet.app/live/api/context/business/transaction'
-const secondaryDataApiKey = process.env.SECONDARY_DATA_API_KEY || process.env.HUBNET_API_KEY || ''
-const secondaryDataWebhookUrl = process.env.SECONDARY_DATA_WEBHOOK_URL || process.env.HUBNET_WEBHOOK_URL || ''
+const paystackChargeRate = 0.03
 
-const getPaystackSecretKey = () => {
-  const secret = process.env.PAYSTACK_SECRET_KEY
-  if (!secret) {
-    throw new Error('Missing PAYSTACK_SECRET_KEY environment variable')
-  }
-  return secret
+const getPaystackSecretKey = async () => {
+  return getRequiredSecret(['PAYSTACK_SECRET_KEY'], 'Missing PAYSTACK_SECRET_KEY secret value')
 }
 
-const getPaystackHeaders = () => ({
-  Authorization: `Bearer ${getPaystackSecretKey()}`,
+const getPaystackHeaders = async () => ({
+  Authorization: `Bearer ${await getPaystackSecretKey()}`,
   'Content-Type': 'application/json',
 })
 
 const toKobo = (amount: number) => Math.round(Number(amount || 0) * 100)
 const fromKobo = (amount: number) => Number((Number(amount || 0) / 100).toFixed(2))
+const roundMoney = (amount: number) => Number(Number(amount || 0).toFixed(2))
 const amountsDifferMeaningfully = (a: number, b: number) => Math.abs(Number(a || 0) - Number(b || 0)) > 0.01
 
 const normalizeStoreCustomerPhone = (value: string) => value.trim()
@@ -185,6 +181,8 @@ const getActiveDeliveryProvider = async (): Promise<DeliveryProvider> => {
 }
 
 const deliverSwiftDataBundle = async (input: DeliveryInput): Promise<DeliveryResult> => {
+  const swiftDataDeveloperKey = await getOptionalSecret(['SWIFTDATA_DEVELOPER_KEY', 'SWIFTDATA_API_KEY'])
+
   if (!swiftDataDeveloperKey) {
     throw new Error('Missing SwiftData developer key')
   }
@@ -221,6 +219,9 @@ const deliverSwiftDataBundle = async (input: DeliveryInput): Promise<DeliveryRes
 }
 
 const deliverSecondaryDataBundle = async (input: DeliveryInput): Promise<DeliveryResult> => {
+  const secondaryDataApiKey = await getOptionalSecret(['SECONDARY_DATA_API_KEY', 'HUBNET_API_KEY'])
+  const secondaryDataWebhookUrl = await getOptionalSecret(['SECONDARY_DATA_WEBHOOK_URL', 'HUBNET_WEBHOOK_URL'])
+
   if (!secondaryDataBaseUrl || !secondaryDataApiKey) {
     throw new Error('Secondary provider is not configured')
   }
@@ -347,16 +348,25 @@ const ensureSuccessfulCharge = (payload: PaystackVerifyResponse) => {
 }
 
 export const initializePaystackTransaction = async (args: PaystackInitializeArgs) => {
+  const baseAmount = roundMoney(args.amount)
+  const chargeAmount = roundMoney(baseAmount * paystackChargeRate)
+  const payableAmount = roundMoney(baseAmount + chargeAmount)
+
   const response = await fetch(`${paystackBaseUrl}/transaction/initialize`, {
     method: 'POST',
-    headers: getPaystackHeaders(),
+    headers: await getPaystackHeaders(),
     body: JSON.stringify({
       email: args.email,
-      amount: toKobo(args.amount),
+      amount: toKobo(payableAmount),
       currency: 'GHS',
       callback_url: args.callbackUrl,
       channels: args.channels,
-      metadata: args.metadata,
+      metadata: {
+        ...args.metadata,
+        baseAmount,
+        chargeAmount,
+        chargeRate: paystackChargeRate,
+      },
       reference: generateReference('PSTK'),
     }),
   })
@@ -377,7 +387,7 @@ export const initializePaystackTransaction = async (args: PaystackInitializeArgs
 export const verifyPaystackTransaction = async (reference: string) => {
   const response = await fetch(`${paystackBaseUrl}/transaction/verify/${encodeURIComponent(reference)}`, {
     method: 'GET',
-    headers: getPaystackHeaders(),
+    headers: await getPaystackHeaders(),
   })
 
   const payload = (await response.json()) as PaystackVerifyResponse
@@ -389,12 +399,12 @@ export const verifyPaystackTransaction = async (reference: string) => {
   return payload
 }
 
-export const verifyPaystackSignature = (rawBody: string, signature: string | null) => {
+export const verifyPaystackSignature = async (rawBody: string, signature: string | null) => {
   if (!signature) {
     return false
   }
 
-  const digest = crypto.createHmac('sha512', getPaystackSecretKey()).update(rawBody).digest('hex')
+  const digest = crypto.createHmac('sha512', await getPaystackSecretKey()).update(rawBody).digest('hex')
   return digest === signature
 }
 
@@ -407,7 +417,10 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
     throw new Error('Missing Paystack payment metadata')
   }
 
-  const amount = fromKobo(charge.amount)
+  const paidAmount = fromKobo(charge.amount)
+  const baseAmount = roundMoney(Number(metadata.baseAmount || 0))
+  const amount = baseAmount > 0 ? baseAmount : paidAmount
+  const transactionCharge = roundMoney(Math.max(0, Number(metadata.chargeAmount || paidAmount - amount)))
 
   if (metadata.flow === 'wallet_topup') {
     if (!metadata.userId) {
@@ -435,6 +448,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
           channel: charge.channel,
           email: charge.customer?.email || null,
           payment_method: metadata.paymentMethod || null,
+          credited_amount: amount,
+          paid_amount: paidAmount,
+          transaction_charge: transactionCharge,
         },
       })
 
@@ -459,6 +475,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
             source: 'paystack',
             flow: metadata.flow,
             channel: charge.channel,
+            credited_amount: amount,
+            paid_amount: paidAmount,
+            transaction_charge: transactionCharge,
           },
         })
 
