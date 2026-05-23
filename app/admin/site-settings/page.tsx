@@ -26,6 +26,15 @@ type SiteSettingsRow = {
   order_notifications_enabled: boolean
 }
 
+type SecretField = {
+  key: string
+  label: string
+  description: string
+  isSecret: boolean
+  value: string
+  hasValue: boolean
+}
+
 const defaultState = {
   id: 1,
   site_name: 'FlashData GH',
@@ -42,9 +51,47 @@ const defaultState = {
 
 export default function AdminSiteSettingsPage() {
   const [form, setForm] = useState(defaultState)
+  const [secretFields, setSecretFields] = useState<SecretField[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingSecrets, setLoadingSecrets] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingSecrets, setSavingSecrets] = useState(false)
   const [uploadingHeroVideo, setUploadingHeroVideo] = useState(false)
+
+  const loadSecrets = async () => {
+    setLoadingSecrets(true)
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData.session?.access_token
+
+      const response = await fetch('/api/admin/secrets', {
+        headers: {
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      })
+
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.success || !Array.isArray(payload?.data)) {
+        throw new Error(payload?.error || 'Failed to load provider secrets')
+      }
+
+      setSecretFields(
+        payload.data.map((item: SecretField) => ({
+          key: item.key,
+          label: item.label,
+          description: item.description,
+          isSecret: item.isSecret,
+          value: item.value || '',
+          hasValue: !!item.hasValue,
+        }))
+      )
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load provider secrets')
+    } finally {
+      setLoadingSecrets(false)
+    }
+  }
 
   const loadSettings = async () => {
     setLoading(true)
@@ -124,6 +171,7 @@ export default function AdminSiteSettingsPage() {
 
   useEffect(() => {
     void loadSettings()
+    void loadSecrets()
   }, [])
 
   const uploadHeroVideo = async (file: File) => {
@@ -212,6 +260,38 @@ export default function AdminSiteSettingsPage() {
 
     toast.success('Settings saved')
     setSaving(false)
+  }
+
+  const saveSecrets = async () => {
+    setSavingSecrets(true)
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData.session?.access_token
+
+      const response = await fetch('/api/admin/secrets', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          secrets: secretFields.map((field) => ({ key: field.key, value: field.value })),
+        }),
+      })
+
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || 'Failed to save provider secrets')
+      }
+
+      toast.success('Provider secrets saved to database')
+      void loadSecrets()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save provider secrets')
+    } finally {
+      setSavingSecrets(false)
+    }
   }
 
   return (
@@ -318,7 +398,7 @@ export default function AdminSiteSettingsPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Secret API keys stay in environment variables. This switch controls which provider paid data orders use.
+                  This switch controls which provider paid data orders use. Provider credentials are now managed in the database below.
                 </p>
               </div>
               <div className="md:col-span-2 flex items-center justify-between rounded-lg border border-border p-3">
@@ -344,6 +424,40 @@ export default function AdminSiteSettingsPage() {
                 </Button>
               </div>
             </form>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Provider Secrets</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loadingSecrets ? (
+            <p className="text-sm text-muted-foreground">Loading provider secrets...</p>
+          ) : (
+            <>
+              {secretFields.map((field) => (
+                <div key={field.key} className="space-y-2">
+                  <Label>{field.label}</Label>
+                  <Input
+                    type={field.isSecret ? 'password' : 'text'}
+                    value={field.value}
+                    placeholder={field.hasValue ? 'Stored in database' : 'Enter value'}
+                    onChange={(e) =>
+                      setSecretFields((prev) =>
+                        prev.map((item) => (item.key === field.key ? { ...item, value: e.target.value } : item))
+                      )
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">{field.description}</p>
+                </div>
+              ))}
+
+              <Button type="button" onClick={() => void saveSecrets()} disabled={savingSecrets}>
+                <Save className="mr-2 h-4 w-4" /> {savingSecrets ? 'Saving Secrets...' : 'Save Provider Secrets'}
+              </Button>
+            </>
           )}
         </CardContent>
       </Card>

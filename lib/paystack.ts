@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 import { createPendingTransaction, generateReference, notifyAdminsOfNewOrder, supabaseAdmin } from '@/lib/api/rest'
-import { getOptionalSecret, getRequiredSecret } from '@/lib/secrets'
+import { getOptionalSecret, getRequiredSecret } from './secrets'
 
 export type PaystackFlow =
   | 'wallet_topup'
@@ -163,6 +163,14 @@ const toHubnetReference = (requestId: string) => {
   const sliced = base.slice(0, 25)
 
   return sliced.length >= 6 ? sliced : `${sliced.padEnd(6, '0')}`
+}
+
+const firstJoinedRow = <T>(value: T | T[] | null | undefined): T | null => {
+  if (Array.isArray(value)) {
+    return value[0] || null
+  }
+
+  return value || null
 }
 
 const getActiveDeliveryProvider = async (): Promise<DeliveryProvider> => {
@@ -978,9 +986,11 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         throw new Error(serviceError?.message || 'Store service not found')
       }
 
+      const serviceDetails = firstJoinedRow(serviceRow.online_services)
+
       const hasStoreServiceAmountDrift = amountsDifferMeaningfully(Number(serviceRow.selling_price || 0), amount)
 
-      itemLabel = serviceRow.online_services?.name || 'Store Service'
+      itemLabel = serviceDetails?.name || 'Store Service'
       if (hasStoreServiceAmountDrift) {
         customerNote = `${customerNote} | Amount Drift: expected ${Number(serviceRow.selling_price || 0)} got ${amount}`
       }
@@ -1003,9 +1013,11 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         throw new Error(packageError?.message || 'Store data package not found')
       }
 
+      const packageDetails = firstJoinedRow(packageRow.data_packages)
+
       const hasStorePackageAmountDrift = amountsDifferMeaningfully(Number(packageRow.selling_price || 0), amount)
 
-      itemLabel = packageRow.data_packages?.name || 'Store Data'
+      itemLabel = packageDetails?.name || 'Store Data'
       if (hasStorePackageAmountDrift) {
         customerNote = `${customerNote} | Amount Drift: expected ${Number(packageRow.selling_price || 0)} got ${amount}`
       }
@@ -1024,9 +1036,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
 
         try {
           const delivery = await deliverDataBundleByProvider({
-            network: packageRow.data_packages?.network || '',
+            network: packageDetails?.network || '',
             phone: metadata.phone || customerPhone,
-            packageSize: packageRow.data_packages?.amount || '',
+            packageSize: packageDetails?.amount || '',
             requestId: `${reference}-STORE`,
             idempotencyKey: `store-${reference}`,
           })

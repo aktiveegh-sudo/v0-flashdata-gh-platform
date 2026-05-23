@@ -22,7 +22,7 @@ type NotifyAdminsOfNewOrderInput = {
   kind: OrderNotificationKind
   reference: string
   amount: number
-  source: 'dashboard' | 'store' | 'api'
+  source: 'dashboard' | 'store' | 'api' | 'public'
   customerName?: string | null
   customerPhone?: string | null
   storeName?: string | null
@@ -259,7 +259,8 @@ export const notifyAdminsOfNewOrder = async (input: NotifyAdminsOfNewOrderInput)
     }
 
     const kindLabel = getOrderNotificationKindLabel(input.kind)
-    const sourceLabel = input.source === 'dashboard' ? 'Dashboard' : input.source === 'store' ? 'Store' : 'API'
+    const sourceLabel =
+      input.source === 'dashboard' ? 'Dashboard' : input.source === 'store' ? 'Store' : input.source === 'public' ? 'Public' : 'API'
     const messageParts = [
       `Ref ${input.reference}`,
       `${Number(input.amount || 0).toFixed(2)} GHS`,
