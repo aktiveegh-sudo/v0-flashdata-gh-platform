@@ -105,7 +105,7 @@ const normalizeStoreCustomerPhone = (value: string) => value.trim()
 const toSwiftNetwork = (network: string) => {
   const value = String(network || '').trim().toUpperCase()
   if (value === 'MTN' || value === 'YELLO' || value === 'MTN_XPRESS') return 'MTN'
-  if (value === 'TELECEL' || value === 'VODAFONE' || value === 'VOD') return 'TELECEL'
+  if (value === 'TELECEL' || value === 'VODAFONE' || value === 'VOD' || value === 'RED') return 'TELECEL'
   if (value === 'AIRTELTIGO' || value === 'AT') return 'AT'
   if (value === 'GLO') return 'GLO'
   return value
@@ -173,6 +173,50 @@ const firstJoinedRow = <T>(value: T | T[] | null | undefined): T | null => {
   return value || null
 }
 
+type SwiftPlan = {
+  package_id: string
+  network: string
+  package_size: string
+  api_price: number
+  is_unavailable: boolean
+}
+
+let swiftPlanCache: { plans: SwiftPlan[]; fetchedAt: number } | null = null
+const SWIFT_PLAN_CACHE_TTL_MS = 5 * 60 * 1000
+
+const fetchSwiftDataPlans = async (apiKey: string): Promise<SwiftPlan[]> => {
+  const now = Date.now()
+  if (swiftPlanCache && now - swiftPlanCache.fetchedAt < SWIFT_PLAN_CACHE_TTL_MS) {
+    return swiftPlanCache.plans
+  }
+  try {
+    const response = await fetch(`${swiftDataBaseUrl}/plans`, {
+      headers: { 'X-API-Key': apiKey },
+    })
+    if (!response.ok) return []
+    const data = (await response.json().catch(() => null)) as { success?: boolean; plans?: SwiftPlan[] } | null
+    const plans = data?.plans ?? []
+    swiftPlanCache = { plans, fetchedAt: now }
+    return plans
+  } catch {
+    return []
+  }
+}
+
+const resolveSwiftPackageId = async (apiKey: string, network: string, packageSize: string): Promise<string | null> => {
+  const plans = await fetchSwiftDataPlans(apiKey)
+  if (!plans.length) return null
+  const targetNetwork = toSwiftNetwork(network)
+  const targetSize = String(packageSize || '').trim().toUpperCase().replace(/\s+/g, '')
+  const match = plans.find(
+    p =>
+      !p.is_unavailable &&
+      toSwiftNetwork(p.network) === targetNetwork &&
+      String(p.package_size || '').trim().toUpperCase().replace(/\s+/g, '') === targetSize,
+  )
+  return match?.package_id ?? null
+}
+
 const getActiveDeliveryProvider = async (): Promise<DeliveryProvider> => {
   const { data } = await supabaseAdmin
     .from('site_settings')
@@ -195,27 +239,48 @@ const deliverSwiftDataBundle = async (input: DeliveryInput): Promise<DeliveryRes
     throw new Error('Missing SwiftData developer key')
   }
 
-  const response = await fetch(`${swiftDataBaseUrl}/buy`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${swiftDataDeveloperKey}`,
-      'Content-Type': 'application/json',
-      'X-Idempotency-Key': input.idempotencyKey,
-    },
-    body: JSON.stringify({
+  // Try to resolve a specific package_id via GET /plans (new /payment/data endpoint)
+  const packageId = await resolveSwiftPackageId(swiftDataDeveloperKey, input.network, input.packageSize)
+
+  let endpoint: string
+  let requestBody: Record<string, unknown>
+
+  if (packageId) {
+    endpoint = `${swiftDataBaseUrl}/payment/data`
+    requestBody = {
+      package_id: packageId,
+      phone: input.phone,
+      request_id: input.requestId,
+      allow_duplicate: true,
+    }
+  } else {
+    // Legacy fallback: /buy with network + package_size
+    endpoint = `${swiftDataBaseUrl}/buy`
+    requestBody = {
       network: toSwiftNetwork(input.network),
       phone: input.phone,
       package_size: input.packageSize,
       request_id: input.requestId,
       allow_duplicate: true,
-    }),
+    }
+  }
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'X-API-Key': swiftDataDeveloperKey,
+      Authorization: `Bearer ${swiftDataDeveloperKey}`,
+      'Content-Type': 'application/json',
+      'X-Idempotency-Key': input.idempotencyKey,
+    },
+    body: JSON.stringify(requestBody),
   })
 
   const payload = (await response.json().catch(() => null)) as
-    | { status?: string; order_id?: string; error?: string; message?: string }
+    | { success?: boolean; status?: string; order_id?: string; error?: string; message?: string; balance?: number }
     | null
 
-  if (!response.ok) {
+  if (!response.ok || payload?.success === false) {
     throw new Error(payload?.error || payload?.message || `SwiftData delivery failed (${response.status})`)
   }
 
