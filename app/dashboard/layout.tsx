@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { MessageCircle } from 'lucide-react'
 import { useAuthStore, useTransactionStore, useWalletStore, type Transaction } from '@/lib/store'
@@ -12,13 +12,28 @@ import { PageLoader } from '@/components/loader'
 
 type DbTransaction = {
   id: string
-  type: 'data_purchase' | 'airtime' | 'online_service' | 'withdrawal' | 'funding' | 'store_sale'
+  type: 'data_purchase' | 'airtime' | 'online_service' | 'withdrawal' | 'funding' | 'wallet' | 'store_sale'
   amount: number
   description: string | null
   status: 'pending' | 'success' | 'failed'
   reference: string
   created_at: string
   metadata: Record<string, unknown> | null
+}
+
+const mapTransactionType = (type: DbTransaction['type']): Transaction['type'] => {
+  switch (type) {
+    case 'funding':
+    case 'wallet':
+    case 'store_sale':
+      return 'wallet'
+    case 'data_purchase':
+      return 'data'
+    case 'withdrawal':
+      return 'withdrawal'
+    default:
+      return 'bill'
+  }
 }
 
 export default function DashboardLayout({
@@ -33,23 +48,10 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
+  const [activeUserId, setActiveUserId] = useState('')
   const [whatsappChannelUrl, setWhatsappChannelUrl] = useState('')
 
-  const mapTransactionType = (type: DbTransaction['type']): Transaction['type'] => {
-    switch (type) {
-      case 'funding':
-      case 'store_sale':
-        return 'wallet'
-      case 'data_purchase':
-        return 'data'
-      case 'withdrawal':
-        return 'withdrawal'
-      default:
-        return 'bill'
-    }
-  }
-
-  const syncFinancialState = async (userId: string) => {
+  const syncFinancialState = useCallback(async (userId: string) => {
     const [{ data: wallet }, { data: txRows }] = await Promise.all([
       supabase.client.from('wallets').select('balance').eq('user_id', userId).maybeSingle(),
       supabase.client
@@ -75,7 +77,7 @@ export default function DashboardLayout({
     })) satisfies Transaction[])
 
     setTransactions(mapped)
-  }
+  }, [setBalance, setTransactions])
 
   useEffect(() => {
     setMounted(true)
@@ -131,12 +133,33 @@ export default function DashboardLayout({
         phone: metadata?.phone || '',
         avatar: metadata?.avatar_url,
       })
+      setActiveUserId(data.session.user.id)
       await syncFinancialState(data.session.user.id)
       setCheckingSession(false)
     }
 
     void ensureSession()
   }, [clearAuth, mounted, router, setAuthUser, setBalance, setTransactions])
+
+  useEffect(() => {
+    if (!mounted || !activeUserId) {
+      return
+    }
+
+    const channel = supabase.client
+      .channel(`agent-financial-live-${activeUserId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallets', filter: `user_id=eq.${activeUserId}` }, () => {
+        void syncFinancialState(activeUserId)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${activeUserId}` }, () => {
+        void syncFinancialState(activeUserId)
+      })
+      .subscribe()
+
+    return () => {
+      void supabase.client.removeChannel(channel)
+    }
+  }, [activeUserId, mounted])
 
   useEffect(() => {
     if (!mounted) {
