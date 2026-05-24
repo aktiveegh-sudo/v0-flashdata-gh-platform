@@ -111,7 +111,7 @@ create table if not exists public.data_packages (
 create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
-  type text not null check (type in ('data_purchase', 'airtime', 'online_service', 'withdrawal', 'funding', 'store_sale')),
+  type text not null check (type in ('data_purchase', 'airtime', 'online_service', 'withdrawal', 'funding', 'wallet', 'store_sale')),
   amount numeric(12,2) not null check (amount > 0),
   description text,
   status text not null default 'pending' check (status in ('pending', 'success', 'failed')),
@@ -266,7 +266,7 @@ set search_path = public
 as $$
 begin
   if new.status = 'success' and coalesce(new.wallet_applied, false) = false then
-    if new.type in ('funding', 'store_sale') then
+    if new.type in ('funding', 'wallet', 'store_sale') then
       update public.wallets
       set balance = balance + new.amount,
           last_updated = now()

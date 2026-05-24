@@ -509,7 +509,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
     if (!existing) {
       const { error } = await supabaseAdmin.from('transactions').insert({
         user_id: metadata.userId,
-        type: 'funding',
+        type: 'wallet',
         amount,
         status: 'success',
         description: 'Wallet top-up via Paystack',
