@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const signature = request.headers.get('x-paystack-signature')
 
-  if (!(await verifyPaystackSignature(rawBody, signature))) {
+  if (!verifyPaystackSignature(rawBody, signature)) {
     return NextResponse.json({ success: false, error: 'Invalid Paystack signature' }, { status: 401 })
   }
 

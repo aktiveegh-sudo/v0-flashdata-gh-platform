@@ -14,3 +14,11 @@ node_modules
 .next/
 .DS_Store
 .vercel
+
+# Temporary local tools and docs
+.tools/
+.tmp-hubnet-docs/
+tmp_hubnet_api_docs.txt
+tmp_swift_api_docs.html
+tmp_swift_api_docs_chunk.js
+tmp_swift_bundle.js
