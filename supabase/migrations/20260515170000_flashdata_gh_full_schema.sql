@@ -111,10 +111,10 @@ create table if not exists public.data_packages (
 create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
-  type text not null check (type in ('data_purchase', 'airtime', 'online_service', 'withdrawal', 'funding', 'wallet', 'store_sale')),
+  type text not null,
   amount numeric(12,2) not null check (amount > 0),
   description text,
-  status text not null default 'pending' check (status in ('pending', 'success', 'failed')),
+  status text not null default 'pending',
   reference text not null unique,
   metadata jsonb not null default '{}'::jsonb,
   wallet_applied boolean not null default false,
