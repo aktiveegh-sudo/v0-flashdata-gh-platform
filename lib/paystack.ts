@@ -507,7 +507,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       .maybeSingle()
 
     if (!existing) {
-      const { error } = await supabaseAdmin.from('transactions').insert({
+      const transactionPayload = {
         user_id: metadata.userId,
         type: 'wallet',
         amount,
@@ -525,10 +525,21 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
           paid_amount: paidAmount,
           transaction_charge: transactionCharge,
         },
-      })
+      }
+
+      const { error } = await supabaseAdmin.from('transactions').insert(transactionPayload)
 
       if (error) {
-        throw new Error(error.message)
+        console.error('[Paystack] Transaction insert failed:', {
+          error,
+          payload: transactionPayload,
+          userId: metadata.userId,
+          amount: amount,
+          status: 'success',
+          type: 'wallet',
+          reference,
+        })
+        throw new Error(`Failed to record wallet top-up transaction: ${error.message}`)
       }
 
       // Fallback for environments where wallet trigger is missing/outdated.
