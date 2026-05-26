@@ -562,6 +562,16 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
           .from('transactions')
           .update({ wallet_applied: true })
           .eq('reference', reference)
+          
+          // Touch the wallets row to ensure realtime clients receive an update
+          try {
+            await supabaseAdmin
+              .from('wallets')
+              .update({ updated_at: new Date().toISOString() })
+              .eq('user_id', metadata.userId)
+          } catch (_) {
+            // Non-fatal: realtime update attempt failed, but wallet was credited.
+          }
       }
     }
 
