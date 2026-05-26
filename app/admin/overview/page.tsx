@@ -46,6 +46,8 @@ export default function AdminOverviewPage() {
   const [apiUsers, setApiUsers] = useState(0)
   const [pendingWithdrawals, setPendingWithdrawals] = useState(0)
   const [pendingOrders, setPendingOrders] = useState(0)
+  const [totalTransactions, setTotalTransactions] = useState(0)
+  const [recentTransactions, setRecentTransactions] = useState<Array<{ id: string; type: string; amount: number; status: string; reference: string; created_at: string }>>([])
   const [dailyRevenue, setDailyRevenue] = useState<DailyPoint[]>([])
   const [salesByNetwork, setSalesByNetwork] = useState<NetworkPoint[]>([])
   const [activity, setActivity] = useState<ActivityRow[]>([])
@@ -74,6 +76,8 @@ export default function AdminOverviewPage() {
       activityRes,
       directRecentOrdersRes,
       storeRecentOrdersRes,
+      transactionsCountRes,
+      recentTransactionsRes,
     ] = await Promise.all([
       supabase.client
         .from('orders')
@@ -103,6 +107,12 @@ export default function AdminOverviewPage() {
       supabase.client
         .from('agent_store_orders')
         .select('id,created_at,total_price,status,customer_name,customer_email')
+        .order('created_at', { ascending: false })
+        .limit(6),
+      supabase.client.from('transactions').select('id', { count: 'exact', head: true }),
+      supabase.client
+        .from('transactions')
+        .select('id,type,amount,status,reference,created_at')
         .order('created_at', { ascending: false })
         .limit(6),
     ])
@@ -207,6 +217,8 @@ export default function AdminOverviewPage() {
     setActivity((activityRes.data as ActivityRow[]) || [])
     setRecentUsers(usersRows)
     setRecentOrders(latestOrders)
+    setTotalTransactions(transactionsCountRes.count || 0)
+    setRecentTransactions((recentTransactionsRes.data as any) || [])
     setLoading(false)
   }
 
@@ -224,6 +236,7 @@ export default function AdminOverviewPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'api_users' }, () => void loadMetrics())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_activity' }, () => void loadMetrics())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => void loadMetrics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => void loadMetrics())
       .subscribe()
 
     return () => {
@@ -237,6 +250,7 @@ export default function AdminOverviewPage() {
       { label: 'Total Revenue', value: ghanaCurrency(totalRevenue) },
       { label: 'Total Users', value: totalUsers.toLocaleString() },
       { label: 'Total Orders', value: totalOrders.toLocaleString() },
+      { label: 'Total Transactions', value: totalTransactions.toLocaleString() },
       { label: 'Total Sales', value: totalSales.toLocaleString() },
       { label: 'Active Packages', value: activePackages.toLocaleString() },
       { label: 'Active Services', value: activeServices.toLocaleString() },
@@ -383,6 +397,32 @@ export default function AdminOverviewPage() {
                     <span className="capitalize">{order.status}</span>
                     <span>|</span>
                     <span>{formatDateTime(order.created_at)}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentTransactions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No transactions found.</p>
+            ) : (
+              recentTransactions.map((tx) => (
+                <div key={tx.id} className="rounded-lg border border-border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-medium">{tx.type}</p>
+                    <Badge variant={tx.status === 'success' ? 'default' : 'outline'}>{tx.status}</Badge>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span>{ghanaCurrency(Number(tx.amount || 0))}</span>
+                    <span>|</span>
+                    <span>{tx.reference}</span>
+                    <span>|</span>
+                    <span>{formatDateTime(tx.created_at)}</span>
                   </div>
                 </div>
               ))
