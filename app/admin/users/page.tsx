@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { Users, Search } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -192,10 +193,12 @@ export default function AdminUsersPage() {
 									</tr>
 								) : (
 									filteredUsers.map((user) => (
-										<tr key={user.id} className="border-t border-border">
+										<tr key={user.id} className="border-t border-border hover:bg-muted/50 cursor-pointer">
 											<td className="px-3 py-3">
-												<p className="font-medium">{user.full_name || 'Unnamed User'}</p>
-												<p className="text-xs text-muted-foreground">{user.id}</p>
+												<Link href={`/admin/users/${user.id}`} className="block">
+													<p className="font-medium">{user.full_name || 'Unnamed User'}</p>
+													<p className="text-xs text-muted-foreground">{user.id}</p>
+												</Link>
 											</td>
 											<td className="px-3 py-3">
 												<p>{user.email || '-'}</p>
@@ -223,19 +226,21 @@ export default function AdminUsersPage() {
 							<p className="text-sm text-muted-foreground">No users found.</p>
 						) : (
 							filteredUsers.map((user) => (
-								<div key={user.id} className="rounded-lg border border-border p-3">
-									<div className="flex items-center justify-between gap-2">
-										<p className="font-medium">{user.full_name || 'Unnamed User'}</p>
-										<Badge variant={user.status === 'active' ? 'default' : 'destructive'}>{user.status}</Badge>
+								<Link key={user.id} href={`/admin/users/${user.id}`}>
+									<div className="rounded-lg border border-border p-3 hover:bg-muted/50 cursor-pointer transition">
+										<div className="flex items-center justify-between gap-2">
+											<p className="font-medium">{user.full_name || 'Unnamed User'}</p>
+											<Badge variant={user.status === 'active' ? 'default' : 'destructive'}>{user.status}</Badge>
+										</div>
+										<p className="mt-1 text-xs text-muted-foreground">{user.email || 'No email'}</p>
+										<p className="mt-1 text-xs text-muted-foreground">{user.phone || 'No phone'}</p>
+										<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+											<Badge variant="outline">{user.role}</Badge>
+											<span>{ghanaCurrency(user.wallet_balance)}</span>
+											<span>{formatDateTime(user.created_at)}</span>
+										</div>
 									</div>
-									<p className="mt-1 text-xs text-muted-foreground">{user.email || 'No email'}</p>
-									<p className="mt-1 text-xs text-muted-foreground">{user.phone || 'No phone'}</p>
-									<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-										<Badge variant="outline">{user.role}</Badge>
-										<span>{ghanaCurrency(user.wallet_balance)}</span>
-										<span>{formatDateTime(user.created_at)}</span>
-									</div>
-								</div>
+								</Link>
 							))
 						)}
 					</div>
