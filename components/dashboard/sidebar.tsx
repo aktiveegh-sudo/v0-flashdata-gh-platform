@@ -208,7 +208,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
           <div>
             <span className="text-lg font-extrabold tracking-tight text-[#f4f6fb]">
-              PrimeData <span className="text-[#f4c532]">GH</span>
+              FlashData <span className="text-[#f4c532]">GH</span>
             </span>
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#aeb7c8]/75">Agent Console</p>
           </div>

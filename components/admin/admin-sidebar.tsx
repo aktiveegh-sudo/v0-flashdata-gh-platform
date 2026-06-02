@@ -32,7 +32,7 @@ export function AdminSidebar() {
           <GhanaFlagIcon className="h-9 w-9" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-100">PrimeData GH</p>
+          <p className="text-sm font-semibold text-slate-100">FlashData GH</p>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Admin Console</p>
         </div>
       </div>
