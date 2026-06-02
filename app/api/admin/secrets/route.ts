@@ -12,8 +12,8 @@ const ADMIN_SECRET_DEFINITIONS = [
   },
   {
     key: 'SWIFTDATA_DEVELOPER_KEY',
-    label: 'SwiftData Developer Key',
-    description: 'Bearer token used for SwiftData delivery requests.',
+    label: 'PrimeData Developer Key',
+    description: 'Bearer token used for PrimeData delivery requests.',
     isSecret: true,
   },
   {
