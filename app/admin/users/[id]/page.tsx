@@ -86,6 +86,7 @@ export default function UserDetailPage() {
     setLoading(true)
 
     try {
+      await fetch('/api/orders/auto-complete', { method: 'POST' }).catch(() => null)
       const [userRes, walletRes, transactionsRes, storeOrdersRes, salesRes, storeRes] = await Promise.all([
         supabase.client.from('profiles').select('*').eq('id', userId).maybeSingle(),
         supabase.client.from('wallets').select('*').eq('user_id', userId).maybeSingle(),

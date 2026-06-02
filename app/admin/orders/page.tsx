@@ -84,6 +84,7 @@ export default function AdminOrdersPage() {
 
   const loadOrders = useCallback(async () => {
     setLoading(true)
+    await fetch('/api/orders/auto-complete', { method: 'POST' }).catch(() => null)
     const [dashboardDataResult, afaResult, storeResult] = await Promise.all([
       supabase.client
         .from('orders')

@@ -54,6 +54,7 @@ export default function MyStorePage() {
   useEffect(() => {
     const loadStoreData = async () => {
       setLoading(true)
+      await fetch('/api/orders/auto-complete', { method: 'POST' }).catch(() => null)
 
       const { data: authData } = await supabase.auth.getUser()
       if (!authData.user) {

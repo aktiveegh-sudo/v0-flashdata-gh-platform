@@ -40,6 +40,7 @@ export default function StoreOrdersPage() {
   const loadOrders = async () => {
     setLoading(true)
 
+    await fetch('/api/orders/auto-complete', { method: 'POST' }).catch(() => null)
     const { data: authData, error: authError } = await supabase.auth.getUser()
     if (authError || !authData.user) {
       toast.error('Please login again')

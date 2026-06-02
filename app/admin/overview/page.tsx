@@ -57,6 +57,7 @@ export default function AdminOverviewPage() {
   const loadMetrics = async () => {
     setLoading(true)
 
+    await fetch('/api/orders/auto-complete', { method: 'POST' }).catch(() => null)
     await supabase.client.rpc('sync_auth_users_to_profiles_wallets')
 
     const [
