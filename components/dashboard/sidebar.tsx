@@ -93,7 +93,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const handleLogout = async () => {
     setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
     logout()
     setLoading(false)
     toast.success('Logged out successfully')

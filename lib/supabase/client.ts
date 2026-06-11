@@ -11,7 +11,13 @@ const getClient = () => {
       throw new Error('Missing Supabase environment variables for client auth')
     }
 
-    client = createClient(supabaseUrl, supabaseAnonKey)
+    client = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        persistSession: true,
+      },
+    })
   }
 
   return client
