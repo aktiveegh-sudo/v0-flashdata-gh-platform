@@ -136,6 +136,13 @@ export default function AuthPage() {
 
   useEffect(() => {
     const redirectAuthenticatedUser = async () => {
+      if (sessionStorage.getItem('flashdata-just-signed-out') === '1') {
+        sessionStorage.removeItem('flashdata-just-signed-out')
+        await supabase.auth.signOut()
+        clearAuth()
+        return
+      }
+
       if (!isAuthenticated) {
         return
       }
@@ -154,6 +161,13 @@ export default function AuthPage() {
 
   useEffect(() => {
     const syncSession = async () => {
+      if (sessionStorage.getItem('flashdata-just-signed-out') === '1') {
+        sessionStorage.removeItem('flashdata-just-signed-out')
+        await supabase.auth.signOut()
+        clearAuth()
+        return
+      }
+
       const { data, error } = await supabase.auth.getSession()
 
       if (error || !data.session?.user) {

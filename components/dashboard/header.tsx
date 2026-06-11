@@ -79,6 +79,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       return
     }
 
+    sessionStorage.setItem('flashdata-just-signed-out', '1')
     logout()
     toast.success('Logged out successfully')
     router.push('/')

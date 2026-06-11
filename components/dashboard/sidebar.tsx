@@ -93,6 +93,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const handleLogout = async () => {
     setLoading(true)
+    sessionStorage.setItem('flashdata-just-signed-out', '1')
     logout()
     setLoading(false)
     toast.success('Logged out successfully')
