@@ -3,7 +3,6 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/api/rest'
 
 const allowedMimeTypes = ['video/mp4']
-const bucketFileSizeLimitBytes = 2 * 1024 * 1024 * 1024
 const bucketName = 'hero-videos'
 
 const isBucketMissing = (message: string) => {
@@ -64,7 +63,6 @@ const ensureBucket = async () => {
   if (existingBucket) {
     const { error: updateError } = await supabaseAdmin.storage.updateBucket(bucketName, {
       public: true,
-      fileSizeLimit: bucketFileSizeLimitBytes,
       allowedMimeTypes,
     })
 
@@ -77,7 +75,6 @@ const ensureBucket = async () => {
 
   const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
     public: true,
-    fileSizeLimit: bucketFileSizeLimitBytes,
     allowedMimeTypes,
   })
 
@@ -103,14 +100,12 @@ export async function POST(request: Request) {
     const body = (await request.json().catch(() => null)) as {
       fileName?: string
       fileType?: string
-      fileSize?: number
     } | null
 
     const fileName = (body?.fileName || '').trim()
     const fileType = (body?.fileType || '').trim().toLowerCase()
-    const fileSize = Number(body?.fileSize || 0)
 
-    if (!fileName || !fileType || !Number.isFinite(fileSize) || fileSize <= 0) {
+    if (!fileName || !fileType) {
       return NextResponse.json({ success: false, error: 'Invalid upload request payload' }, { status: 400 })
     }
 
