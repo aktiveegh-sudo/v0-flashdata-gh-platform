@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 
 type MainSiteShellProps = {
   children: React.ReactNode
@@ -37,6 +38,9 @@ export function MainSiteShell({ children, activeTab = 'home' }: MainSiteShellPro
           </nav>
 
           <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              <ThemeSwitcher />
+            </div>
             <details className="relative md:hidden">
               <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-yellow-300/30 bg-transparent text-lg text-yellow-300">
                 <span aria-hidden>☰</span>
