@@ -131,6 +131,17 @@ function BuyDataContent() {
     return null
   }
 
+  const getAuthHeaders = async () => {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token || ''
+
+    if (!accessToken) {
+      throw new Error('Please login again')
+    }
+
+    return { Authorization: `Bearer ${accessToken}` }
+  }
+
   const handleStartCheckout = (packageId: string) => {
     setSelectedPackageId(packageId)
     setPhoneNumber('')
@@ -156,6 +167,8 @@ function BuyDataContent() {
     setLoading(true)
 
     try {
+      const authHeaders = await getAuthHeaders()
+
       if (isAfaRegistration) {
         if (!afaFullName.trim() || !afaGhanaCardNumber.trim() || !afaLocation.trim()) {
           toast.error('Complete all AFA registration fields')
@@ -166,7 +179,10 @@ function BuyDataContent() {
 
         const response = await fetch('/api/dashboard/purchase', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders,
+          },
           body: JSON.stringify({
             flow: 'afa',
             phone: normalizedPhone,
@@ -188,7 +204,10 @@ function BuyDataContent() {
 
       const response = await fetch('/api/dashboard/purchase', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders,
+        },
         body: JSON.stringify({
           flow: 'data',
           packageId: selectedPackage.id,
