@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendPurchaseProcessingSms } from '@/lib/sms/usmsgh'
 
 type ApiUser = {
   id: string
@@ -229,6 +230,17 @@ const getOrderNotificationKindLabel = (kind: OrderNotificationKind) => {
 }
 
 export const notifyAdminsOfNewOrder = async (input: NotifyAdminsOfNewOrderInput) => {
+  if (input.customerPhone) {
+    void sendPurchaseProcessingSms({
+      phone: input.customerPhone,
+      reference: input.reference,
+      itemName: input.itemName,
+      kind: input.kind,
+    }).catch((error) => {
+      console.error('[USMS-GH] Purchase SMS error:', error instanceof Error ? error.message : error)
+    })
+  }
+
   try {
     const { data: settings, error: settingsError } = await supabaseAdmin
       .from('site_settings')

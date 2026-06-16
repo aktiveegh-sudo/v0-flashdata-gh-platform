@@ -28,6 +28,18 @@ const ADMIN_SECRET_DEFINITIONS = [
     description: 'Webhook URL sent to the secondary provider for delivery updates.',
     isSecret: false,
   },
+  {
+    key: 'USMSGH_API_TOKEN',
+    label: 'USMS-GH API Token',
+    description: 'Bearer token for sending purchase SMS via webapp.usmsgh.com.',
+    isSecret: true,
+  },
+  {
+    key: 'USMSGH_SENDER_ID',
+    label: 'USMS-GH Sender ID',
+    description: 'Alphanumeric sender ID shown on outbound SMS (max 11 characters).',
+    isSecret: false,
+  },
 ] as const
 
 const getRequestUser = async (request: Request) => {

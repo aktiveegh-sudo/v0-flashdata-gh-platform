@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, ExternalLink, Trash2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Trash2, AlertCircle, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { supabase } from '@/lib/supabase/client'
 import { formatDateTime, ghanaCurrency } from '@/lib/admin/utils'
 import toast from 'react-hot-toast'
@@ -18,6 +21,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type UserDetail = {
   id: string
@@ -75,6 +86,9 @@ export default function UserDetailPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [suspendDialog, setSuspendDialog] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState(false)
+  const [creditDialog, setCreditDialog] = useState(false)
+  const [creditAmount, setCreditAmount] = useState('')
+  const [creditNote, setCreditNote] = useState('')
 
   useEffect(() => {
     if (!userId) return
@@ -169,6 +183,48 @@ export default function UserDetailPage() {
 
       toast.success(`User ${user.status === 'active' ? 'suspended' : 'activated'} successfully`)
       setSuspendDialog(false)
+      await loadUserDetails()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleCreditWallet = async () => {
+    if (!user) return
+
+    const amount = Number.parseFloat(creditAmount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('Enter a valid amount greater than zero')
+      return
+    }
+
+    setActionLoading(true)
+
+    try {
+      const response = await fetch('/api/admin/wallets/credit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          amount,
+          note: creditNote.trim() || undefined,
+        }),
+      })
+
+      const result = (await response.json().catch(() => null)) as
+        | { success?: boolean; error?: string; data?: { balanceAfter?: number } }
+        | null
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Failed to credit wallet')
+      }
+
+      toast.success(`Wallet credited successfully. New balance: ${ghanaCurrency(result.data?.balanceAfter || 0)}`)
+      setCreditDialog(false)
+      setCreditAmount('')
+      setCreditNote('')
       await loadUserDetails()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'An error occurred')
@@ -299,6 +355,19 @@ export default function UserDetailPage() {
               <p className="text-sm font-medium text-muted-foreground">Wallet Balance</p>
               <p className="text-2xl font-bold">{wallet ? ghanaCurrency(wallet.balance) : 'N/A'}</p>
               {wallet && <p className="text-xs text-muted-foreground">Updated: {formatDateTime(wallet.last_updated)}</p>}
+              <Button
+                className="mt-3"
+                size="sm"
+                onClick={() => {
+                  setCreditAmount('')
+                  setCreditNote('')
+                  setCreditDialog(true)
+                }}
+                disabled={actionLoading || user.status === 'suspended'}
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                Credit Wallet
+              </Button>
             </div>
             {store ? (
               <div>
@@ -425,6 +494,57 @@ export default function UserDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={creditDialog} onOpenChange={setCreditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Credit Wallet</DialogTitle>
+            <DialogDescription>
+              Add funds to {user.full_name || 'this user'}&apos;s wallet. The credit is recorded in transactions and wallet ledger.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+              <p className="text-muted-foreground">Current balance</p>
+              <p className="text-lg font-semibold">{wallet ? ghanaCurrency(wallet.balance) : 'N/A'}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="credit-amount">Amount (GHS)</Label>
+              <Input
+                id="credit-amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="0.00"
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="credit-note">Note (optional)</Label>
+              <Textarea
+                id="credit-note"
+                placeholder="Reason for credit, promo, manual top-up, etc."
+                value={creditNote}
+                onChange={(e) => setCreditNote(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreditDialog(false)} disabled={actionLoading}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleCreditWallet()} disabled={actionLoading || !creditAmount}>
+              {actionLoading ? 'Crediting...' : 'Credit Wallet'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={suspendDialog} onOpenChange={setSuspendDialog}>
         <AlertDialogContent>
