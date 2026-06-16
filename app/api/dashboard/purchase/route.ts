@@ -3,8 +3,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { generateReference, normalizeToGhanaPhone, notifyAdminsOfNewOrder, supabaseAdmin } from '@/lib/api/rest'
 
 type PurchaseBody = {
-  flow?: 'data' | 'afa'
+  flow?: 'data' | 'afa' | 'service'
   packageId?: string
+  serviceId?: string
   phone?: string
   fullName?: string
   ghanaCardNumber?: string
@@ -172,6 +173,126 @@ export async function POST(request: NextRequest) {
           amount,
           balanceAfter: walletResult.wallet?.balance_after || 0,
           redirectPath: '/dashboard/afa',
+        },
+      })
+    }
+
+    if (flow === 'service') {
+      const normalizedPhone = normalizeToGhanaPhone(body.phone || '')
+      if (!body.serviceId || !normalizedPhone) {
+        return jsonError('serviceId and a valid phone number are required', 400)
+      }
+
+      const { data: serviceRow, error: serviceError } = await supabaseAdmin
+        .from('online_services')
+        .select('id,name,category,agent_price,price,is_active')
+        .eq('id', body.serviceId)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (serviceError || !serviceRow) {
+        return jsonError(serviceError?.message || 'Service not found', 404)
+      }
+
+      const amount = Number(serviceRow.agent_price || serviceRow.price || 0)
+      const reference = generateReference('SVC-WAL')
+
+      const walletResult = await applyWalletDelta(
+        authUser.id,
+        -amount,
+        'Service purchase',
+        reference,
+        { source: 'dashboard_wallet', flow: 'service', service_id: serviceRow.id, phone: normalizedPhone }
+      )
+
+      if (walletResult.error) {
+        return jsonError(walletResult.error.includes('Insufficient') ? walletResult.error : `Wallet error: ${walletResult.error}`, walletResult.error.includes('Insufficient') ? 402 : 500)
+      }
+
+      const [{ data: platformStore }, { data: profile }] = await Promise.all([
+        supabaseAdmin
+          .from('agent_stores')
+          .select('id,agent_id,slug,brand_name')
+          .eq('is_active', true)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle(),
+        supabaseAdmin
+          .from('profiles')
+          .select('full_name,phone')
+          .eq('id', authUser.id)
+          .maybeSingle(),
+      ])
+
+      const customerName = (profile?.full_name || authUser.email || 'Dashboard User').trim()
+      const customerNote = [
+        `Wallet Ref: ${reference}`,
+        'Source: dashboard wallet',
+        `Recipient: ${normalizedPhone}`,
+        `Service: ${serviceRow.name}`,
+      ].join(' | ')
+
+      if (platformStore) {
+        const { error: storeOrderError } = await supabaseAdmin.from('agent_store_orders').insert({
+          store_id: platformStore.id,
+          item_type: 'service',
+          service_id: serviceRow.id,
+          customer_name: customerName,
+          customer_phone: normalizedPhone,
+          customer_email: authUser.email || '',
+          customer_note: customerNote,
+          quantity: 1,
+          total_price: amount,
+          status: 'pending',
+        })
+
+        if (storeOrderError) {
+          await applyWalletDelta(authUser.id, amount, 'Service purchase refund', `${reference}-RFND`, {
+            source: 'dashboard_wallet',
+            flow: 'service',
+            reason: 'store_order_insert_failed',
+          })
+          return jsonError(storeOrderError.message, 500)
+        }
+      }
+
+      const { error: txError } = await supabaseAdmin.from('transactions').insert({
+        user_id: authUser.id,
+        type: 'online_service',
+        amount,
+        status: 'success',
+        description: `${serviceRow.name} via Wallet`,
+        reference,
+        wallet_applied: true,
+        metadata: {
+          source: 'dashboard_wallet',
+          flow: 'service',
+          service_id: serviceRow.id,
+          phone: normalizedPhone,
+        },
+      })
+
+      if (txError) {
+        return jsonError(txError.message, 500)
+      }
+
+      void notifyAdminsOfNewOrder({
+        kind: 'service',
+        reference,
+        amount,
+        source: 'dashboard',
+        customerName,
+        customerPhone: normalizedPhone,
+        itemName: serviceRow.name,
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          reference,
+          amount,
+          balanceAfter: walletResult.wallet?.balance_after || 0,
+          redirectPath: '/dashboard/buy-services',
         },
       })
     }

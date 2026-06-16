@@ -20,6 +20,7 @@ import {
   LogOut,
   ChevronDown,
   X,
+  Sparkles,
   User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -50,6 +51,7 @@ const mainNavItems: NavItem[] = [
       { label: 'Telecel', href: '/dashboard/buy-data?network=telecel' },
     ],
   },
+  { label: 'Buy Services', href: '/dashboard/buy-services', icon: Sparkles },
   { label: 'History', href: '/dashboard/transactions', icon: Receipt },
 ]
 

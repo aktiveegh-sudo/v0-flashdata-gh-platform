@@ -37,6 +37,7 @@ const pageLabels: Record<string, string> = {
   '/dashboard/wallet': 'My Money',
   '/dashboard/afa': 'AFA Registration',
   '/dashboard/buy-data': 'Buy Data',
+  '/dashboard/buy-services': 'Buy Services',
   '/dashboard/transactions': 'History',
   '/dashboard/my-store': 'My Shop',
   '/dashboard/store-packages': 'Shop Packages',

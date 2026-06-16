@@ -17,8 +17,8 @@ const actions: QuickAction[] = [
   { id: "airtime", label: "Buy Airtime", icon: Phone, href: "/dashboard/buy-data?tab=airtime", gradient: "from-green-500 to-green-600" },
   { id: "wallet", label: "Fund Wallet", icon: Wallet, href: "/dashboard/wallet", gradient: "from-purple-500 to-purple-600" },
   { id: "transfer", label: "Transfer", icon: CreditCard, href: "/dashboard/wallet?action=transfer", gradient: "from-orange-500 to-orange-600" },
-  { id: "electricity", label: "Electricity", icon: Zap, href: "/dashboard/other-services", gradient: "from-yellow-500 to-yellow-600" },
-  { id: "tv", label: "TV Subscription", icon: Tv, href: "/dashboard/other-services", gradient: "from-pink-500 to-pink-600" }
+  { id: "electricity", label: "Electricity", icon: Zap, href: "/dashboard/buy-services", gradient: "from-yellow-500 to-yellow-600" },
+  { id: "tv", label: "TV Subscription", icon: Tv, href: "/dashboard/buy-services", gradient: "from-pink-500 to-pink-600" }
 ]
 
 export function QuickActions() {
