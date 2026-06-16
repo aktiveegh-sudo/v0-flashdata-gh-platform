@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, BadgeCheck, Clock3, ShieldCheck, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { HeroVideoBackground } from '@/components/public/hero-video-background'
 import { MainSiteShell } from '@/components/public/main-site-shell'
 import { getPublicSiteSettings } from '@/lib/site-settings'
 
@@ -22,19 +23,7 @@ export default async function HomePage() {
     <MainSiteShell activeTab="home">
       <section className="relative overflow-hidden rounded-3xl border border-yellow-300/20 bg-[#0b111f] p-6 sm:p-10">
         {heroVideoUrl ? (
-          <>
-            <video
-              className="absolute inset-0 h-full w-full object-cover"
-              src={heroVideoUrl}
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="metadata"
-              aria-hidden
-            />
-            <div className="absolute inset-0 bg-black/60" />
-          </>
+          <HeroVideoBackground src={heroVideoUrl} />
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_8%,rgba(250,204,21,0.28),transparent_42%)]" />
         )}
