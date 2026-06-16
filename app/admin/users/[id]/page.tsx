@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase } from '@/lib/supabase/client'
 import { formatDateTime, ghanaCurrency } from '@/lib/admin/utils'
+import { getAdminAuthHeaders } from '@/lib/admin/client-auth'
 import toast from 'react-hot-toast'
 import {
   AlertDialog,
@@ -205,7 +206,8 @@ export default function UserDetailPage() {
     try {
       const response = await fetch('/api/admin/wallets/credit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAdminAuthHeaders(),
+        credentials: 'include',
         body: JSON.stringify({
           userId,
           amount,

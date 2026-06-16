@@ -37,7 +37,7 @@ const ADMIN_SECRET_DEFINITIONS = [
   {
     key: 'USMSGH_SENDER_ID',
     label: 'USMS-GH Sender ID',
-    description: 'Alphanumeric sender ID shown on outbound SMS (max 11 characters).',
+    description: 'Your approved USMS-GH sender ID (max 11 characters). Request and approve one in the USMS-GH portal under Sending before SMS can deliver.',
     isSecret: false,
   },
 ] as const

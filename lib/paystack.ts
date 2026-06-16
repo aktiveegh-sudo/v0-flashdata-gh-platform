@@ -666,7 +666,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         throw new Error('Unable to log Paystack data transaction')
       }
 
-      void notifyAdminsOfNewOrder({
+      await notifyAdminsOfNewOrder({
         kind: 'data',
         reference,
         amount,
@@ -826,7 +826,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         throw new Error('Unable to log Paystack AFA transaction')
       }
 
-      void notifyAdminsOfNewOrder({
+      await notifyAdminsOfNewOrder({
         kind: 'afa',
         reference,
         amount,
@@ -1005,7 +1005,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         },
       })
 
-      void notifyAdminsOfNewOrder({
+      await notifyAdminsOfNewOrder({
         kind: itemType === 'service' ? 'store_service' : metadata.flow === 'public_afa' ? 'store_afa' : 'store_data',
         reference,
         amount,
@@ -1181,7 +1181,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       },
     })
 
-    void notifyAdminsOfNewOrder({
+    await notifyAdminsOfNewOrder({
       kind: itemType === 'service' ? 'store_service' : metadata.flow === 'store_afa' ? 'store_afa' : 'store_data',
       reference,
       amount,

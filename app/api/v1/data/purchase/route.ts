@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     return transactionError
   }
 
-  void notifyAdminsOfNewOrder({
+  await notifyAdminsOfNewOrder({
     kind: 'data',
     reference,
     amount,

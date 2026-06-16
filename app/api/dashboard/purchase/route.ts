@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         return jsonError(txError.message, 500)
       }
 
-      void notifyAdminsOfNewOrder({
+      await notifyAdminsOfNewOrder({
         kind: 'afa',
         reference,
         amount,
@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
         return jsonError(txError.message, 500)
       }
 
-      void notifyAdminsOfNewOrder({
+      await notifyAdminsOfNewOrder({
         kind: 'service',
         reference,
         amount,
@@ -379,7 +379,7 @@ export async function POST(request: NextRequest) {
       return jsonError(txError.message, 500)
     }
 
-    void notifyAdminsOfNewOrder({
+    await notifyAdminsOfNewOrder({
       kind: 'data',
       reference,
       amount,

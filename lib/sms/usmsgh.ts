@@ -51,20 +51,18 @@ export const sendUsmsGhSms = async (input: SendSmsInput): Promise<SendSmsResult>
   const configuredSender = input.senderId || (await getOptionalSecret(['USMSGH_SENDER_ID'])) || DEFAULT_SENDER_ID
   const senderId = configuredSender.replace(/[^a-zA-Z0-9]/g, '').slice(0, 11) || DEFAULT_SENDER_ID
 
-  const body = new URLSearchParams({
-    recipient,
-    sender_id: senderId,
-    message: input.message,
-  })
-
   const response = await fetch(SMS_ENDPOINT, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Type': 'application/json',
     },
-    body: body.toString(),
+    body: JSON.stringify({
+      recipient,
+      sender_id: senderId,
+      message: input.message,
+    }),
   })
 
   const result = (await response.json().catch(() => null)) as
@@ -73,7 +71,7 @@ export const sendUsmsGhSms = async (input: SendSmsInput): Promise<SendSmsResult>
 
   if (!response.ok || result?.status === 'error') {
     const errorMessage = result?.message || `SMS request failed (${response.status})`
-    console.error('[USMS-GH] SMS failed:', errorMessage)
+    console.error('[USMS-GH] SMS failed:', { recipient, senderId, errorMessage })
     return { ok: false, error: errorMessage }
   }
 

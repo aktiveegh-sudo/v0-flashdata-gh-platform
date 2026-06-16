@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { assertAdminRequest } from '@/lib/admin/auth'
 import { generateReference, supabaseAdmin } from '@/lib/api/rest'
 
 type CreditBody = {
@@ -11,53 +11,11 @@ type CreditBody = {
 const jsonError = (message: string, status = 400) =>
   NextResponse.json({ success: false, error: message }, { status })
 
-const getRequestUser = async (request: NextRequest) => {
-  const authHeader = request.headers.get('authorization') || ''
-  const bearer = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : ''
-
-  if (bearer) {
-    const { data, error } = await supabaseAdmin.auth.getUser(bearer)
-    if (!error && data.user) {
-      return data.user
-    }
-  }
-
-  const supabaseServer = await createSupabaseServerClient()
-  const { data, error } = await supabaseServer.auth.getUser()
-  if (error || !data.user) {
-    return null
-  }
-
-  return data.user
-}
-
-const assertAdmin = async (request: NextRequest) => {
-  const user = await getRequestUser(request)
-  if (!user) {
-    return { error: jsonError('Unauthorized', 401), admin: null as null }
-  }
-
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('role,status,full_name')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  const role = String(profile?.role || '').toLowerCase()
-  const isSuperAdmin = role === 'super_admin' || (user.email || '').toLowerCase() === 'admin@flashdatagh.com'
-
-  if (!isSuperAdmin || profile?.status === 'suspended') {
-    return { error: jsonError('Forbidden', 403), admin: null as null }
-  }
-
-  return { error: null, admin: { ...user, full_name: profile?.full_name || user.email || 'Admin' } }
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const auth = await assertAdmin(request)
-    if (auth.error || !auth.admin) {
-      return auth.error
+    const auth = await assertAdminRequest(request)
+    if (auth.response || !auth.admin) {
+      return auth.response as NextResponse
     }
 
     const body = (await request.json().catch(() => ({}))) as CreditBody
