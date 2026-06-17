@@ -47,7 +47,7 @@ export function StoreServicesClient({ store }: StoreServicesClientProps) {
         serviceId: selectedService.id,
         phone: recipientPhone.trim(),
         customerPhone: recipientPhone.trim(),
-        redirectPath: `/store/${store.slug}/services`,
+        redirectPath: `/store/${store.slug}/payment-complete`,
       })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Unable to initialize payment')

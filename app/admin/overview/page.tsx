@@ -83,15 +83,15 @@ export default function AdminOverviewPage() {
       supabase.client
         .from('orders')
         .select('amount,created_at,data_packages(network)')
-        .eq('status', 'success'),
+        .eq('status', 'delivered'),
       supabase.client
         .from('agent_store_orders')
         .select('total_price,created_at,item_type,data_packages(network)')
-        .eq('status', 'completed'),
+        .eq('status', 'delivered'),
       supabase.client.from('orders').select('id', { count: 'exact', head: true }),
       supabase.client.from('agent_store_orders').select('id', { count: 'exact', head: true }),
-      supabase.client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'success'),
-      supabase.client.from('agent_store_orders').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+      supabase.client.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'delivered'),
+      supabase.client.from('agent_store_orders').select('id', { count: 'exact', head: true }).eq('status', 'delivered'),
       supabase.client.rpc('admin_list_users'),
       supabase.client.from('data_packages').select('id', { count: 'exact', head: true }).eq('is_active', true),
       supabase.client.from('online_services').select('id', { count: 'exact', head: true }).eq('is_active', true),

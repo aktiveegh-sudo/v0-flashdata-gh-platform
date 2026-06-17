@@ -683,15 +683,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
           idempotencyKey: `dash-${reference}`,
         })
 
-        const deliveredStatus =
-          delivery.status === 'fulfilled' || delivery.status === 'success' || delivery.status === 'completed'
-            ? 'success'
-            : 'pending'
-
         await supabaseAdmin
           .from('orders')
           .update({
-            status: deliveredStatus,
             metadata: {
               source: 'paystack',
               payment_channel: charge.channel,
@@ -706,7 +700,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         await supabaseAdmin
           .from('transactions')
           .update({
-            status: deliveredStatus,
+            status: 'success',
             metadata: {
               source: 'paystack',
               channel: charge.channel,
@@ -871,7 +865,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
       let serviceId: string | null = null
       let itemLabel = 'Public purchase'
       let customerNote = `Paystack Ref: ${reference} | Source: public checkout | Payment Status: paid`
-      let storeOrderStatus: 'pending' | 'accepted' | 'declined' | 'completed' = 'pending'
+      let storeOrderStatus: 'pending' | 'processing' | 'delivered' | 'declined' = 'pending'
 
       if (metadata.flow === 'public_service') {
         if (!metadata.serviceId || !metadata.phone) {
@@ -951,11 +945,6 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
               requestId: `${reference}-PUBLIC`,
               idempotencyKey: `public-${reference}`,
             })
-
-            storeOrderStatus =
-              delivery.status === 'fulfilled' || delivery.status === 'success' || delivery.status === 'completed'
-                ? 'completed'
-                : 'pending'
 
             customerNote = `${customerNote} | Provider: ${delivery.provider} | Delivery Status: ${delivery.status}${
               delivery.orderId ? ` | Provider Order: ${delivery.orderId}` : ''
@@ -1050,7 +1039,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
     let serviceId: string | null = null
     let itemLabel = 'Store purchase'
     let customerNote = `Paystack Ref: ${reference} | Payment Status: paid`
-    let storeOrderStatus: 'pending' | 'accepted' | 'declined' | 'completed' = 'pending'
+    let storeOrderStatus: 'pending' | 'processing' | 'delivered' | 'declined' = 'pending'
 
     if (metadata.flow === 'store_service') {
       if (!metadata.serviceId) {
@@ -1129,11 +1118,6 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
             idempotencyKey: `store-${reference}`,
           })
 
-          storeOrderStatus =
-            delivery.status === 'fulfilled' || delivery.status === 'success' || delivery.status === 'completed'
-              ? 'completed'
-              : 'pending'
-
           customerNote = `${customerNote} | Provider: ${delivery.provider} | Delivery Status: ${delivery.status}${
             delivery.orderId ? ` | Provider Order: ${delivery.orderId}` : ''
           }`
@@ -1196,6 +1180,11 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
   return {
     ok: true,
     redirectPath: metadata.redirectPath,
-    message: 'Payment received and order submitted successfully',
+    message:
+      metadata.flow === 'store_data' || metadata.flow === 'store_afa'
+        ? 'Payment complete. Your data bundle is being processed.'
+        : metadata.flow === 'store_service'
+          ? 'Payment complete. Your service order is being processed.'
+          : 'Payment received and order submitted successfully',
   }
 }

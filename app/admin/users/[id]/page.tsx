@@ -62,7 +62,7 @@ type StoreOrder = {
   item_type: 'data' | 'service'
   customer_name: string
   total_price: number
-  status: 'pending' | 'accepted' | 'declined' | 'completed'
+  status: 'pending' | 'processing' | 'delivered' | 'declined'
   created_at: string
 }
 
@@ -288,7 +288,7 @@ export default function UserDetailPage() {
 
   const totalSales = sales.reduce((acc, s) => acc + s.amount, 0)
   const totalStoreOrders = storeOrders.length
-  const completedOrders = storeOrders.filter((o) => o.status === 'completed').length
+  const completedOrders = storeOrders.filter((o) => o.status === 'delivered').length
 
   return (
     <div className="space-y-6">
@@ -414,7 +414,7 @@ export default function UserDetailPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{totalStoreOrders}</p>
-            <p className="text-xs text-muted-foreground mt-1">{completedOrders} completed</p>
+            <p className="text-xs text-muted-foreground mt-1">{completedOrders} delivered</p>
           </CardContent>
         </Card>
 
@@ -478,7 +478,7 @@ export default function UserDetailPage() {
                     <p className="font-semibold">{ghanaCurrency(order.total_price)}</p>
                     <Badge
                       variant={
-                        order.status === 'completed'
+                        order.status === 'delivered'
                           ? 'default'
                           : order.status === 'declined'
                             ? 'destructive'

@@ -32,7 +32,7 @@ type AfaRegistration = {
   location: string
   amount: number
   reference: string
-  status: 'pending' | 'processing' | 'completed' | 'rejected'
+  status: 'pending' | 'processing' | 'delivered' | 'rejected'
   admin_note: string | null
   created_at: string
   profiles?: {
@@ -41,7 +41,7 @@ type AfaRegistration = {
   } | null
 }
 
-const statusOptions: AfaRegistration['status'][] = ['pending', 'processing', 'completed', 'rejected']
+const statusOptions: AfaRegistration['status'][] = ['pending', 'processing', 'delivered', 'rejected']
 
 export default function AdminAfaPage() {
   const [loading, setLoading] = useState(true)

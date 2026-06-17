@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase/client'
+import { getDashboardAuthHeaders } from '@/lib/dashboard/client-auth'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -18,7 +19,7 @@ type StoreOrder = {
   customer_phone: string
   quantity: number
   total_price: number
-  status: 'pending' | 'accepted' | 'declined' | 'completed'
+  status: 'pending' | 'processing' | 'delivered' | 'declined'
   created_at: string
   data_packages: {
     network: string
@@ -41,49 +42,52 @@ export default function StoreOrdersPage() {
     setLoading(true)
 
     await fetch('/api/orders/auto-complete', { method: 'POST' }).catch(() => null)
-    const { data: authData, error: authError } = await supabase.auth.getUser()
-    if (authError || !authData.user) {
-      toast.error('Please login again')
+
+    const response = await fetch('/api/dashboard/store-orders', {
+      method: 'GET',
+      headers: await getDashboardAuthHeaders(false),
+      credentials: 'include',
+    })
+
+    const result = (await response.json().catch(() => null)) as
+      | {
+          success?: boolean
+          error?: string
+          data?: { store?: { id: string } | null; orders?: StoreOrder[] }
+        }
+      | null
+
+    if (!response.ok || !result?.success) {
+      toast.error(result?.error || 'Unable to load store orders')
+      setOrders([])
       setLoading(false)
       return
     }
 
-    const { data: store, error: storeError } = await supabase.client
-      .from('agent_stores')
-      .select('id')
-      .eq('agent_id', authData.user.id)
-      .maybeSingle()
-
-    if (storeError) {
-      toast.error(storeError.message)
-      setLoading(false)
-      return
-    }
-
-    if (!store) {
+    if (!result.data?.store) {
       toast.error('Set up your store in Store Settings first')
+      setOrders([])
       setLoading(false)
       return
     }
 
-    const { data, error } = await supabase.client
-      .from('agent_store_orders')
-      .select('id,item_type,customer_name,customer_phone,quantity,total_price,status,created_at,data_packages(network,name,amount),online_services(name,category)')
-      .eq('store_id', store.id)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      toast.error(error.message)
-      setLoading(false)
-      return
-    }
-
-    setOrders((data as StoreOrder[] | null) ?? [])
+    setOrders((result.data.orders as StoreOrder[] | null) ?? [])
     setLoading(false)
   }
 
   useEffect(() => {
     void loadOrders()
+
+    const channel = supabase.client
+      .channel(`dashboard-store-orders-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_store_orders' }, () => {
+        void loadOrders()
+      })
+      .subscribe()
+
+    return () => {
+      void supabase.client.removeChannel(channel)
+    }
   }, [])
 
   const updateStatus = async (orderId: string, status: StoreOrder['status']) => {
@@ -106,14 +110,14 @@ export default function StoreOrdersPage() {
   }
 
   const pendingOrders = orders.filter((o) => o.status === 'pending')
-  const acceptedOrders = orders.filter((o) => o.status === 'accepted')
-  const completedOrders = orders.filter((o) => o.status === 'completed' || o.status === 'declined')
+  const processingOrders = orders.filter((o) => o.status === 'processing')
+  const completedOrders = orders.filter((o) => o.status === 'delivered' || o.status === 'declined')
   const filteredOrders = statusFilter === 'all' ? orders : orders.filter((o) => o.status === statusFilter)
 
   const statusClass = (status: StoreOrder['status']) => {
-    if (status === 'completed') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+    if (status === 'delivered') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
     if (status === 'pending') return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-    if (status === 'accepted') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+    if (status === 'processing') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
     return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
   }
 
@@ -175,7 +179,7 @@ export default function StoreOrdersPage() {
             <Button
               size="sm"
               className="gap-1"
-              onClick={() => void updateStatus(order.id, 'accepted')}
+              onClick={() => void updateStatus(order.id, 'processing')}
               disabled={updatingId === order.id}
             >
               {updatingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -184,11 +188,11 @@ export default function StoreOrdersPage() {
           </div>
         ) : null}
 
-        {order.status === 'accepted' ? (
+        {order.status === 'processing' ? (
           <Button
             size="sm"
             className="gap-1"
-            onClick={() => void updateStatus(order.id, 'completed')}
+            onClick={() => void updateStatus(order.id, 'delivered')}
             disabled={updatingId === order.id}
           >
             {updatingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -237,7 +241,7 @@ export default function StoreOrdersPage() {
               <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{acceptedOrders.length}</p>
+              <p className="text-2xl font-bold text-foreground">{processingOrders.length}</p>
               <p className="text-sm text-muted-foreground">Processing</p>
             </div>
           </CardContent>
@@ -249,9 +253,9 @@ export default function StoreOrdersPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">
-                {completedOrders.filter((o) => o.status === 'completed').length}
+                {completedOrders.filter((o) => o.status === 'delivered').length}
               </p>
-              <p className="text-sm text-muted-foreground">Completed</p>
+              <p className="text-sm text-muted-foreground">Delivered</p>
             </div>
           </CardContent>
         </Card>
@@ -271,9 +275,9 @@ export default function StoreOrdersPage() {
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="accepted">Accepted</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="declined">Declined</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
               </SelectContent>
             </Select>
           </div>

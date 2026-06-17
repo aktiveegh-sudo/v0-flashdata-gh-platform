@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
@@ -9,6 +10,7 @@ import {
   Wifi,
   Wallet,
   Sparkles,
+  ShoppingCart,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,6 +19,7 @@ import { WalletCard } from '@/components/wallet-card'
 import { StatsCard } from '@/components/stats-card'
 import { QuickActions } from '@/components/quick-actions'
 import { useAuthStore, useWalletStore, useTransactionStore } from '@/lib/store'
+import { getDashboardAuthHeaders } from '@/lib/dashboard/client-auth'
 import { format } from 'date-fns'
 
 const networkLogos: Record<string, { bg: string; text: string; gradient: string }> = {
@@ -25,10 +28,46 @@ const networkLogos: Record<string, { bg: string; text: string; gradient: string 
   Telecel: { bg: 'bg-blue-600', text: 'text-white', gradient: 'from-blue-500 to-blue-700' },
 }
 
+type StoreOrderPreview = {
+  id: string
+  customer_name: string
+  customer_phone: string
+  total_price: number
+  status: 'pending' | 'processing' | 'delivered' | 'declined'
+  created_at: string
+  item_type: 'data' | 'service'
+  data_packages: { network: string; amount: string; name: string } | null
+  online_services: { name: string; category: string } | null
+}
+
 export default function OverviewPage() {
   const { user } = useAuthStore()
   const { balance } = useWalletStore()
   const { transactions } = useTransactionStore()
+  const [storeOrders, setStoreOrders] = useState<StoreOrderPreview[]>([])
+
+  useEffect(() => {
+    const loadStoreOrders = async () => {
+      const response = await fetch('/api/dashboard/store-orders', {
+        method: 'GET',
+        headers: await getDashboardAuthHeaders(false),
+        credentials: 'include',
+      })
+
+      const result = (await response.json().catch(() => null)) as
+        | { success?: boolean; data?: { orders?: StoreOrderPreview[] } }
+        | null
+
+      if (!response.ok || !result?.success) {
+        setStoreOrders([])
+        return
+      }
+
+      setStoreOrders((result.data?.orders || []).slice(0, 5))
+    }
+
+    void loadStoreOrders()
+  }, [])
 
   const recentTransactions = transactions.slice(0, 5)
   const successfulTransactions = transactions.filter((tx) => tx.status === 'success')
@@ -278,6 +317,56 @@ export default function OverviewPage() {
           </Card>
         </motion.div>
       </div>
+
+      <motion.div variants={itemVariants}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="flex items-center gap-2 console-section-label">
+              <ShoppingCart className="h-4 w-4 text-[#f4c532]" />
+              Recent Shop Orders
+            </CardTitle>
+            <Link href="/dashboard/store-orders">
+              <Button variant="ghost" size="sm" className="h-7 gap-1 text-[#f4c532] text-xs hover:bg-[#f4c532]/10 hover:text-[#ffdc67]">
+                View All
+                <ArrowUpRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {storeOrders.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No shop orders yet. Share your store link to start receiving orders.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {storeOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.02] p-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{order.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {order.item_type === 'service'
+                          ? order.online_services?.name || 'Service order'
+                          : `${order.data_packages?.amount || ''} ${order.data_packages?.network || 'Data'}`.trim()}
+                        {' · '}
+                        {order.customer_phone}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-foreground">GHc {Number(order.total_price).toFixed(2)}</p>
+                      <Badge variant="secondary" className="text-[10px] capitalize">
+                        {order.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </motion.div>
   )
 }

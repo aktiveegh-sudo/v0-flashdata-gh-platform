@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase/client'
+import { getDashboardAuthHeaders } from '@/lib/dashboard/client-auth'
 import { getStorePublicUrl } from '@/lib/store-domain'
 import toast from 'react-hot-toast'
 import {
@@ -37,7 +38,7 @@ type StoreOrderRow = {
   customer_name: string
   customer_phone: string
   total_price: number
-  status: 'pending' | 'accepted' | 'declined' | 'completed'
+  status: 'pending' | 'processing' | 'delivered' | 'declined'
   created_at: string
   data_packages: {
     network: string
@@ -56,19 +57,20 @@ export default function MyStorePage() {
       setLoading(true)
       await fetch('/api/orders/auto-complete', { method: 'POST' }).catch(() => null)
 
-      const { data: authData } = await supabase.auth.getUser()
-      if (!authData.user) {
-        setLoading(false)
-        return
-      }
+      const response = await fetch('/api/dashboard/store-orders', {
+        method: 'GET',
+        headers: await getDashboardAuthHeaders(false),
+        credentials: 'include',
+      })
 
-      const { data: store } = await supabase.client
-        .from('agent_stores')
-        .select('id,slug')
-        .eq('agent_id', authData.user.id)
-        .maybeSingle()
+      const result = (await response.json().catch(() => null)) as
+        | {
+            success?: boolean
+            data?: { store?: { id: string; slug: string } | null; orders?: StoreOrderRow[] }
+          }
+        | null
 
-      if (!store) {
+      if (!response.ok || !result?.success || !result.data?.store) {
         setStoreSlug('')
         setOrders([])
         setActivePackages(0)
@@ -76,27 +78,37 @@ export default function MyStorePage() {
         return
       }
 
-      setStoreSlug(store.slug)
+      setStoreSlug(result.data.store.slug)
 
-      const [{ data: orderRows }, { count: packageCount }] = await Promise.all([
-        supabase.client
-          .from('agent_store_orders')
-          .select('id,customer_name,customer_phone,total_price,status,created_at,data_packages(network,amount)')
-          .eq('store_id', store.id)
-          .order('created_at', { ascending: false }),
-        supabase.client
-          .from('agent_store_packages')
-          .select('id', { count: 'exact', head: true })
-          .eq('store_id', store.id)
-          .eq('is_active', true),
-      ])
+      const { data: authData } = await supabase.auth.getUser()
+      if (!authData.user) {
+        setLoading(false)
+        return
+      }
 
-      setOrders((orderRows as StoreOrderRow[]) || [])
+      const { count: packageCount } = await supabase.client
+        .from('agent_store_packages')
+        .select('id', { count: 'exact', head: true })
+        .eq('store_id', result.data.store.id)
+        .eq('is_active', true)
+
+      setOrders((result.data.orders as StoreOrderRow[]) || [])
       setActivePackages(packageCount || 0)
       setLoading(false)
     }
 
     void loadStoreData()
+
+    const channel = supabase.client
+      .channel(`dashboard-my-store-orders-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_store_orders' }, () => {
+        void loadStoreData()
+      })
+      .subscribe()
+
+    return () => {
+      void supabase.client.removeChannel(channel)
+    }
   }, [])
 
   const publicLink = useMemo(() => {
@@ -355,10 +367,12 @@ export default function MyStorePage() {
                     <Badge
                       variant="secondary"
                       className={
-                        order.status === 'completed'
+                        order.status === 'delivered'
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                           : order.status === 'declined'
                           ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          : order.status === 'processing'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                           : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                       }
                     >

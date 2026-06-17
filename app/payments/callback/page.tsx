@@ -41,7 +41,17 @@ function PaymentsCallbackContent() {
       setLoading(false)
 
       const redirectTarget = result.data?.redirectPath || nextPath
+      const isStorePaymentComplete = /\/store\/[^/]+\/payment-complete$/.test(redirectTarget)
+
       window.setTimeout(() => {
+        if (isStorePaymentComplete) {
+          const completeUrl = `${redirectTarget}?reference=${encodeURIComponent(reference)}&message=${encodeURIComponent(
+            result.data?.message || 'Payment verified successfully'
+          )}`
+          router.replace(completeUrl)
+          return
+        }
+
         const successUrl = `/payments/success?reference=${encodeURIComponent(reference)}&message=${encodeURIComponent(
           result.data?.message || 'Payment verified successfully'
         )}&next=${encodeURIComponent(redirectTarget)}`

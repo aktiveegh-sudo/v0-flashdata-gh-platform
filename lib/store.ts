@@ -184,7 +184,7 @@ export interface StoreOrder {
   network: string
   dataAmount: string
   amount: number
-  status: 'pending' | 'accepted' | 'declined' | 'completed'
+  status: 'pending' | 'processing' | 'delivered' | 'declined'
   date: string
 }
 

@@ -97,7 +97,7 @@ export function StoreBuyDataClient({ store }: StoreBuyDataClientProps) {
         ghanaCardNumber: isAfa ? ghanaCardNumber.trim().toUpperCase() : undefined,
         location: isAfa ? location.trim() : undefined,
         customerPhone: recipientPhone.trim(),
-        redirectPath: `/store/${store.slug}/buy-data`,
+        redirectPath: `/store/${store.slug}/payment-complete`,
       })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Unable to initialize payment')

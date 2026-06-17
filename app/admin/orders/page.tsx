@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase/client'
+import { getAdminAuthHeaders } from '@/lib/admin/client-auth'
 import { formatDateTime, ghanaCurrency, toCsv } from '@/lib/admin/utils'
+import { adminStatusOptions, normalizeAdminOrderStatus, type AdminOrderSource } from '@/lib/orders/status'
 import toast from 'react-hot-toast'
 
 type DashboardDataOrderRow = {
@@ -15,7 +17,7 @@ type DashboardDataOrderRow = {
   user_id: string
   phone: string
   amount: number
-  status: 'pending' | 'success' | 'failed'
+  status: 'pending' | 'processing' | 'delivered' | 'failed'
   reference: string
   retry_count: number
   created_at: string
@@ -29,7 +31,7 @@ type AfaOrderRow = {
   full_name: string
   phone: string
   amount: number
-  status: 'pending' | 'processing' | 'completed' | 'rejected'
+  status: 'pending' | 'processing' | 'delivered' | 'rejected'
   reference: string
   created_at: string
   profiles?: { full_name: string | null; email: string | null } | null
@@ -43,7 +45,7 @@ type StoreOrderRow = {
   customer_email: string | null
   customer_note: string | null
   total_price: number
-  status: 'pending' | 'accepted' | 'declined' | 'completed'
+  status: 'pending' | 'processing' | 'delivered' | 'declined'
   created_at: string
   data_packages?: { network: string; name: string; amount: string } | null
   online_services?: { name: string; category: string } | null
@@ -61,19 +63,19 @@ type UnifiedOrderRow = {
   itemLabel: string
   networkOrCategory: string
   amount: number
-  status: 'pending' | 'success' | 'failed' | 'processing' | 'completed' | 'rejected' | 'accepted' | 'declined'
+  status: 'pending' | 'processing' | 'delivered' | 'failed' | 'rejected' | 'declined'
   createdAt: string
   retryCount: number
   retryTargetOrderId: string | null
 }
 
-const statusOptions = ['all', 'pending', 'processing', 'accepted', 'completed', 'success', 'failed', 'rejected', 'declined'] as const
+const statusOptions = ['all', 'pending', 'processing', 'delivered', 'failed', 'rejected', 'declined'] as const
 type StatusFilter = typeof statusOptions[number]
 
 const statusBadgeVariant = (status: UnifiedOrderRow['status']): 'default' | 'secondary' | 'destructive' | 'outline' => {
-  if (status === 'success' || status === 'completed') return 'default'
+  if (status === 'delivered') return 'default'
   if (status === 'failed' || status === 'rejected' || status === 'declined') return 'destructive'
-  if (status === 'accepted' || status === 'processing') return 'outline'
+  if (status === 'processing') return 'outline'
   return 'secondary'
 }
 
@@ -81,6 +83,7 @@ export default function AdminOrdersPage() {
   const [rows, setRows] = useState<UnifiedOrderRow[]>([])
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<StatusFilter>('all')
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const loadOrders = useCallback(async () => {
     setLoading(true)
@@ -129,7 +132,7 @@ export default function AdminOrdersPage() {
       itemLabel: row.data_packages?.name || 'Data Package',
       networkOrCategory: row.data_packages?.network || '-',
       amount: Number(row.amount || 0),
-      status: row.status,
+      status: normalizeAdminOrderStatus(row.status) as UnifiedOrderRow['status'],
       createdAt: row.created_at,
       retryCount: Number(row.retry_count || 0),
       retryTargetOrderId: row.id,
@@ -146,7 +149,7 @@ export default function AdminOrdersPage() {
       itemLabel: 'AFA Registration',
       networkOrCategory: 'AFA',
       amount: Number(row.amount || 0),
-      status: row.status,
+      status: normalizeAdminOrderStatus(row.status) as UnifiedOrderRow['status'],
       createdAt: row.created_at,
       retryCount: 0,
       retryTargetOrderId: null,
@@ -166,7 +169,7 @@ export default function AdminOrdersPage() {
       itemLabel: row.item_type === 'service' ? (row.online_services?.name || 'Store Service') : (isStoreAfa ? 'Store AFA Registration' : (row.data_packages?.name || 'Store Data')),
       networkOrCategory: row.item_type === 'service' ? (row.online_services?.category || 'Service') : (row.data_packages?.network || '-'),
       amount: Number(row.total_price || 0),
-      status: row.status,
+      status: normalizeAdminOrderStatus(row.status) as UnifiedOrderRow['status'],
       createdAt: row.created_at,
       retryCount: 0,
       retryTargetOrderId: null,
@@ -187,6 +190,14 @@ export default function AdminOrdersPage() {
   }, [loadOrders])
 
   useEffect(() => {
+    const interval = window.setInterval(() => {
+      void fetch('/api/orders/auto-complete', { method: 'POST' }).then(() => loadOrders())
+    }, 60_000)
+
+    return () => window.clearInterval(interval)
+  }, [loadOrders])
+
+  useEffect(() => {
     const channel = supabase.client
       .channel('admin-orders-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => void loadOrders())
@@ -199,6 +210,32 @@ export default function AdminOrdersPage() {
     }
   }, [loadOrders])
 
+  const updateOrderStatus = async (row: UnifiedOrderRow, nextStatus: string) => {
+    setUpdatingId(row.id)
+
+    const response = await fetch('/api/admin/orders/status', {
+      method: 'PATCH',
+      headers: await getAdminAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({
+        source: row.source,
+        orderId: row.id,
+        status: nextStatus,
+      }),
+    })
+
+    const result = (await response.json().catch(() => null)) as { success?: boolean; error?: string }
+    setUpdatingId(null)
+
+    if (!response.ok || !result?.success) {
+      toast.error(result?.error || 'Unable to update order status')
+      return
+    }
+
+    toast.success(`Order status updated to ${nextStatus}`)
+    void loadOrders()
+  }
+
   const retryOrder = async (row: UnifiedOrderRow) => {
     if (!row.retryTargetOrderId) {
       return
@@ -206,7 +243,7 @@ export default function AdminOrdersPage() {
 
     const { error } = await supabase.client
       .from('orders')
-      .update({ status: 'pending', retry_count: row.retryCount + 1 })
+      .update({ status: 'pending', retry_count: row.retryCount + 1, status_locked: false })
       .eq('id', row.retryTargetOrderId)
 
     if (error) {
@@ -231,7 +268,7 @@ export default function AdminOrdersPage() {
         item: row.itemLabel,
         phone: row.customerPhone,
         amount: row.amount,
-        status: row.status,
+        status: normalizeAdminOrderStatus(row.status) as UnifiedOrderRow['status'],
         retry_count: row.retryCount,
         created_at: row.createdAt,
       }))
@@ -250,8 +287,8 @@ export default function AdminOrdersPage() {
     return {
       all: rows.length,
       pending: rows.filter((x) => x.status === 'pending').length,
-      success: rows.filter((x) => x.status === 'success').length,
-      completed: rows.filter((x) => x.status === 'completed').length,
+      processing: rows.filter((x) => x.status === 'processing').length,
+      delivered: rows.filter((x) => x.status === 'delivered').length,
       failed: rows.filter((x) => x.status === 'failed' || x.status === 'rejected' || x.status === 'declined').length,
     }
   }, [rows])
@@ -281,9 +318,7 @@ export default function AdminOrdersPage() {
               <SelectItem value="all">All</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="accepted">Accepted</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="success">Success</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
               <SelectItem value="declined">Declined</SelectItem>
@@ -292,8 +327,8 @@ export default function AdminOrdersPage() {
           <div className="flex flex-wrap gap-2 text-sm">
             <Badge variant="outline">Total: {groupedCount.all}</Badge>
             <Badge variant="secondary">Pending: {groupedCount.pending}</Badge>
-            <Badge variant="default">Success: {groupedCount.success}</Badge>
-            <Badge variant="default">Completed: {groupedCount.completed}</Badge>
+            <Badge variant="outline">Processing: {groupedCount.processing}</Badge>
+            <Badge variant="default">Delivered: {groupedCount.delivered}</Badge>
             <Badge variant="destructive">Failed/Rejected: {groupedCount.failed}</Badge>
           </div>
         </CardContent>
@@ -341,9 +376,25 @@ export default function AdminOrdersPage() {
                   <td className="px-3 py-3">{row.customerPhone}</td>
                   <td className="px-3 py-3">{ghanaCurrency(Number(row.amount || 0))}</td>
                   <td className="px-3 py-3">
-                    <Badge variant={statusBadgeVariant(row.status)}>
-                      {row.status}
-                    </Badge>
+                    <div className="flex min-w-[180px] flex-col gap-2">
+                      <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
+                      <Select
+                        value={row.status}
+                        onValueChange={(value) => void updateOrderStatus(row, value)}
+                        disabled={updatingId === row.id}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Change status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {adminStatusOptions[row.source as AdminOrderSource].map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </td>
                   <td className="px-3 py-3">{formatDateTime(row.createdAt)}</td>
                   <td className="px-3 py-3">

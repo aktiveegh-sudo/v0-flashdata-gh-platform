@@ -23,7 +23,7 @@ type StoreTransactionRow = {
   customer_phone: string
   total_price: number
   created_at: string
-  status: 'pending' | 'accepted' | 'declined' | 'completed'
+  status: 'pending' | 'processing' | 'delivered' | 'declined'
   data_packages: {
     network: string
     amount: string

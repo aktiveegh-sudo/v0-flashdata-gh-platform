@@ -27,7 +27,7 @@ type AfaRegistrationRow = {
   ghana_card_number: string
   location: string
   amount: number
-  status: 'pending' | 'processing' | 'completed' | 'rejected'
+  status: 'pending' | 'processing' | 'delivered' | 'rejected'
   created_at: string
 }
 
