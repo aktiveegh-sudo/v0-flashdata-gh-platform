@@ -91,16 +91,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="agent-console admin-console vibe-dashboard-bg min-h-screen">
-      <AdminSidebar />
+    <div className="min-h-screen bg-gray-50 dark:bg-[#030305]">
+      <AdminSidebar userName={name} onLogout={handleLogout} />
       <div className="lg:pl-72">
         <AdminHeader userName={name} userEmail={email} onLogout={handleLogout} />
-        <main className="px-3 py-4 sm:px-4 lg:px-6 lg:py-6 xl:px-8">
-          <div className="mx-auto w-full max-w-7xl">
-            <div className="vibe-shell-panel rounded-3xl p-3 sm:p-4 lg:p-5">
-              <div className="dashboard-content">{children}</div>
-            </div>
-          </div>
+        <main className="px-4 py-5 lg:px-6 lg:py-6">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>
     </div>

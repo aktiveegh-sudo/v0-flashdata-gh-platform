@@ -247,12 +247,12 @@ export default function AdminOverviewPage() {
 
   const cards = useMemo(
     () => [
-      { label: 'Revenue Today', value: ghanaCurrency(todayRevenue) },
+      { label: "Today's Revenue", value: ghanaCurrency(todayRevenue) },
       { label: 'Total Revenue', value: ghanaCurrency(totalRevenue) },
       { label: 'Total Users', value: totalUsers.toLocaleString() },
       { label: 'Total Orders', value: totalOrders.toLocaleString() },
-      { label: 'Total Transactions', value: totalTransactions.toLocaleString() },
       { label: 'Total Sales', value: totalSales.toLocaleString() },
+      { label: 'Total Transactions', value: totalTransactions.toLocaleString() },
       { label: 'Active Packages', value: activePackages.toLocaleString() },
       { label: 'Active Services', value: activeServices.toLocaleString() },
       { label: 'Active API Users', value: apiUsers.toLocaleString() },
@@ -275,26 +275,34 @@ export default function AdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Admin Overview</h1>
-        <p className="text-sm text-muted-foreground">Realtime operational intelligence for FlashData GH.</p>
+      <div className="relative overflow-hidden rounded-2xl border border-amber-400/20 bg-white p-6 shadow-sm dark:border-amber-400/20 dark:bg-[#0a110d]">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-400/10 blur-2xl" />
+        <div className="relative z-10">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-500">Admin Insight</p>
+          <h1 className="mt-2 text-2xl font-black lg:text-3xl">Global Management</h1>
+          <p className="mt-2 max-w-2xl text-sm text-gray-500 dark:text-white/60">
+            High-level platform metrics and financial reconciliation for FlashData GH.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
-          <Card key={card.label}>
+          <Card key={card.label} className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">{card.label}</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-[0.12em] text-gray-500 dark:text-white/45">
+                {card.label}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{loading ? '...' : card.value}</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{loading ? '...' : card.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
+        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
           <CardHeader>
             <CardTitle>Revenue Last 7 Days</CardTitle>
           </CardHeader>
@@ -311,7 +319,7 @@ export default function AdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
           <CardHeader>
             <CardTitle>Sales by Network</CardTitle>
           </CardHeader>
@@ -329,7 +337,7 @@ export default function AdminOverviewPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
         <CardHeader>
           <CardTitle>Recent Activity Feed</CardTitle>
         </CardHeader>
@@ -351,7 +359,7 @@ export default function AdminOverviewPage() {
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
+        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
           <CardHeader>
             <CardTitle>Recent Users</CardTitle>
           </CardHeader>
@@ -378,7 +386,7 @@ export default function AdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
           </CardHeader>
@@ -404,7 +412,7 @@ export default function AdminOverviewPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
           <CardHeader>
             <CardTitle>Recent Transactions</CardTitle>
           </CardHeader>

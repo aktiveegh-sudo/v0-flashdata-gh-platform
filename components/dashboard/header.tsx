@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeSwitcher } from '@/components/theme-switcher'
-import { useAuthStore } from '@/lib/store'
+import { dashboardPageLabels } from '@/lib/dashboard/nav'
+import { useAuthStore, useWalletStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -32,29 +33,13 @@ type NotificationItem = {
   is_read: boolean
 }
 
-const pageLabels: Record<string, string> = {
-  '/dashboard/overview': 'Home',
-  '/dashboard/wallet': 'My Money',
-  '/dashboard/afa': 'AFA Registration',
-  '/dashboard/buy-data': 'Buy Data',
-  '/dashboard/buy-services': 'Buy Services',
-  '/dashboard/transactions': 'History',
-  '/dashboard/my-store': 'My Shop',
-  '/dashboard/store-packages': 'Shop Packages',
-  '/dashboard/other-services': 'Extra Services',
-  '/dashboard/store-orders': 'Shop Orders',
-  '/dashboard/store-transactions': 'Shop Payments',
-  '/dashboard/withdrawal': 'Cash Out',
-  '/dashboard/store-settings': 'Shop Settings',
-  '/dashboard/developer-api': 'Integrations',
-  '/dashboard/contact-support': 'Help',
-  '/dashboard/settings': 'Profile',
-}
+const pageLabels = dashboardPageLabels
 
 export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
+  const { balance } = useWalletStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loadingNotifications, setLoadingNotifications] = useState(false)
@@ -185,41 +170,43 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#070c14]/92 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-3.5">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 lg:gap-4">
-        <div className="flex min-w-0 items-center gap-2.5 lg:gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 rounded-2xl border border-white/10 bg-white/5 text-slate-100 lg:hidden"
-          onClick={onMenuClick}
-          aria-label="Toggle menu"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur-xl dark:border-white/8 dark:bg-[#0a110d]/90 lg:px-6">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-xl border border-gray-200 dark:border-white/10 lg:hidden"
+            onClick={onMenuClick}
+            aria-label="Toggle menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{greeting}</p>
-            <h2 className="truncate text-lg font-semibold text-slate-100 lg:text-xl">{pageTitle}</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">{greeting}</p>
+            <h2 className="truncate text-lg font-black lg:text-xl">{pageTitle}</h2>
           </div>
 
           <form onSubmit={handleSearch} className="hidden xl:block">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 type="search"
                 placeholder="Quick Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-11 w-72 rounded-2xl border border-white/10 bg-[#0d111b] pl-10 text-slate-100 shadow-sm placeholder:text-slate-500"
+                className="h-11 w-72 rounded-2xl border border-gray-200 bg-gray-50 pl-10 text-gray-900 shadow-sm placeholder:text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/40"
               />
-              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-slate-400">⌘K</span>
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-400 dark:border-white/10 dark:bg-white/5">
+                ⌘K
+              </span>
             </div>
           </form>
         </div>
 
         <div className="flex items-center gap-1.5 lg:gap-3">
         {/* Mobile Search */}
-        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl border border-white/10 bg-white/5 text-slate-100 xl:hidden" aria-label="Search">
+        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl border border-gray-200 bg-white text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-white xl:hidden" aria-label="Search">
           <Search className="h-5 w-5" />
         </Button>
 
@@ -228,10 +215,9 @@ export function Header({ onMenuClick }: HeaderProps) {
               <ShieldCheck className="h-3.5 w-3.5" />
               Secure
             </div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-slate-200">
-              <WalletMinimal className="h-3.5 w-3.5 text-[#f4c532]" />
-              Wallet
-              <span className="font-bold">C****</span>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300">
+              <WalletMinimal className="h-3.5 w-3.5" />
+              GHc {balance.toFixed(2)}
             </div>
           </div>
 
@@ -240,7 +226,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-2xl border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10" aria-label="Notifications">
+              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-2xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10" aria-label="Notifications">
               <Bell className="h-5 w-5" />
                 {unreadCount > 0 ? (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#f4c532] text-[10px] font-bold text-black">
@@ -274,7 +260,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               ))
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="justify-center text-primary">
+            <DropdownMenuItem className="justify-center text-primary" onClick={() => router.push('/dashboard/notifications')}>
               View all notifications
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -283,15 +269,15 @@ export function Header({ onMenuClick }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-11 gap-2 rounded-2xl border border-white/10 bg-white/5 px-2.5 shadow-sm hover:bg-white/10">
-              <Avatar className="h-8 w-8 ring-2 ring-[#f4c532]/40">
-                <AvatarFallback className="bg-gradient-to-br from-[#f4c532] to-[#d4a617] text-[#1b1207] text-xs font-bold">
+              <Button variant="ghost" className="h-11 gap-2 rounded-2xl border border-gray-200 bg-white px-2.5 shadow-sm hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+              <Avatar className="h-8 w-8 ring-2 ring-amber-400/40">
+                <AvatarFallback className="bg-gradient-to-br from-amber-400 to-amber-500 text-black text-xs font-bold">
                   {user ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden text-right lg:inline-flex lg:flex-col">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{greeting}</span>
-                <span className="text-sm font-semibold text-slate-100">{user?.name?.split(' ')[0] || 'User'}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">{greeting}</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name?.split(' ')[0] || 'User'}</span>
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -310,7 +296,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               </div>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push('/dashboard/store-settings')}>
+            <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
               <Settings className="mr-2 h-4 w-4" />
               My Profile
             </DropdownMenuItem>

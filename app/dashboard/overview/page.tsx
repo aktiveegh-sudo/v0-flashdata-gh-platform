@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
-  TrendingUp,
   Package,
   ArrowUpRight,
   Wifi,
@@ -18,6 +17,10 @@ import { Badge } from '@/components/ui/badge'
 import { WalletCard } from '@/components/wallet-card'
 import { StatsCard } from '@/components/stats-card'
 import { QuickActions } from '@/components/quick-actions'
+import { ProfileBanner } from '@/components/dashboard/profile-banner'
+import { AnnouncementBanner } from '@/components/dashboard/announcement-banner'
+import { ReferralCard } from '@/components/dashboard/referral-card'
+import { StreakWidget } from '@/components/dashboard/streak-widget'
 import { useAuthStore, useWalletStore, useTransactionStore } from '@/lib/store'
 import { getDashboardAuthHeaders } from '@/lib/dashboard/client-auth'
 import { format } from 'date-fns'
@@ -72,33 +75,43 @@ export default function OverviewPage() {
   const recentTransactions = transactions.slice(0, 5)
   const successfulTransactions = transactions.filter((tx) => tx.status === 'success')
   const pendingTransactions = transactions.filter((tx) => tx.status === 'pending')
-  const thisMonthSpend = successfulTransactions
-    .filter((tx) => tx.type !== 'wallet' && new Date(tx.date).getMonth() === new Date().getMonth())
+
+  const totalDeposited = successfulTransactions
+    .filter((tx) => tx.type === 'wallet')
     .reduce((sum, tx) => sum + tx.amount, 0)
+  const pointsEarned = successfulTransactions.length * 10
 
   const stats = [
     {
-      label: 'Completed Orders',
-      value: String(successfulTransactions.length),
+      label: 'Total Orders',
+      value: String(successfulTransactions.filter((tx) => tx.type !== 'wallet').length + storeOrders.length),
       icon: Package,
       gradient: 'from-violet-500 to-purple-600',
       trend: { value: successfulTransactions.length, isPositive: true },
       delay: 0,
     },
     {
-      label: 'Spent This Month',
-      value: `GHc ${thisMonthSpend.toFixed(2)}`,
-      icon: TrendingUp,
+      label: 'Total Deposited',
+      value: `GHc ${totalDeposited.toFixed(2)}`,
+      icon: Wallet,
       gradient: 'from-emerald-500 to-green-600',
       trend: { value: 0, isPositive: true },
       delay: 0.05,
+    },
+    {
+      label: 'FlashPoints',
+      value: String(pointsEarned),
+      icon: Sparkles,
+      gradient: 'from-amber-400 to-orange-500',
+      trend: { value: pointsEarned, isPositive: true },
+      delay: 0.1,
     },
     {
       label: 'In Progress',
       value: String(pendingTransactions.length),
       icon: Wifi,
       gradient: 'from-sky-500 to-blue-600',
-      delay: 0.1,
+      delay: 0.15,
     },
   ]
 
@@ -128,30 +141,41 @@ export default function OverviewPage() {
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+      <motion.div variants={itemVariants}>
+        <AnnouncementBanner />
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <ProfileBanner />
+      </motion.div>
+
       {/* Welcome Banner */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-br from-[#2a0810] via-[#20050d] to-[#12030a] p-6 text-red-50">
-          {/* Decorative blobs */}
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-red-500/15 blur-2xl" />
-          <div className="absolute -bottom-8 left-1/3 h-32 w-32 rounded-full bg-amber-400/10 blur-xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-amber-400/20 bg-white p-6 shadow-sm dark:border-amber-400/20 dark:bg-[#0a110d]">
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-400/10 blur-2xl" />
           <div className="relative z-10 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="flex items-center gap-1.5 text-sm font-medium text-red-100/80">
+              <p className="flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-300">
                 <Sparkles className="h-3.5 w-3.5" />
                 {greeting}
               </p>
-              <h1 className="text-2xl font-bold lg:text-3xl">
-                {user?.name?.split(' ')[0] || 'User'}
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white lg:text-3xl">
+                {user?.name?.split(' ')[0] || 'Agent'}
               </h1>
-              <p className="mt-1 text-sm text-red-100/75">
-                Here is a quick look at your account today.
+              <p className="mt-1 text-sm text-gray-500 dark:text-white/60">
+                What would you like to do today?
               </p>
             </div>
-            <div className="mt-3 sm:mt-0">
+            <div className="mt-3 flex flex-wrap gap-2 sm:mt-0">
               <Link href="/dashboard/buy-data">
-                <Button size="sm" className="gap-2 border border-[#f4c532]/45 bg-[#f4c532] text-[#18120a] hover:bg-[#e7b71d]">
+                <Button size="sm" className="gap-2 rounded-full bg-amber-400 text-black hover:bg-amber-300">
                   <Wifi className="h-4 w-4" />
                   Buy Data
+                </Button>
+              </Link>
+              <Link href="/dashboard/wallet">
+                <Button size="sm" variant="outline" className="gap-2 rounded-full">
+                  Top Up
                 </Button>
               </Link>
             </div>
@@ -167,7 +191,7 @@ export default function OverviewPage() {
       {/* Stats Grid */}
       <motion.div
         variants={itemVariants}
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
         {stats.map((stat) => (
           <StatsCard
@@ -193,6 +217,15 @@ export default function OverviewPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <motion.div variants={itemVariants}>
+          <StreakWidget />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <ReferralCard />
+        </motion.div>
+      </div>
 
       {/* Quick Buy Networks & Recent Transactions */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -259,7 +292,7 @@ export default function OverviewPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.3 + i * 0.05 }}
-                      className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.05]"
+                      className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:border-white/8 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]"
                     >
                       <div className="flex items-center gap-3">
                         {tx.network ? (

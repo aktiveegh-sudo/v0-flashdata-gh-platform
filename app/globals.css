@@ -3,16 +3,25 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Default Theme - Ghana Green */
+@theme inline {
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Default Theme - SwiftData-style Amber */
 :root {
-  --background: oklch(0.99 0.002 110);
-  --foreground: oklch(0.15 0.02 250);
+  --background: oklch(0.985 0.002 95);
+  --foreground: oklch(0.18 0.02 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 250);
+  --card-foreground: oklch(0.18 0.02 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 250);
-  --primary: oklch(0.72 0.19 145);
-  --primary-foreground: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 260);
+  --primary: oklch(0.78 0.17 75);
+  --primary-foreground: oklch(0.15 0.02 260);
   --secondary: oklch(0.96 0.01 110);
   --secondary-foreground: oklch(0.15 0.02 250);
   --muted: oklch(0.96 0.01 110);

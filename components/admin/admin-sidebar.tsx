@@ -3,104 +3,170 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, LayoutDashboard, Users, Package, ClipboardList, PlusSquare, Landmark, Settings, KeyRound, BellRing, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { GhanaFlagIcon } from '@/components/loader'
+import { adminNavSections, type AdminNavItem } from '@/lib/admin/nav'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
-const links = [
-  { href: '/admin/overview', label: 'Overview', icon: LayoutDashboard },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/packages', label: 'Packages', icon: Package },
-  { href: '/admin/afa', label: 'AFA Control', icon: Package },
-  { href: '/admin/orders', label: 'Orders', icon: ClipboardList },
-  { href: '/admin/add-service', label: 'Add Service', icon: PlusSquare },
-  { href: '/admin/withdrawals', label: 'Withdrawals', icon: Landmark },
-  { href: '/admin/site-settings', label: 'Site Settings', icon: Settings },
-  { href: '/admin/api-users', label: 'API Users', icon: KeyRound },
-  { href: '/admin/send-notification', label: 'Send Notification', icon: BellRing },
-]
+type AdminSidebarProps = {
+  userName: string
+  onLogout: () => void
+}
 
-export function AdminSidebar() {
+export function AdminSidebar({ userName, onLogout }: AdminSidebarProps) {
   const pathname = usePathname()
-  const [open, setOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [expandedSections, setExpandedSections] = useState<string[]>(
+    adminNavSections.map((section) => section.title)
+  )
 
-  const nav = (
-    <div className="flex h-full flex-col bg-[radial-gradient(circle_at_16%_22%,rgba(20,98,53,0.2),transparent_38%),linear-gradient(180deg,#03100d_0%,#06170f_42%,#05110d_100%)]">
-      <div className="flex h-16 items-center gap-3 border-b border-white/10 px-4">
-        <div className="rounded-xl bg-[#f4c532]/12 p-1 ring-1 ring-[#f4c532]/25">
-          <GhanaFlagIcon className="h-9 w-9" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-slate-100">FlashData GH</p>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Admin Console</p>
-        </div>
+  const toggleSection = (title: string) => {
+    setExpandedSections((prev) =>
+      prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]
+    )
+  }
+
+  const isItemActive = (item: AdminNavItem) =>
+    pathname === item.href || pathname.startsWith(`${item.href}/`)
+
+  const NavLink = ({ item }: { item: AdminNavItem }) => {
+    const isActive = isItemActive(item)
+
+    return (
+      <Link
+        href={item.href}
+        onClick={() => setMobileOpen(false)}
+        className={cn(
+          'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition',
+          isActive
+            ? 'bg-amber-400/15 text-amber-700 dark:text-amber-200'
+            : 'text-gray-600 hover:bg-gray-100 dark:text-white/70 dark:hover:bg-white/5'
+        )}
+      >
+        <item.icon className="h-4 w-4" />
+        <span className="flex-1">{item.label}</span>
+      </Link>
+    )
+  }
+
+  const sidebarContent = (
+    <div className="flex h-full flex-col border-r border-gray-200 bg-white dark:border-white/8 dark:bg-[#0a110d]">
+      <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-white/8">
+        <Link href="/admin/overview" className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400 text-xs font-black text-black">
+            FD
+          </div>
+          <div>
+            <p className="text-sm font-black leading-none">
+              FlashData <span className="text-amber-500">GH</span>
+            </p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">Admin Console</p>
+          </div>
+        </Link>
+        <button type="button" className="lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {links.map((item) => {
-          const Icon = item.icon
-          const active = pathname === item.href
+      <div className="flex-1 overflow-y-auto p-3">
+        <nav className="space-y-4">
+          {adminNavSections.map((section) => {
+            const isExpanded = expandedSections.includes(section.title)
+            const hasActive = section.items.some(isItemActive)
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={cn(
-                'flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-200',
-                active
-                  ? 'bg-gradient-to-r from-[#f4c532]/22 via-[#f4c532]/10 to-transparent text-[#ffe079] shadow-sm shadow-[#d4a61f]/25'
-                  : 'text-[#d5d9e4]/78 hover:bg-white/5 hover:text-[#f4f6fb]'
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </Link>
-          )
-        })}
-      </nav>
+            return (
+              <div key={section.title}>
+                <button
+                  type="button"
+                  onClick={() => toggleSection(section.title)}
+                  className={cn(
+                    'mb-1 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left',
+                    hasActive ? 'text-amber-600 dark:text-amber-300' : 'text-gray-400'
+                  )}
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em]">{section.title}</span>
+                  <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isExpanded && 'rotate-180')} />
+                </button>
+                <AnimatePresence initial={false}>
+                  {isExpanded ? (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="space-y-1 overflow-hidden"
+                    >
+                      {section.items.map((item) => (
+                        <NavLink key={item.href} item={item} />
+                      ))}
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </div>
+            )
+          })}
+        </nav>
+      </div>
+
+      <div className="border-t border-gray-200 p-3 dark:border-white/8">
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-white/8 dark:bg-white/[0.03]">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="bg-amber-400 text-xs font-bold text-black">
+                {userName.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{userName}</p>
+              <p className="text-[10px] uppercase tracking-wide text-gray-400">Super Admin</p>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </button>
+        </div>
+      </div>
     </div>
   )
 
   return (
     <>
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:block lg:w-72 lg:border-r lg:border-white/10">
-        {nav}
-      </aside>
-
-      <Button
+      <button
         type="button"
-        variant="outline"
-        size="icon"
-        className="fixed left-4 top-4 z-40 border-white/10 bg-white/5 text-slate-100 lg:hidden"
-        onClick={() => setOpen(true)}
+        className="fixed left-4 top-4 z-40 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm lg:hidden dark:border-white/10 dark:bg-white/5 dark:text-white"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open menu"
       >
         <Menu className="h-5 w-5" />
-      </Button>
+      </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setOpen(false)}
-            aria-label="Close navigation"
-          />
-          <div className="absolute inset-y-0 left-0 w-[88%] max-w-xs border-r border-white/10">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-3 top-3 text-slate-100"
-              onClick={() => setOpen(false)}
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-72">{sidebarContent}</aside>
+
+      <AnimatePresence>
+        {mobileOpen ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm lg:hidden"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              className="fixed inset-y-0 left-0 z-50 w-80 max-w-[88vw] lg:hidden"
             >
-              <X className="h-5 w-5" />
-            </Button>
-            {nav}
-          </div>
-        </div>
-      )}
+              {sidebarContent}
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>
     </>
   )
 }
