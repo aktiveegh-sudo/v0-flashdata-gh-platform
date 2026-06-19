@@ -1,15 +1,29 @@
+'use client'
+
+import { RefreshCw, Store } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useStoreTheme } from '@/components/store/store-theme-provider'
+
 export function StoreNotFoundState() {
+  const { isDark } = useStoreTheme()
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-black px-4 text-zinc-50">
-      <div className="w-full max-w-md rounded-3xl border border-yellow-300/20 bg-zinc-950/80 p-8 text-center shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-md">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-yellow-300 text-2xl font-black text-black">
-          !
-        </div>
-        <h1 className="text-3xl font-black tracking-tight">Store not found</h1>
-        <p className="mt-3 text-sm leading-6 text-zinc-300">
-          The store you are looking for does not exist or is not active.
+    <div className={`min-h-[60vh] grid place-items-center p-6 ${isDark ? 'bg-zinc-950' : 'bg-zinc-50'}`}>
+      <div
+        className={`max-w-md rounded-2xl border p-10 text-center shadow-sm ${
+          isDark ? 'border-white/10 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-900'
+        }`}
+      >
+        <Store className={`mx-auto mb-4 h-12 w-12 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
+        <h1 className="text-2xl font-black">Store not found</h1>
+        <p className={`mt-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+          This store doesn&apos;t exist or has been deactivated.
         </p>
+        <Button variant="outline" className="mt-6 gap-2" onClick={() => window.location.reload()}>
+          <RefreshCw className="h-4 w-4" />
+          Reload
+        </Button>
       </div>
-    </main>
+    </div>
   )
 }

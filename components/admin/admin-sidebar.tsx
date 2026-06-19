@@ -54,7 +54,7 @@ export function AdminSidebar({ userName, onLogout, isOpen, onClose }: AdminSideb
   const sidebarContent = (
     <div className="flex h-full flex-col border-r border-gray-200 bg-white dark:border-white/8 dark:bg-[#0a110d]">
       <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-white/8">
-        <Link href="/admin/overview" className="flex items-center gap-2">
+        <Link href="/admin" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400 text-xs font-black text-black">
             FD
           </div>

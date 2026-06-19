@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Wifi, Phone, Check, AlertCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -23,9 +23,29 @@ type DataPackageRow = {
   selling_price?: number
 }
 
+const NETWORK_SLUGS: Record<string, string> = {
+  mtn: 'MTN',
+  'mtn-mash-up': 'MTN Mash Up',
+  telecel: 'Telecel',
+  airteltigo: 'Airtel-Tigo',
+}
+
+function networkFromPathname(pathname: string): string | null {
+  const segments = pathname.split('/').filter(Boolean)
+  const buyDataIndex = segments.indexOf('buy-data')
+  if (buyDataIndex === -1) return null
+
+  const slug = segments[buyDataIndex + 1]
+  if (!slug || slug === 'buy-data') return null
+
+  return NETWORK_SLUGS[slug] || null
+}
+
 function BuyDataContent() {
   const searchParams = useSearchParams()
-  const networkParam = searchParams.get('network')
+  const pathname = usePathname()
+  const router = useRouter()
+  const networkParam = searchParams.get('network') || networkFromPathname(pathname)
 
   const [packages, setPackages] = useState<DataPackageRow[]>([])
   const [loadingPackages, setLoadingPackages] = useState(true)
@@ -39,6 +59,12 @@ function BuyDataContent() {
   const [paystackLoading, setPaystackLoading] = useState(false)
 
   const { setLoading } = useLoadingStore()
+
+  useEffect(() => {
+    if (pathname === '/dashboard/buy-data') {
+      router.replace('/dashboard/buy-data/mtn')
+    }
+  }, [pathname, router])
 
   useEffect(() => {
     const loadPackages = async () => {

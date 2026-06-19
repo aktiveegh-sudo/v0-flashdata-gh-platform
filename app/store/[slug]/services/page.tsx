@@ -1,7 +1,4 @@
-import { StoreServicesClient } from '@/components/store/store-services-client'
-import { StoreNotFoundState } from '@/components/store/store-not-found-state'
-import { StoreShell } from '@/components/store/store-shell'
-import { fetchStoreBySlug } from '@/lib/store-fetch'
+import { redirect } from 'next/navigation'
 
 type StorePageProps = {
   params: Promise<{ slug: string }>
@@ -9,15 +6,5 @@ type StorePageProps = {
 
 export default async function StoreServicesPage({ params }: StorePageProps) {
   const { slug } = await params
-  const store = await fetchStoreBySlug(slug)
-
-  if (!store) {
-    return <StoreNotFoundState />
-  }
-
-  return (
-    <StoreShell store={store} slug={store.slug} activeTab="services">
-      <StoreServicesClient store={store} />
-    </StoreShell>
-  )
+  redirect(`/store/${slug}#services`)
 }

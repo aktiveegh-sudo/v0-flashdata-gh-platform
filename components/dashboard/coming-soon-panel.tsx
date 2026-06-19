@@ -11,7 +11,7 @@ type ComingSoonPanelProps = {
   backHref?: string
 }
 
-export function ComingSoonPanel({ title, description, backHref = '/dashboard/overview' }: ComingSoonPanelProps) {
+export function ComingSoonPanel({ title, description, backHref = '/dashboard' }: ComingSoonPanelProps) {
   return (
     <Card className="overflow-hidden border-amber-400/20 bg-white shadow-sm dark:bg-[#0a110d]">
       <CardContent className="relative p-8 text-center sm:p-12">

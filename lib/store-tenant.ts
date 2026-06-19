@@ -28,6 +28,8 @@ export type StoreRecord = {
   heroText: string
   themeColor: string
   logoUrl: string | null
+  whatsappNumber: string | null
+  contactPhone: string | null
   dataPackages: StoreDataPackage[]
   services: StoreService[]
 }
@@ -79,9 +81,16 @@ export const getStoreRecordBySlug = async (slug: string): Promise<StoreRecord | 
 
   const { data: store, error: storeError } = await supabaseAdmin
     .from('agent_stores')
-    .select('id,brand_name,slug,tagline,description,logo_url,cover_url,theme_color,allow_data,allow_online_services,is_active')
+    .select(
+      'id,brand_name,slug,tagline,description,logo_url,cover_url,theme_color,whatsapp_number,contact_phone,allow_data,allow_online_services,is_active'
+    )
     .eq('slug', normalizedSlug)
-    .maybeSingle<AgentStoreRow>()
+    .maybeSingle<
+      AgentStoreRow & {
+        whatsapp_number?: string | null
+        contact_phone?: string | null
+      }
+    >()
 
   if (storeError || !store || !store.is_active) {
     return null
@@ -128,6 +137,8 @@ export const getStoreRecordBySlug = async (slug: string): Promise<StoreRecord | 
     heroText: store.tagline?.trim() || store.description?.trim() || `Shop at ${store.brand_name}`,
     themeColor: store.theme_color || '#0ea5e9',
     logoUrl: store.logo_url,
+    whatsappNumber: store.whatsapp_number?.trim() || store.contact_phone?.trim() || null,
+    contactPhone: store.contact_phone?.trim() || null,
     dataPackages: store.allow_data ? storePackages : [],
     services: store.allow_online_services ? storeServices : [],
   }

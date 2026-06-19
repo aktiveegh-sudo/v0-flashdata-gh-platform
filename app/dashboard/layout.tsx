@@ -121,7 +121,7 @@ export default function DashboardLayout({
       }
 
       if (isSuperAdmin) {
-        router.push('/admin/overview')
+        router.push('/admin')
         setCheckingSession(false)
         return
       }

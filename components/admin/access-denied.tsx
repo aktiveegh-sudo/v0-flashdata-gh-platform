@@ -14,7 +14,7 @@ export function AccessDenied() {
       <p className="max-w-md text-sm text-muted-foreground">
         This section is restricted to FlashData GH super administrators only.
       </p>
-      <Link href="/dashboard/overview">
+      <Link href="/dashboard">
         <Button>Back to Dashboard</Button>
       </Link>
     </div>

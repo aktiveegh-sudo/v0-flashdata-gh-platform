@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { StoreNotFoundState } from '@/components/store/store-not-found-state'
 import { StorePaymentCompleteClient } from '@/components/store/store-payment-complete-client'
-import { StoreShell } from '@/components/store/store-shell'
+import { StoreThemeProvider } from '@/components/store/store-theme-provider'
 import { fetchStoreBySlug } from '@/lib/store-fetch'
 
 type StorePaymentCompletePageProps = {
@@ -13,20 +13,24 @@ export default async function StorePaymentCompletePage({ params }: StorePaymentC
   const store = await fetchStoreBySlug(slug)
 
   if (!store) {
-    return <StoreNotFoundState />
+    return (
+      <StoreThemeProvider>
+        <StoreNotFoundState />
+      </StoreThemeProvider>
+    )
   }
 
   return (
-    <StoreShell store={store} slug={store.slug} activeTab="home" framelessContent>
+    <StoreThemeProvider>
       <Suspense
         fallback={
-          <div className="flex min-h-[60vh] items-center justify-center text-sm text-zinc-300">
+          <div className="flex min-h-[60vh] items-center justify-center text-sm text-zinc-500">
             Loading payment details...
           </div>
         }
       >
         <StorePaymentCompleteClient store={store} />
       </Suspense>
-    </StoreShell>
+    </StoreThemeProvider>
   )
 }

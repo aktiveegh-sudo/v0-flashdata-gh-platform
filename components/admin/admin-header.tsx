@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { adminPageLabels } from '@/lib/admin/nav'
+import { resolveAdminPageTitle } from '@/lib/admin/nav'
 import { supabase } from '@/lib/supabase/client'
 import { formatDateTime } from '@/lib/admin/utils'
 
@@ -39,10 +39,7 @@ export function AdminHeader({ userName, userEmail, onLogout, onMenuClick }: Admi
   const pathname = usePathname()
   const [notifications, setNotifications] = useState<NotificationRow[]>([])
 
-  const pageTitle =
-    adminPageLabels[pathname] ??
-    adminPageLabels[Object.keys(adminPageLabels).find((key) => pathname.startsWith(key)) ?? ''] ??
-    'Admin Console'
+  const pageTitle = resolveAdminPageTitle(pathname)
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'

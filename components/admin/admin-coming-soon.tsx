@@ -27,7 +27,7 @@ export function AdminComingSoon({
         </p>
         <div className="relative mt-6">
           <Button asChild variant="outline" className="rounded-full">
-            <Link href="/admin/overview">
+            <Link href="/admin">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Overview
             </Link>

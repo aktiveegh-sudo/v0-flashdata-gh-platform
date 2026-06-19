@@ -24,7 +24,7 @@ type QuickAction = {
 }
 
 const actions: QuickAction[] = [
-  { id: 'data', label: 'Buy Data', icon: Wifi, href: '/dashboard/buy-data', gradient: 'from-yellow-400 to-amber-500' },
+  { id: 'data', label: 'Buy Data', icon: Wifi, href: '/dashboard/buy-data/mtn', gradient: 'from-yellow-400 to-amber-500' },
   { id: 'topup', label: 'Top Up', icon: Wallet, href: '/dashboard/wallet', gradient: 'from-emerald-500 to-green-600' },
   { id: 'airtime', label: 'Buy Airtime', icon: Phone, href: '/dashboard/buy-airtime', gradient: 'from-sky-500 to-blue-600' },
   { id: 'afa', label: 'AFA', icon: Sparkles, href: '/dashboard/afa', gradient: 'from-violet-500 to-purple-600' },

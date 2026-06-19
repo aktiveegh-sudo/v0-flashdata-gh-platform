@@ -7,7 +7,6 @@ import {
   Store,
   Settings,
   Code2,
-  HeadphonesIcon,
   Users,
   Share2,
   Trophy,
@@ -15,7 +14,7 @@ import {
   ImageIcon,
   Layers,
   ClipboardCheck,
-  Calendar,
+  RefreshCw,
   MessageCircle,
   Globe,
   Bell,
@@ -23,7 +22,6 @@ import {
   AlertCircle,
   Sparkles,
   BookUser,
-  RefreshCw,
   Zap,
   Tag,
   type LucideIcon,
@@ -34,85 +32,51 @@ export type DashboardNavItem = {
   href: string
   icon: LucideIcon
   badge?: string
-  children?: { label: string; href: string }[]
+  subAgentHidden?: boolean
 }
 
-export type DashboardNavSection = {
-  title: string
-  items: DashboardNavItem[]
-}
+/** Primary sidebar items — matches SwiftData Hm array order */
+export const dashboardMainNavItems: DashboardNavItem[] = [
+  { label: 'Overview', href: '/dashboard', icon: Home },
+  { label: 'My Profile', href: '/dashboard/profile', icon: User },
+  { label: 'Account & Security', href: '/dashboard/account-settings', icon: Settings },
+  { label: 'Account Balance', href: '/dashboard/wallet', icon: Wallet },
+  { label: 'Auto-Renewal', href: '/dashboard/schedule', icon: RefreshCw },
+  { label: 'Transactions', href: '/dashboard/transactions', icon: Receipt },
+  { label: 'Inbox Notifications', href: '/dashboard/notifications', icon: Bell },
+  { label: 'Buy Data', href: '/dashboard/buy-data/mtn', icon: Wifi },
+  { label: 'Buy Airtime', href: '/dashboard/buy-airtime', icon: Phone },
+  { label: 'Utility Bills', href: '/dashboard/utilities', icon: Zap },
+  { label: 'AFA Registration', href: '/dashboard/afa', icon: Sparkles },
+  { label: 'My Store', href: '/dashboard/my-store', icon: Store },
+  { label: 'Report Issue', href: '/dashboard/report-issue', icon: AlertCircle },
+  { label: 'Address Book', href: '/dashboard/customers', icon: BookUser },
+  { label: 'Referral Program', href: '/dashboard/referral', icon: Share2 },
+]
 
-export const dashboardNavSections: DashboardNavSection[] = [
-  {
-    title: 'Overview',
-    items: [{ label: 'Overview', href: '/dashboard/overview', icon: Home }],
-  },
-  {
-    title: 'Main',
-    items: [
-      { label: 'My Profile', href: '/dashboard/profile', icon: User },
-      { label: 'Account & Security', href: '/dashboard/settings', icon: Settings },
-      { label: 'Account Balance', href: '/dashboard/wallet', icon: Wallet },
-      { label: 'Auto-Renewal', href: '/dashboard/schedule', icon: RefreshCw },
-      { label: 'Transactions', href: '/dashboard/transactions', icon: Receipt },
-      { label: 'Inbox Notifications', href: '/dashboard/notifications', icon: Bell },
-    ],
-  },
-  {
-    title: 'Operations',
-    items: [
-      {
-        label: 'Buy Data',
-        href: '/dashboard/buy-data',
-        icon: Wifi,
-        children: [
-          { label: 'MTN', href: '/dashboard/buy-data?network=mtn' },
-          { label: 'Airtel-Tigo', href: '/dashboard/buy-data?network=airtel-tigo' },
-          { label: 'Telecel', href: '/dashboard/buy-data?network=telecel' },
-        ],
-      },
-      { label: 'Buy Airtime', href: '/dashboard/buy-airtime', icon: Phone },
-      { label: 'Utility Bills', href: '/dashboard/utilities', icon: Zap },
-      { label: 'AFA Registration', href: '/dashboard/afa', icon: Sparkles },
-      { label: 'My Store', href: '/dashboard/my-store', icon: Store },
-      { label: 'Report Issue', href: '/dashboard/report-issue', icon: AlertCircle },
-      { label: 'Address Book', href: '/dashboard/address-book', icon: BookUser },
-      { label: 'Referral Program', href: '/dashboard/referral', icon: Share2 },
-      { label: 'Agent Prices', href: '/dashboard/pricing', icon: Tag },
-      { label: 'Withdrawals', href: '/dashboard/withdrawal', icon: Wallet },
-      { label: 'Store Settings', href: '/dashboard/store-settings', icon: Settings },
-    ],
-  },
-  {
-    title: 'Grow',
-    items: [
-      { label: 'Subagents', href: '/dashboard/subagents', icon: Users, badge: 'New' },
-      { label: 'Subagent Pricing', href: '/dashboard/subagent-pricing', icon: Tag },
-      { label: 'Flyer Generator', href: '/dashboard/flyer', icon: ImageIcon },
-      { label: 'Marketing Tools', href: '/dashboard/marketing', icon: Megaphone },
-      { label: 'Result Checker', href: '/dashboard/result-checker', icon: ClipboardCheck },
-    ],
-  },
-  {
-    title: 'Tools',
-    items: [
-      { label: 'My API Access', href: '/dashboard/developer-api', icon: Code2 },
-      { label: 'Agent Developer Hub', href: '/dashboard/agent-dev-hub', icon: Globe },
-      { label: 'Bulk Disbursement', href: '/dashboard/bulk', icon: Layers },
-      { label: 'WhatsApp Bot', href: '/dashboard/whatsapp-bot', icon: MessageCircle },
-      { label: 'Flash Vendor', href: '/dashboard/swift-vendor', icon: Globe },
-      { label: 'Agent Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
-    ],
-  },
-  {
-    title: 'Support',
-    items: [{ label: 'Get Help', href: '/dashboard/contact-support', icon: HeadphonesIcon }],
-  },
+/** Collapsible "More Options" items — matches SwiftData Um array order */
+export const dashboardMoreNavItems: DashboardNavItem[] = [
+  { label: 'Agent Prices', href: '/dashboard/agent-prices', icon: Tag },
+  { label: 'Withdrawals', href: '/dashboard/withdrawals', icon: Wallet },
+  { label: 'Store Settings', href: '/dashboard/store-settings', icon: Settings },
+  { label: 'Subagents', href: '/dashboard/subagents', icon: Users, badge: 'New', subAgentHidden: true },
+  { label: 'Subagent Pricing', href: '/dashboard/subagent-pricing', icon: Tag, subAgentHidden: true },
+  { label: 'Flyer Generator', href: '/dashboard/flyer', icon: ImageIcon },
+  { label: 'Marketing Tools', href: '/dashboard/marketing', icon: Megaphone },
+  { label: 'Result Checker', href: '/dashboard/result-checker', icon: ClipboardCheck },
+  { label: 'My API Access', href: '/dashboard/api', icon: Code2 },
+  { label: 'Agent Developer Hub', href: '/dashboard/agent-dev-hub', icon: Globe },
+  { label: 'Bulk Disbursement', href: '/dashboard/bulk', icon: Layers },
+  { label: 'WhatsApp Bot', href: '/dashboard/whatsapp-bot', icon: MessageCircle },
+  { label: 'Flash Vendor', href: '/dashboard/swift-vendor', icon: Globe },
+  { label: 'Agent Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
 ]
 
 export const dashboardPageLabels: Record<string, string> = {
+  '/dashboard': 'Overview',
   '/dashboard/overview': 'Overview',
   '/dashboard/profile': 'My Profile',
+  '/dashboard/account-settings': 'Account & Security',
   '/dashboard/settings': 'Account & Security',
   '/dashboard/wallet': 'Account Balance',
   '/dashboard/schedule': 'Auto-Renewal',
@@ -124,10 +88,13 @@ export const dashboardPageLabels: Record<string, string> = {
   '/dashboard/afa': 'AFA Registration',
   '/dashboard/my-store': 'My Store',
   '/dashboard/report-issue': 'Report Issue',
+  '/dashboard/customers': 'Address Book',
   '/dashboard/address-book': 'Address Book',
   '/dashboard/referral': 'Referral Program',
+  '/dashboard/agent-prices': 'Agent Prices',
   '/dashboard/pricing': 'Agent Prices',
   '/dashboard/store-packages': 'Agent Prices',
+  '/dashboard/withdrawals': 'Withdrawals',
   '/dashboard/withdrawal': 'Withdrawals',
   '/dashboard/store-settings': 'Store Settings',
   '/dashboard/subagents': 'Subagents',
@@ -135,6 +102,7 @@ export const dashboardPageLabels: Record<string, string> = {
   '/dashboard/flyer': 'Flyer Generator',
   '/dashboard/marketing': 'Marketing Tools',
   '/dashboard/result-checker': 'Result Checker',
+  '/dashboard/api': 'My API Access',
   '/dashboard/developer-api': 'My API Access',
   '/dashboard/agent-dev-hub': 'Agent Developer Hub',
   '/dashboard/bulk': 'Bulk Disbursement',
@@ -143,8 +111,35 @@ export const dashboardPageLabels: Record<string, string> = {
   '/dashboard/leaderboard': 'Agent Leaderboard',
   '/dashboard/store-orders': 'Orders',
   '/dashboard/store-transactions': 'Payments',
-  '/dashboard/customers': 'Customers',
   '/dashboard/contact-support': 'Get Help',
   '/dashboard/buy-services': 'Utility Bills',
   '/dashboard/other-services': 'Utility Bills',
+}
+
+export function resolveDashboardPageTitle(pathname: string): string {
+  if (dashboardPageLabels[pathname]) {
+    return dashboardPageLabels[pathname]
+  }
+
+  if (pathname.startsWith('/dashboard/buy-data')) {
+    return 'Buy Data'
+  }
+
+  const matched = Object.keys(dashboardPageLabels)
+    .filter((key) => key !== '/dashboard' && pathname.startsWith(key))
+    .sort((a, b) => b.length - a.length)[0]
+
+  return matched ? dashboardPageLabels[matched] : 'Dashboard'
+}
+
+export function isDashboardNavActive(pathname: string, href: string): boolean {
+  if (href === '/dashboard') {
+    return pathname === '/dashboard' || pathname === '/dashboard/overview'
+  }
+
+  if (href.startsWith('/dashboard/buy-data')) {
+    return pathname.startsWith('/dashboard/buy-data')
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`)
 }

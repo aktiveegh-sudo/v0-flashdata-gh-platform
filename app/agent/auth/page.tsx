@@ -69,7 +69,7 @@ export default function AuthPage() {
       return '/'
     }
 
-    return isSuperAdmin ? '/admin/overview' : '/dashboard/overview'
+    return isSuperAdmin ? '/admin' : '/dashboard'
   }
 
   const mapAuthUser = (user: SupabaseUser) => {

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeSwitcher } from '@/components/theme-switcher'
-import { dashboardPageLabels } from '@/lib/dashboard/nav'
+import { resolveDashboardPageTitle } from '@/lib/dashboard/nav'
 import { useAuthStore, useWalletStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
@@ -33,7 +33,6 @@ type NotificationItem = {
   is_read: boolean
 }
 
-const pageLabels = dashboardPageLabels
 
 export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
@@ -47,7 +46,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
-  const pageTitle = pageLabels[pathname] ?? pageLabels[Object.keys(pageLabels).find((k) => pathname.startsWith(k)) ?? ''] ?? 'Dashboard'
+  const pageTitle = resolveDashboardPageTitle(pathname)
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
