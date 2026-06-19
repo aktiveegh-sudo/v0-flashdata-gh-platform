@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { fulfillDataOrderDelivery } from '@/lib/data-delivery'
 import { generateReference, normalizeToGhanaPhone, notifyAdminsOfNewOrder, supabaseAdmin } from '@/lib/api/rest'
 
 type PurchaseBody = {
@@ -7,6 +8,7 @@ type PurchaseBody = {
   packageId?: string
   serviceId?: string
   phone?: string
+  customerName?: string
   fullName?: string
   ghanaCardNumber?: string
   location?: string
@@ -179,8 +181,12 @@ export async function POST(request: NextRequest) {
 
     if (flow === 'service') {
       const normalizedPhone = normalizeToGhanaPhone(body.phone || '')
+      const customerName = (body.customerName || body.fullName || '').trim()
       if (!body.serviceId || !normalizedPhone) {
         return jsonError('serviceId and a valid phone number are required', 400)
+      }
+      if (!customerName) {
+        return jsonError('customerName is required', 400)
       }
 
       const { data: serviceRow, error: serviceError } = await supabaseAdmin
@@ -224,10 +230,10 @@ export async function POST(request: NextRequest) {
           .maybeSingle(),
       ])
 
-      const customerName = (profile?.full_name || authUser.email || 'Dashboard User').trim()
       const customerNote = [
         `Wallet Ref: ${reference}`,
         'Source: dashboard wallet',
+        `Customer: ${customerName}`,
         `Recipient: ${normalizedPhone}`,
         `Service: ${serviceRow.name}`,
       ].join(' | ')
@@ -379,6 +385,64 @@ export async function POST(request: NextRequest) {
       return jsonError(txError.message, 500)
     }
 
+    const deliveryOutcome = await fulfillDataOrderDelivery({
+      orderId: createdOrder.id,
+      network: packageRow.network,
+      packageSize: packageRow.amount,
+      phone: normalizedPhone,
+      reference,
+      idempotencyKey: `wallet-${reference}`,
+      source: 'dashboard_wallet',
+      existingMetadata: {
+        source: 'dashboard_wallet',
+        flow: 'data',
+        package_id: packageRow.id,
+        phone: normalizedPhone,
+      },
+    })
+
+    if (!deliveryOutcome.ok) {
+      await applyWalletDelta(authUser.id, amount, 'Data purchase refund', `${reference}-RFND`, {
+        source: 'dashboard_wallet',
+        flow: 'data',
+        reason: 'delivery_failed',
+        swift_error: deliveryOutcome.error,
+      })
+
+      await supabaseAdmin
+        .from('transactions')
+        .update({
+          status: 'failed',
+          metadata: {
+            source: 'dashboard_wallet',
+            flow: 'data',
+            package_id: packageRow.id,
+            phone: normalizedPhone,
+            order_id: createdOrder.id,
+            swift_error: deliveryOutcome.error,
+          },
+        })
+        .eq('reference', reference)
+
+      return jsonError(deliveryOutcome.error || 'Data delivery failed', 502)
+    }
+
+    await supabaseAdmin
+      .from('transactions')
+      .update({
+        metadata: {
+          source: 'dashboard_wallet',
+          flow: 'data',
+          package_id: packageRow.id,
+          phone: normalizedPhone,
+          order_id: createdOrder.id,
+          delivery_provider: deliveryOutcome.provider,
+          swift_status: deliveryOutcome.status,
+          swift_order_id: deliveryOutcome.orderId,
+        },
+      })
+      .eq('reference', reference)
+
     await notifyAdminsOfNewOrder({
       kind: 'data',
       reference,
@@ -394,7 +458,12 @@ export async function POST(request: NextRequest) {
         reference,
         amount,
         balanceAfter: walletResult.wallet?.balance_after || 0,
-        redirectPath: '/dashboard/buy-data',
+        redirectPath: '/dashboard/buy-data/mtn',
+        delivery: {
+          provider: deliveryOutcome.provider,
+          status: deliveryOutcome.status,
+          orderId: deliveryOutcome.orderId,
+        },
       },
     })
   } catch (error) {

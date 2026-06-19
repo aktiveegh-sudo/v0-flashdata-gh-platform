@@ -38,6 +38,7 @@ type BaseService = {
   category: string
   agent_price: number
   description: string | null
+  image_url: string | null
 }
 
 type StoreService = {
@@ -104,7 +105,7 @@ export default function OtherServicesPage() {
       fetch('/api/services/active', { method: 'GET' }),
       supabase.client
         .from('agent_store_service_prices')
-        .select('id,selling_price,is_active,online_services(id,name,category,agent_price,description)')
+        .select('id,selling_price,is_active,online_services(id,name,category,agent_price,description,image_url)')
         .eq('store_id', store.id)
         .order('created_at', { ascending: false }),
     ])
@@ -259,8 +260,8 @@ export default function OtherServicesPage() {
 
   return (
     <DashboardPageShell
-      title="Extra Services"
-      description="Set prices and availability for other services in your shop."
+      title="Store Service Pricing"
+      description="Add profit to platform services and publish them on your agent store for customers to buy."
       actions={
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -335,7 +336,15 @@ export default function OtherServicesPage() {
           ) : (
             <div className="space-y-3">
               {storeServices.map((svc) => (
-                <div key={svc.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
+                <div key={svc.id} className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/[0.02]">
+                  {svc.online_services?.image_url ? (
+                    <img
+                      src={svc.online_services.image_url}
+                      alt={svc.online_services.name}
+                      className="aspect-[16/9] w-full object-cover"
+                    />
+                  ) : null}
+                  <div className="p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
@@ -377,6 +386,7 @@ export default function OtherServicesPage() {
                         GHc {margin(Number(svc.selling_price), Number(svc.online_services?.agent_price || 0)).toFixed(2)}
                       </p>
                     </div>
+                  </div>
                   </div>
                 </div>
               ))}

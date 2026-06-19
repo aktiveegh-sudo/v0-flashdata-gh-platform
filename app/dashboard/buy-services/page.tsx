@@ -61,6 +61,7 @@ export default function BuyServicesPage() {
   const [services, setServices] = useState<ServiceRow[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<ServiceRow | null>(null)
+  const [customerName, setCustomerName] = useState('')
   const [recipientPhone, setRecipientPhone] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const { setLoading: setGlobalLoading } = useLoadingStore()
@@ -95,6 +96,7 @@ export default function BuyServicesPage() {
 
   const openCheckout = (service: ServiceRow) => {
     setSelected(service)
+    setCustomerName('')
     setRecipientPhone('')
   }
 
@@ -118,6 +120,11 @@ export default function BuyServicesPage() {
       return
     }
 
+    if (!customerName.trim()) {
+      toast.error('Enter your full name')
+      return
+    }
+
     setSubmitting(true)
     setGlobalLoading(true)
 
@@ -133,6 +140,7 @@ export default function BuyServicesPage() {
           flow: 'service',
           serviceId: selected.id,
           phone: normalizedPhone,
+          customerName: customerName.trim(),
         }),
       })
 
@@ -213,7 +221,16 @@ export default function BuyServicesPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="recipient-phone">Recipient Number</Label>
+                <Label htmlFor="customer-name">Full Name</Label>
+                <Input
+                  id="customer-name"
+                  placeholder="Your full name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="recipient-phone">Phone Number</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -250,7 +267,7 @@ export default function BuyServicesPage() {
               <Button variant="outline" onClick={() => setSelected(null)}>
                 Cancel
               </Button>
-              <Button onClick={() => void handleWalletCheckout()} disabled={!recipientPhone || !selected || submitting}>
+              <Button onClick={() => void handleWalletCheckout()} disabled={!recipientPhone || !customerName.trim() || !selected || submitting}>
                 {submitting ? 'Processing...' : 'Buy with Wallet'}
               </Button>
             </DialogFooter>

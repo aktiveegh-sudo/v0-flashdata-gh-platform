@@ -24,6 +24,8 @@ import {
   BookUser,
   Zap,
   Tag,
+  ShoppingCart,
+  Percent,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -46,7 +48,7 @@ export const dashboardMainNavItems: DashboardNavItem[] = [
   { label: 'Inbox Notifications', href: '/dashboard/notifications', icon: Bell },
   { label: 'Buy Data', href: '/dashboard/buy-data/mtn', icon: Wifi },
   { label: 'Buy Airtime', href: '/dashboard/buy-airtime', icon: Phone },
-  { label: 'Utility Bills', href: '/dashboard/utilities', icon: Zap },
+  { label: 'Other Services', href: '/dashboard/utilities', icon: Zap },
   { label: 'AFA Registration', href: '/dashboard/afa', icon: Sparkles },
   { label: 'My Store', href: '/dashboard/my-store', icon: Store },
   { label: 'Report Issue', href: '/dashboard/report-issue', icon: AlertCircle },
@@ -56,6 +58,8 @@ export const dashboardMainNavItems: DashboardNavItem[] = [
 
 /** Collapsible "More Options" items — matches SwiftData Um array order */
 export const dashboardMoreNavItems: DashboardNavItem[] = [
+  { label: 'Buy Other Services', href: '/dashboard/buy-services', icon: ShoppingCart },
+  { label: 'Store Service Pricing', href: '/dashboard/other-services', icon: Percent },
   { label: 'Agent Prices', href: '/dashboard/agent-prices', icon: Tag },
   { label: 'Withdrawals', href: '/dashboard/withdrawals', icon: Wallet },
   { label: 'Store Settings', href: '/dashboard/store-settings', icon: Settings },
@@ -84,7 +88,7 @@ export const dashboardPageLabels: Record<string, string> = {
   '/dashboard/notifications': 'Inbox Notifications',
   '/dashboard/buy-data': 'Buy Data',
   '/dashboard/buy-airtime': 'Buy Airtime',
-  '/dashboard/utilities': 'Utility Bills',
+  '/dashboard/utilities': 'Other Services',
   '/dashboard/afa': 'AFA Registration',
   '/dashboard/my-store': 'My Store',
   '/dashboard/report-issue': 'Report Issue',
@@ -112,8 +116,8 @@ export const dashboardPageLabels: Record<string, string> = {
   '/dashboard/store-orders': 'Orders',
   '/dashboard/store-transactions': 'Payments',
   '/dashboard/contact-support': 'Get Help',
-  '/dashboard/buy-services': 'Utility Bills',
-  '/dashboard/other-services': 'Utility Bills',
+  '/dashboard/buy-services': 'Buy Other Services',
+  '/dashboard/other-services': 'Store Service Pricing',
 }
 
 export function resolveDashboardPageTitle(pathname: string): string {

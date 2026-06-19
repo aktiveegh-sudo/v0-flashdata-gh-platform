@@ -33,6 +33,7 @@ import {
   Bot,
   Sparkles,
   Store,
+  PlusSquare,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -66,6 +67,7 @@ export const adminNavSections: AdminNavSection[] = [
       { label: 'Orders', href: '/admin/orders', icon: ClipboardList },
       { label: 'Mash Up Orders', href: '/admin/mashup-orders', icon: Layers },
       { label: 'Packages', href: '/admin/packages', icon: Package },
+      { label: 'Add Service', href: '/admin/add-service', icon: PlusSquare },
       { label: 'Promo Codes', href: '/admin/promotions', icon: Ticket },
       { label: 'Wallet Top-Up', href: '/admin/wallet-topup', icon: Wallet },
       { label: 'Withdrawals', href: '/admin/withdrawals', icon: Landmark },

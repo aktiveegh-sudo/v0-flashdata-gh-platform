@@ -17,6 +17,7 @@ export type StoreService = {
   category: string
   price: number
   description: string
+  imageUrl: string | null
 }
 
 export type StoreRecord = {
@@ -68,6 +69,7 @@ type AgentStoreServiceRow = {
     name: string
     category: string
     description: string | null
+    image_url: string | null
   } | null
 }
 
@@ -105,7 +107,7 @@ export const getStoreRecordBySlug = async (slug: string): Promise<StoreRecord | 
       .order('selling_price', { ascending: true }),
     supabaseAdmin
       .from('agent_store_service_prices')
-      .select('id,selling_price,online_services!inner(id,name,category,description)')
+      .select('id,selling_price,online_services!inner(id,name,category,description,image_url)')
       .eq('store_id', store.id)
       .eq('is_active', true)
       .order('selling_price', { ascending: true }),
@@ -126,6 +128,7 @@ export const getStoreRecordBySlug = async (slug: string): Promise<StoreRecord | 
     category: item.online_services?.category || 'Service',
     price: toNumber(item.selling_price),
     description: item.online_services?.description || 'Digital service available at this store.',
+    imageUrl: item.online_services?.image_url || null,
   }))
 
   return {

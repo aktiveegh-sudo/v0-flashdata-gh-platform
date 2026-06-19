@@ -92,16 +92,21 @@ function ServiceCard({ service, onSelect }: { service: StoreService; onSelect: (
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 sm:p-5 ${
+      className={`w-full overflow-hidden rounded-2xl border text-left transition hover:-translate-y-0.5 ${
         isDark ? 'border-white/10 bg-zinc-900 text-white hover:border-amber-400/40' : 'border-zinc-200 bg-white text-zinc-900 hover:border-amber-400/60'
       }`}
     >
-      <span className="rounded-full bg-amber-400/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-300">
-        {service.category}
-      </span>
-      <h3 className="mt-3 text-lg font-black">{service.name}</h3>
-      <p className="mt-2 text-sm opacity-70">{service.description}</p>
-      <p className="mt-4 text-xl font-bold text-amber-600 dark:text-amber-300">GHc {Number(service.price || 0).toFixed(2)}</p>
+      {service.imageUrl ? (
+        <img src={service.imageUrl} alt={service.name} className="aspect-[16/10] w-full object-cover" />
+      ) : null}
+      <div className="p-4 sm:p-5">
+        <span className="rounded-full bg-amber-400/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-300">
+          {service.category}
+        </span>
+        <h3 className="mt-3 text-lg font-black">{service.name}</h3>
+        <p className="mt-2 text-sm opacity-70">{service.description}</p>
+        <p className="mt-4 text-xl font-bold text-amber-600 dark:text-amber-300">GHc {Number(service.price || 0).toFixed(2)}</p>
+      </div>
     </button>
   )
 }
@@ -116,6 +121,7 @@ export function StoreFront({ store }: StoreFrontProps) {
 
   const [selectedPackage, setSelectedPackage] = useState<StoreDataPackage | null>(null)
   const [selectedService, setSelectedService] = useState<StoreService | null>(null)
+  const [customerName, setCustomerName] = useState('')
   const [recipientPhone, setRecipientPhone] = useState('')
   const [afaFullName, setAfaFullName] = useState('')
   const [afaGhanaCard, setAfaGhanaCard] = useState('')
@@ -205,8 +211,12 @@ export function StoreFront({ store }: StoreFrontProps) {
     }
 
     if (selectedService) {
+      if (!customerName.trim()) {
+        toast.error('Enter your full name')
+        return
+      }
       if (!recipientPhone.trim()) {
-        toast.error('Enter recipient phone number')
+        toast.error('Enter your phone number')
         return
       }
 
@@ -217,6 +227,7 @@ export function StoreFront({ store }: StoreFrontProps) {
           storeId: store.storeId,
           serviceId: selectedService.id,
           phone: recipientPhone.trim(),
+          customerName: customerName.trim(),
           customerPhone: recipientPhone.trim(),
           redirectPath: `/store/${store.slug}/payment-complete`,
         })
@@ -501,6 +512,8 @@ export function StoreFront({ store }: StoreFrontProps) {
           if (!open) {
             setSelectedPackage(null)
             setSelectedService(null)
+            setCustomerName('')
+            setRecipientPhone('')
           }
         }}
       >
@@ -532,8 +545,19 @@ export function StoreFront({ store }: StoreFrontProps) {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            {selectedService ? (
+              <div className="space-y-2">
+                <Label>Full name</Label>
+                <Input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Your full name"
+                  className={isDark ? 'border-white/10 bg-zinc-800' : 'border-zinc-200 bg-white'}
+                />
+              </div>
+            ) : null}
             <div className="space-y-2">
-              <Label>Recipient phone number</Label>
+              <Label>{selectedService ? 'Phone number' : 'Recipient phone number'}</Label>
               <Input
                 value={recipientPhone}
                 onChange={(e) => setRecipientPhone(e.target.value)}

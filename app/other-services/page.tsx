@@ -28,6 +28,7 @@ const formatGhs = (value: number) => `GHc ${Number(value || 0).toFixed(2)}`
 export default function PublicOtherServicesPage() {
   const [services, setServices] = useState<ServiceRow[]>([])
   const [selected, setSelected] = useState<ServiceRow | null>(null)
+  const [customerName, setCustomerName] = useState('')
   const [recipientPhone, setRecipientPhone] = useState('')
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -55,14 +56,19 @@ export default function PublicOtherServicesPage() {
 
   const openCheckout = (service: ServiceRow) => {
     setSelected(service)
+    setCustomerName('')
     setRecipientPhone('')
     setOpen(true)
   }
 
   const submit = async () => {
     if (!selected) return
+    if (!customerName.trim()) {
+      toast.error('Please enter your full name')
+      return
+    }
     if (!recipientPhone.trim()) {
-      toast.error('Please enter recipient number')
+      toast.error('Please enter your phone number')
       return
     }
 
@@ -72,6 +78,7 @@ export default function PublicOtherServicesPage() {
         flow: 'public_service',
         serviceId: selected.id,
         phone: recipientPhone.trim(),
+        customerName: customerName.trim(),
         customerPhone: recipientPhone.trim(),
         redirectPath: '/other-services',
       })
@@ -135,9 +142,15 @@ export default function PublicOtherServicesPage() {
           <DialogHeader>
             <DialogTitle>Complete your service order</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label>Recipient Number</Label>
-            <Input value={recipientPhone} onChange={(e) => setRecipientPhone(e.target.value)} placeholder="0241234567" className="border-yellow-300/25 bg-zinc-900" />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Your full name" className="border-yellow-300/25 bg-zinc-900" />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone Number</Label>
+              <Input value={recipientPhone} onChange={(e) => setRecipientPhone(e.target.value)} placeholder="0241234567" className="border-yellow-300/25 bg-zinc-900" />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" className="border-yellow-300/35 bg-transparent text-zinc-100 hover:bg-yellow-300/10" onClick={() => setOpen(false)}>Cancel</Button>

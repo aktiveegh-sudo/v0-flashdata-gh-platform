@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client'
 import { ensureProfileAndWalletForUser } from '@/lib/supabase/profile-bootstrap'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
+import { DashboardNavTour } from '@/components/dashboard/dashboard-nav-tour'
 import { PageLoader } from '@/components/loader'
 
 type DbTransaction = {
@@ -209,6 +210,7 @@ export default function DashboardLayout({
           WhatsApp Channel
         </a>
       ) : null}
+      <DashboardNavTour />
     </div>
   )
 }

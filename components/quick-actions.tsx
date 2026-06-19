@@ -30,7 +30,7 @@ const actions: QuickAction[] = [
   { id: 'afa', label: 'AFA', icon: Sparkles, href: '/dashboard/afa', gradient: 'from-violet-500 to-purple-600' },
   { id: 'store', label: 'My Store', icon: Store, href: '/dashboard/my-store', gradient: 'from-orange-500 to-amber-600' },
   { id: 'orders', label: 'Orders', icon: ShoppingCart, href: '/dashboard/store-orders', gradient: 'from-rose-500 to-red-600' },
-  { id: 'utilities', label: 'Utilities', icon: Zap, href: '/dashboard/utilities', gradient: 'from-cyan-500 to-teal-600' },
+  { id: 'utilities', label: 'Services', icon: Zap, href: '/dashboard/utilities', gradient: 'from-cyan-500 to-teal-600' },
   { id: 'referral', label: 'Referral', icon: Share2, href: '/dashboard/referral', gradient: 'from-indigo-500 to-blue-600' },
   { id: 'support', label: 'WhatsApp', icon: MessageCircle, href: '/dashboard/contact-support', gradient: 'from-green-500 to-emerald-600' },
 ]

@@ -19,7 +19,7 @@ import { WalletCard } from '@/components/wallet-card'
 import { StatsCard } from '@/components/stats-card'
 import { QuickActions } from '@/components/quick-actions'
 import { ProfileBanner } from '@/components/dashboard/profile-banner'
-import { AnnouncementBanner } from '@/components/dashboard/announcement-banner'
+import { PromoBannerCarousel } from '@/components/dashboard/promo-banner-carousel'
 import { ReferralCard } from '@/components/dashboard/referral-card'
 import { StreakWidget } from '@/components/dashboard/streak-widget'
 import { useAuthStore, useWalletStore, useTransactionStore } from '@/lib/store'
@@ -153,7 +153,7 @@ export default function OverviewPage() {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
       <motion.div variants={itemVariants}>
-        <AnnouncementBanner />
+        <PromoBannerCarousel />
       </motion.div>
 
       <motion.div variants={itemVariants}>

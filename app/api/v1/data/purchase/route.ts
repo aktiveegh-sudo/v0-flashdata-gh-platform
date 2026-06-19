@@ -12,6 +12,7 @@ import {
   normalizeToGhanaPhone,
   supabaseAdmin,
 } from '@/lib/api/rest'
+import { fulfillDataOrderDelivery } from '@/lib/data-delivery'
 
 type PurchasePayload = {
   package_id?: string
@@ -104,6 +105,56 @@ export async function POST(request: NextRequest) {
     return transactionError
   }
 
+  const deliveryOutcome = await fulfillDataOrderDelivery({
+    orderId: created.id,
+    network: packageRow.network,
+    packageSize: packageRow.amount,
+    phone: normalizedPhone,
+    reference,
+    idempotencyKey: `api-${reference}`,
+    source: 'developer_api',
+    existingMetadata: {
+      source: 'developer_api',
+      package_id: packageRow.id,
+      phone: normalizedPhone,
+    },
+  })
+
+  if (!deliveryOutcome.ok) {
+    await supabaseAdmin.from('orders').update({ status: 'failed' }).eq('id', created.id)
+    await supabaseAdmin
+      .from('transactions')
+      .update({
+        status: 'failed',
+        metadata: {
+          source: 'developer_api',
+          order_id: created.id,
+          package_id: packageRow.id,
+          phone: normalizedPhone,
+          swift_error: deliveryOutcome.error,
+        },
+      })
+      .eq('reference', reference)
+    await refundWallet(walletId, amount)
+    return jsonError(deliveryOutcome.error || 'Data delivery failed', 502)
+  }
+
+  await supabaseAdmin
+    .from('transactions')
+    .update({
+      status: 'success',
+      metadata: {
+        source: 'developer_api',
+        order_id: created.id,
+        package_id: packageRow.id,
+        phone: normalizedPhone,
+        delivery_provider: deliveryOutcome.provider,
+        swift_status: deliveryOutcome.status,
+        swift_order_id: deliveryOutcome.orderId,
+      },
+    })
+    .eq('reference', reference)
+
   await notifyAdminsOfNewOrder({
     kind: 'data',
     reference,
@@ -114,12 +165,20 @@ export async function POST(request: NextRequest) {
 
   return jsonOk(
     {
-      order: created,
+      order: {
+        ...created,
+        status: deliveryOutcome.status === 'completed' || deliveryOutcome.status === 'delivered' ? 'delivered' : 'processing',
+      },
       package: {
         id: packageRow.id,
         network: packageRow.network,
         name: packageRow.name,
         amount: packageRow.amount,
+      },
+      delivery: {
+        provider: deliveryOutcome.provider,
+        status: deliveryOutcome.status,
+        orderId: deliveryOutcome.orderId,
       },
     },
     201
