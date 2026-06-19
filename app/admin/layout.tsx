@@ -18,6 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [authorized, setAuthorized] = useState(false)
   const [name, setName] = useState('Admin')
   const [email, setEmail] = useState('admin@flashdatagh.com')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -92,9 +93,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#030305]">
-      <AdminSidebar userName={name} onLogout={handleLogout} />
+      <AdminSidebar
+        userName={name}
+        onLogout={handleLogout}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
       <div className="lg:pl-72">
-        <AdminHeader userName={name} userEmail={email} onLogout={handleLogout} />
+        <AdminHeader
+          userName={name}
+          userEmail={email}
+          onLogout={handleLogout}
+          onMenuClick={() => setSidebarOpen(true)}
+        />
         <main className="px-4 py-5 lg:px-6 lg:py-6">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>

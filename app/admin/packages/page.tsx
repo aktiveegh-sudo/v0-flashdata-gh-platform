@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Pencil, Trash2, Plus } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -167,13 +168,11 @@ export default function AdminPackagesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Packages</h1>
-        <p className="text-sm text-muted-foreground">Create packages using Network, Data Volume, and Amount format.</p>
-      </div>
-
-      <Card>
+    <AdminPageShell
+      title="Packages"
+      description="Create packages using Network, Data Volume, and Amount format."
+    >
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>{editingId ? 'Edit Package' : 'Add New Package'}</CardTitle>
         </CardHeader>
@@ -231,7 +230,7 @@ export default function AdminPackagesPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>All Packages</CardTitle>
         </CardHeader>
@@ -277,6 +276,6 @@ export default function AdminPackagesPage() {
           </table>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   )
 }

@@ -13,7 +13,10 @@ import {
   Phone,
   Zap,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DashboardPageShell,
+  DashboardPanel,
+} from '@/components/dashboard/page-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -80,27 +83,23 @@ export default function TransactionsPage() {
   }
 
   return (
+    <DashboardPageShell
+      title="Activity History"
+      description="See all payments, purchases, and wallet updates in one place."
+      actions={
+        <Button variant="outline" className="gap-2" onClick={handleExport}>
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
+      }
+    >
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Activity History</h1>
-          <p className="text-muted-foreground">See all payments, purchases, and wallet updates in one place</p>
-        </div>
-        <Button variant="outline" className="gap-2" onClick={handleExport}>
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <DashboardPanel>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -152,24 +151,16 @@ export default function TransactionsPage() {
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </DashboardPanel>
 
-      {/* Transactions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            All Transactions ({filteredTransactions.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <DashboardPanel title={`All Transactions (${filteredTransactions.length})`}>
           {/* Desktop Table */}
           <div className="hidden md:block">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  <tr className="border-b border-gray-100 dark:border-white/5">
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-white/45">
                       Type
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
@@ -203,7 +194,7 @@ export default function TransactionsPage() {
                     paginatedTransactions.map((tx) => (
                       <tr
                         key={tx.id}
-                        className="border-b border-border transition-colors hover:bg-muted/50"
+                        className="border-b border-gray-50 transition-colors hover:bg-gray-50 dark:border-white/[0.03] dark:hover:bg-white/[0.02]"
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -223,7 +214,7 @@ export default function TransactionsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-medium text-foreground">{tx.description}</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{tx.description}</p>
                         </td>
                         <td className="px-4 py-3">
                           <code className="rounded bg-muted px-2 py-1 text-xs">
@@ -283,7 +274,7 @@ export default function TransactionsPage() {
               paginatedTransactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="rounded-lg border border-border bg-card p-4"
+                  className="rounded-lg border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-[#0a0a0f]"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -339,7 +330,7 @@ export default function TransactionsPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+            <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4 dark:border-white/5">
               <p className="text-sm text-muted-foreground">
                 Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
                 {Math.min(currentPage * ITEMS_PER_PAGE, filteredTransactions.length)} of{' '}
@@ -368,8 +359,8 @@ export default function TransactionsPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </DashboardPanel>
     </motion.div>
+    </DashboardPageShell>
   )
 }

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { Bell, CheckCheck } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { DashboardPageShell, DashboardPanel } from '@/components/dashboard/page-shell'
 import { supabase } from '@/lib/supabase/client'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -73,53 +73,52 @@ export default function NotificationsPage() {
     toast.success('All notifications marked as read')
   }
 
+  const unreadCount = items.filter((item) => !item.is_read).length
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-white lg:text-3xl">Notifications</h1>
-          <p className="mt-1 text-sm text-slate-400">Stay updated on orders, wallet activity, and account alerts.</p>
-        </div>
-        <Button variant="outline" onClick={() => void markAllRead()} className="gap-2">
+    <DashboardPageShell
+      title="Notifications"
+      description="Stay updated on orders, wallet activity, and account alerts."
+      actions={
+        <Button variant="outline" onClick={() => void markAllRead()} className="gap-2" disabled={unreadCount === 0}>
           <CheckCheck className="h-4 w-4" />
           Mark all read
         </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bell className="h-4 w-4 text-amber-400" />
-            Recent Alerts
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Loading notifications...</p>
-          ) : items.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">No notifications yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {items.map((item) => (
-                <div key={item.id} className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-white">{item.title}</p>
-                        {!item.is_read ? <Badge className="bg-amber-400 text-black">New</Badge> : null}
-                      </div>
-                      <p className="mt-1 text-sm text-slate-300">{item.message}</p>
+      }
+    >
+      <DashboardPanel
+        title="Recent Alerts"
+        description={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : 'All caught up'}
+      >
+        {loading ? (
+          <p className="py-8 text-center text-sm text-gray-500 dark:text-white/50">Loading notifications...</p>
+        ) : items.length === 0 ? (
+          <p className="py-8 text-center text-sm text-gray-500 dark:text-white/50">No notifications yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-white/8 dark:bg-white/[0.02]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-3.5 w-3.5 text-amber-500" />
+                      <p className="font-semibold text-gray-900 dark:text-white">{item.title}</p>
+                      {!item.is_read ? <Badge className="bg-amber-400 text-black">New</Badge> : null}
                     </div>
-                    <span className="shrink-0 text-xs text-slate-500">
-                      {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
-                    </span>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-white/65">{item.message}</p>
                   </div>
+                  <span className="shrink-0 text-xs text-gray-400 dark:text-white/40">
+                    {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </DashboardPanel>
+    </DashboardPageShell>
   )
 }

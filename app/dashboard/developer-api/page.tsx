@@ -16,8 +16,8 @@ import {
   Terminal,
   Zap,
 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { DashboardPageShell, DashboardPanel } from '@/components/dashboard/page-shell'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -375,10 +375,10 @@ function EndpointCard({
   )
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden dark:border-white/10 dark:bg-[#0a0a0f]">
       <button
         onClick={() => setOpen((p) => !p)}
-        className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50 transition-colors"
+        className="flex w-full items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors dark:hover:bg-white/[0.03]"
       >
         <div className="flex items-center gap-3 min-w-0">
           <Badge className={`shrink-0 font-mono text-xs px-2 py-0.5 ${methodColor}`}>{doc.method}</Badge>
@@ -612,42 +612,36 @@ export default function DeveloperApiPage() {
   }
 
   if (loading) {
-    return <div className="py-10 text-sm text-muted-foreground">Loading API configuration...</div>
+    return (
+      <DashboardPageShell title="API Tools" description="Connect your app to FlashData GH.">
+        <p className="py-10 text-sm text-gray-500 dark:text-white/50">Loading API configuration...</p>
+      </DashboardPageShell>
+    )
   }
 
   const usagePct = apiUser ? Math.round((apiUser.usage_count / apiUser.usage_limit) * 100) : 0
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 pb-10">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">API Tools</h1>
-        <p className="text-muted-foreground mt-1">
-          Connect your app to Flashdata GH to check balance, buy data, register AFA, and more.
-        </p>
-      </div>
-
-      {/* Base URL banner */}
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
+    <DashboardPageShell
+      title="API Tools"
+      description="Connect your app to Flashdata GH to check balance, buy data, register AFA, and more."
+    >
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-4">
+      <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <span className="font-medium shrink-0">Base URL</span>
         <Separator orientation="vertical" className="h-4" />
         <code className="font-mono text-primary break-all">{baseUrl}</code>
         <CopyButton text={baseUrl} />
       </div>
 
-      {/* API Key management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5 text-primary" /> Your API Key
-          </CardTitle>
-          <CardDescription>
-            Pass this in the{' '}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">Authorization: Bearer YOUR_KEY</code>{' '}
-            header on every request.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <DashboardPanel
+        title="Your API Key"
+        description="Pass this in the Authorization: Bearer YOUR_KEY header on every request."
+      >
+        <div className="space-y-4 -mt-2">
+          <div className="flex items-center gap-2">
+            <Key className="h-4 w-4 text-amber-500 shrink-0" />
+          </div>
           {!apiUser ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">No API key yet. Generate one to start using the API.</p>
@@ -703,17 +697,12 @@ export default function DeveloperApiPage() {
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardPanel>
 
-      {/* Authentication */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" /> Authentication
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
+      <DashboardPanel title="Authentication">
+        <div className="space-y-4 text-sm text-gray-500 dark:text-white/55 -mt-2">
+          <Shield className="h-4 w-4 text-amber-500 mb-2" />
           <p>
             Every request must include your API key in the{' '}
             <code className="bg-muted px-1 py-0.5 rounded text-foreground">Authorization</code> header:
@@ -730,17 +719,12 @@ export default function DeveloperApiPage() {
               have hit your usage limit — contact support to increase it.
             </li>
           </ul>
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardPanel>
 
-      {/* Response format */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Terminal className="h-5 w-5 text-primary" /> Response Format
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
+      <DashboardPanel title="Response Format">
+        <div className="space-y-4 text-sm text-gray-500 dark:text-white/55 -mt-2">
+          <Terminal className="h-4 w-4 text-amber-500 mb-2" />
           <p>All responses are JSON with a consistent envelope:</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -783,19 +767,17 @@ export default function DeveloperApiPage() {
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Endpoint reference */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <BookOpen className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Endpoint Reference</h2>
-          <Badge variant="secondary">{docs.length} endpoints</Badge>
         </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          Click any endpoint to expand its documentation, request schema, and copy-ready code examples.
-        </p>
+      </DashboardPanel>
+
+      <DashboardPanel
+        title="Endpoint Reference"
+        description="Click any endpoint to expand its documentation, request schema, and copy-ready code examples."
+        action={<Badge variant="secondary">{docs.length} endpoints</Badge>}
+      >
+        <div className="flex items-center gap-2 mb-4 -mt-2">
+          <BookOpen className="h-4 w-4 text-amber-500" />
+        </div>
         <div className="space-y-2">
           {docs.map((doc) => (
             <EndpointCard
@@ -806,16 +788,11 @@ export default function DeveloperApiPage() {
             />
           ))}
         </div>
-      </div>
+      </DashboardPanel>
 
-      {/* Quick tips */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-primary" /> Quick Tips
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
+      <DashboardPanel title="Quick Tips">
+        <div className="space-y-2 text-sm text-gray-500 dark:text-white/55 -mt-2">
+          <Zap className="h-4 w-4 text-amber-500 mb-2" />
           <p>
             1. Use{' '}
             <code className="bg-muted px-1 rounded text-foreground">GET /api/v1/packages</code> first to get
@@ -840,8 +817,9 @@ export default function DeveloperApiPage() {
             <code className="bg-muted px-1 rounded text-foreground">GHA-123456789-1</code> (exactly).
           </p>
           <p>5. Your usage counter resets to 0 when you regenerate your API key.</p>
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardPanel>
     </motion.div>
+    </DashboardPageShell>
   )
 }

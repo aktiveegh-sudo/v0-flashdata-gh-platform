@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DashboardPageShell } from "@/components/dashboard/page-shell"
 import { useAuthStore } from "@/lib/store"
 import toast from "react-hot-toast"
 
@@ -86,16 +87,14 @@ export default function SettingsPage() {
     toast.success("Notification preferences saved")
   }
 
-  return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
-        <p className="text-muted-foreground">Update your details, security, and notification preferences</p>
-      </motion.div>
+  const panelClass = "rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-6 dark:border-white/10 dark:bg-[#0a0a0f]"
+  const tabSidebarClass = "rounded-2xl border border-gray-200 bg-white p-2 shadow-sm space-y-1 dark:border-white/10 dark:bg-[#0a0a0f]"
 
+  return (
+    <DashboardPageShell
+      title="My Profile"
+      description="Update your details, security, and notification preferences."
+    >
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar Tabs */}
         <motion.div
@@ -103,15 +102,15 @@ export default function SettingsPage() {
           animate={{ opacity: 1, x: 0 }}
           className="lg:w-64 flex-shrink-0"
         >
-          <div className="bg-card rounded-2xl border border-border p-2 space-y-1">
+          <div className={tabSidebarClass}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   activeTab === tab.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-amber-400 text-black"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-white/55 dark:hover:bg-white/5 dark:hover:text-white"
                 }`}
               >
                 <tab.icon className="w-5 h-5" />
@@ -129,8 +128,8 @@ export default function SettingsPage() {
           className="flex-1"
         >
           {activeTab === "profile" && (
-            <div className="bg-card rounded-2xl border border-border p-6 space-y-6">
-              <h2 className="text-lg font-semibold text-foreground">Profile Information</h2>
+            <div className={panelClass}>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Information</h2>
               
               {/* Avatar */}
               <div className="flex items-center gap-4">
@@ -206,8 +205,8 @@ export default function SettingsPage() {
 
           {activeTab === "security" && (
             <div className="space-y-6">
-              <div className="bg-card rounded-2xl border border-border p-6 space-y-6">
-                <h2 className="text-lg font-semibold text-foreground">Change Password</h2>
+              <div className={panelClass}>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Change Password</h2>
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -274,8 +273,8 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-foreground">Two-Factor Authentication</h2>
+              <div className={panelClass}>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Two-Factor Authentication</h2>
                 <p className="text-sm text-muted-foreground">
                   Add an extra layer of security to your account by enabling two-factor authentication.
                 </p>
@@ -296,8 +295,8 @@ export default function SettingsPage() {
           )}
 
           {activeTab === "notifications" && (
-            <div className="bg-card rounded-2xl border border-border p-6 space-y-6">
-              <h2 className="text-lg font-semibold text-foreground">Notification Preferences</h2>
+            <div className={panelClass}>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notification Preferences</h2>
               
               <div className="space-y-4">
                 {[
@@ -343,8 +342,8 @@ export default function SettingsPage() {
           )}
 
           {activeTab === "privacy" && (
-            <div className="bg-card rounded-2xl border border-border p-6 space-y-6">
-              <h2 className="text-lg font-semibold text-foreground">Privacy Settings</h2>
+            <div className={panelClass}>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Privacy Settings</h2>
               
               <div className="space-y-4">
                 <div className="p-4 bg-muted/50 rounded-xl">
@@ -382,6 +381,6 @@ export default function SettingsPage() {
           )}
         </motion.div>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

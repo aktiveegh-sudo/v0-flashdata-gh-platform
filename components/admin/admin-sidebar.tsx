@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
+import { ChevronDown, LogOut, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { adminNavSections, type AdminNavItem } from '@/lib/admin/nav'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -12,11 +12,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 type AdminSidebarProps = {
   userName: string
   onLogout: () => void
+  isOpen: boolean
+  onClose: () => void
 }
 
-export function AdminSidebar({ userName, onLogout }: AdminSidebarProps) {
+export function AdminSidebar({ userName, onLogout, isOpen, onClose }: AdminSidebarProps) {
   const pathname = usePathname()
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState<string[]>(
     adminNavSections.map((section) => section.title)
   )
@@ -36,7 +37,7 @@ export function AdminSidebar({ userName, onLogout }: AdminSidebarProps) {
     return (
       <Link
         href={item.href}
-        onClick={() => setMobileOpen(false)}
+        onClick={onClose}
         className={cn(
           'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition',
           isActive
@@ -64,7 +65,7 @@ export function AdminSidebar({ userName, onLogout }: AdminSidebarProps) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">Admin Console</p>
           </div>
         </Link>
-        <button type="button" className="lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+        <button type="button" className="lg:hidden" onClick={onClose} aria-label="Close menu">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -135,25 +136,16 @@ export function AdminSidebar({ userName, onLogout }: AdminSidebarProps) {
 
   return (
     <>
-      <button
-        type="button"
-        className="fixed left-4 top-4 z-40 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm lg:hidden dark:border-white/10 dark:bg-white/5 dark:text-white"
-        onClick={() => setMobileOpen(true)}
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
-
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-72">{sidebarContent}</aside>
 
       <AnimatePresence>
-        {mobileOpen ? (
+        {isOpen ? (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setMobileOpen(false)}
+              onClick={onClose}
               className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm lg:hidden"
             />
             <motion.aside

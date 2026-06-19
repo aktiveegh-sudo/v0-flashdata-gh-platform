@@ -11,7 +11,8 @@ import {
   X,
   CheckCircle,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { DashboardPageShell, DashboardPanel } from '@/components/dashboard/page-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -108,13 +109,13 @@ export default function ContactSupportPage() {
 
   if (showSuccess) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex min-h-[60vh] items-center justify-center"
-      >
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="p-8">
+      <DashboardPageShell title="Help Center" description="Your message was sent successfully.">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex min-h-[40vh] items-center justify-center"
+        >
+          <DashboardPanel className="w-full max-w-md text-center">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -123,8 +124,8 @@ export default function ContactSupportPage() {
             >
               <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
             </motion.div>
-            <h2 className="text-2xl font-bold text-foreground">Message Sent!</h2>
-            <p className="mt-2 text-muted-foreground">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Message Sent!</h2>
+            <p className="mt-2 text-gray-500 dark:text-white/55">
               Thank you for contacting us. Our support team will get back to you within 24 hours.
             </p>
             <Button
@@ -136,38 +137,26 @@ export default function ContactSupportPage() {
             >
               Send Another Message
             </Button>
-          </CardContent>
-        </Card>
-      </motion.div>
+          </DashboardPanel>
+        </motion.div>
+      </DashboardPageShell>
     )
   }
 
   return (
+    <DashboardPageShell title="Help Center" description="Get quick help from our team.">
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Help Center</h1>
-        <p className="text-muted-foreground">Get quick help from our team</p>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Contact Form */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-primary" />
-              Send us a Message
-            </CardTitle>
-            <CardDescription>
-              Fill out the form below and we&apos;ll get back to you within 24 hours
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <DashboardPanel
+          title="Send us a Message"
+          description="Fill out the form below and we'll get back to you within 24 hours"
+          className="lg:col-span-2"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
@@ -225,19 +214,11 @@ export default function ContactSupportPage() {
                 Send Message
               </Button>
             </form>
-          </CardContent>
-        </Card>
+        </DashboardPanel>
 
-        {/* Contact Info */}
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <HeadphonesIcon className="h-5 w-5 text-primary" />
-                Contact Info
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <DashboardPanel title="Contact Info">
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                   <Phone className="h-5 w-5 text-primary" />
@@ -264,23 +245,19 @@ export default function ContactSupportPage() {
                 <MessageCircle className="h-4 w-4" />
                 Live Chat
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </DashboardPanel>
 
-          {/* FAQs */}
-          <Card>
-            <CardHeader>
-              <CardTitle>FAQs</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <DashboardPanel title="FAQs">
+            <div className="space-y-4">
               {faqs.map((faq, index) => (
-                <div key={index} className="border-b border-border pb-3 last:border-0 last:pb-0">
-                  <p className="font-medium text-foreground">{faq.question}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{faq.answer}</p>
+                <div key={index} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0 dark:border-white/5">
+                  <p className="font-medium text-gray-900 dark:text-white">{faq.question}</p>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-white/55">{faq.answer}</p>
                 </div>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </DashboardPanel>
         </div>
       </div>
 
@@ -348,5 +325,6 @@ export default function ContactSupportPage() {
         )}
       </AnimatePresence>
     </motion.div>
+    </DashboardPageShell>
   )
 }

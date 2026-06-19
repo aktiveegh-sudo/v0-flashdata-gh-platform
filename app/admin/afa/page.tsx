@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Loader2, Save, Trash2 } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -168,13 +169,11 @@ export default function AdminAfaPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">AFA Control</h1>
-        <p className="text-sm text-muted-foreground">Manage AFA pricing, availability, and user registrations.</p>
-      </div>
-
-      <Card>
+    <AdminPageShell
+      title="AFA Control"
+      description="Manage AFA pricing, availability, and user registrations."
+    >
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>AFA Settings</CardTitle>
         </CardHeader>
@@ -224,7 +223,7 @@ export default function AdminAfaPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Registrations ({rows.length})</CardTitle>
         </CardHeader>
@@ -283,6 +282,6 @@ export default function AdminAfaPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   )
 }

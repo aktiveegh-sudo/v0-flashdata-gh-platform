@@ -12,7 +12,12 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DashboardPageShell,
+  DashboardPanel,
+  DashboardStatGrid,
+  DashboardStatCard,
+} from '@/components/dashboard/page-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -120,17 +125,10 @@ export default function WalletPage() {
   const quickAmounts = [10, 20, 50, 100, 200, 500]
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">My Money</h1>
-          <p className="text-muted-foreground">Top up your balance and check your recent activity</p>
-        </div>
+    <DashboardPageShell
+      title="My Money"
+      description="Top up your balance and check your recent activity."
+      actions={
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -219,107 +217,62 @@ export default function WalletPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
+      }
+    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       {/* Balance Card */}
-      <Card className="overflow-hidden bg-gradient-to-br from-primary to-primary/80">
-        <CardContent className="p-6">
+      <div className="overflow-hidden rounded-2xl border border-amber-400/40 bg-gradient-to-br from-white via-amber-50 to-amber-100 shadow-md dark:border-amber-400/25 dark:from-[#111827] dark:via-[#0f172a] dark:to-[#0b1220]">
+        <div className="p-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/20">
-              <Wallet className="h-7 w-7 text-primary-foreground" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-amber-400/40 bg-amber-400/20 dark:bg-white/20">
+              <Wallet className="h-7 w-7 text-amber-600 dark:text-white" />
             </div>
             <div>
-              <p className="text-sm font-medium text-primary-foreground/80">
-                Current Balance
-              </p>
-              <p className="text-3xl font-bold text-primary-foreground lg:text-4xl">
+              <p className="text-sm font-medium text-gray-500 dark:text-white/70">Current Balance</p>
+              <p className="text-3xl font-black text-gray-900 dark:text-white lg:text-4xl">
                 GH₵ {balance.toFixed(2)}
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-              <ArrowDownLeft className="h-5 w-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Funded</p>
-              <p className="text-xl font-bold text-foreground">GHc {totalFunded.toFixed(2)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
-              <ArrowUpRight className="h-5 w-5 text-red-600 dark:text-red-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Spent</p>
-              <p className="text-xl font-bold text-foreground">GHc {totalSpent.toFixed(2)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-              <Smartphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Data Purchases</p>
-              <p className="text-xl font-bold text-foreground">{dataPurchases}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
-              <CreditCard className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Top-ups</p>
-              <p className="text-xl font-bold text-foreground">{topupCount}</p>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
-      {/* Transaction History */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Transaction History</CardTitle>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search transactions..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 sm:w-64"
-                />
-              </div>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="wallet">Top-ups</SelectItem>
-                  <SelectItem value="data">Data</SelectItem>
-                  <SelectItem value="airtime">Airtime</SelectItem>
-                  <SelectItem value="withdrawal">Withdrawals</SelectItem>
-                </SelectContent>
-              </Select>
+      <DashboardStatGrid>
+        <DashboardStatCard label="Total Funded" value={`GHc ${totalFunded.toFixed(2)}`} icon={ArrowDownLeft} hint="Wallet top-ups" />
+        <DashboardStatCard label="Total Spent" value={`GHc ${totalSpent.toFixed(2)}`} icon={ArrowUpRight} hint="Purchases & withdrawals" />
+        <DashboardStatCard label="Data Purchases" value={String(dataPurchases)} icon={Smartphone} />
+        <DashboardStatCard label="Top-ups" value={String(topupCount)} icon={CreditCard} />
+      </DashboardStatGrid>
+
+      <DashboardPanel
+        title="Transaction History"
+        action={
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search transactions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 sm:w-64"
+              />
             </div>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full sm:w-40">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="wallet">Top-ups</SelectItem>
+                <SelectItem value="data">Data</SelectItem>
+                <SelectItem value="airtime">Airtime</SelectItem>
+                <SelectItem value="withdrawal">Withdrawals</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </CardHeader>
-        <CardContent>
+        }
+      >
           <div className="space-y-3">
             {filteredTransactions.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
@@ -329,7 +282,7 @@ export default function WalletPage() {
               filteredTransactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/50"
+                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 transition-colors hover:bg-gray-100 dark:border-white/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.04]"
                 >
                   <div className="flex items-center gap-4">
                     <div
@@ -350,7 +303,7 @@ export default function WalletPage() {
                       )}
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{tx.description}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{tx.description}</p>
                       <p className="text-sm text-muted-foreground">
                         {tx.reference} · {format(new Date(tx.date), 'MMM d, yyyy · h:mm a')}
                       </p>
@@ -383,8 +336,8 @@ export default function WalletPage() {
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
+      </DashboardPanel>
     </motion.div>
+    </DashboardPageShell>
   )
 }

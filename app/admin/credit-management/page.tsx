@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Search, Wallet } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -114,17 +115,12 @@ export default function AdminCreditManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-500">Wallet Operations</p>
-        <h1 className="mt-2 text-2xl font-black">Credit Management</h1>
-        <p className="mt-2 text-sm text-gray-500 dark:text-white/55">
-          Credit agent and customer wallets directly from the admin console.
-        </p>
-      </div>
-
+    <AdminPageShell
+      title="Credit Management"
+      description="Credit agent and customer wallets directly from the admin console."
+    >
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card className="border-gray-200 shadow-sm dark:border-white/8">
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle className="text-base">Find User</CardTitle>
           </CardHeader>
@@ -167,7 +163,7 @@ export default function AdminCreditManagementPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200 shadow-sm dark:border-white/8">
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Wallet className="h-4 w-4 text-amber-500" />
@@ -218,6 +214,6 @@ export default function AdminCreditManagementPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AdminPageShell>
   )
 }

@@ -1,14 +1,17 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Loader2, ShieldCheck } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
+import {
+  DashboardPageShell,
+  DashboardPanel,
+} from '@/components/dashboard/page-shell'
+import { FlashPageLoader } from '@/components/flash-loader'
 import { supabase } from '@/lib/supabase/client'
 import { useLoadingStore } from '@/lib/store'
 import { startPaystackCheckout } from '@/lib/paystack/client'
@@ -41,7 +44,6 @@ const normalizePhone = (value: string): string | null => {
 
 export default function AfaPage() {
   const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
   const [settings, setSettings] = useState<AfaSettings>({ base_price: 0, is_active: true, instructions: '' })
   const [rows, setRows] = useState<AfaRegistrationRow[]>([])
 
@@ -145,104 +147,92 @@ export default function AfaPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading AFA...
-      </div>
-    )
-  }
+  if (loading) return <FlashPageLoader />
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">AFA Registration</h1>
-        <p className="text-muted-foreground">Fill your details, pay securely, and we will process your registration</p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Start Registration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!settings.is_active ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              AFA registration is currently disabled by admin.
-            </div>
-          ) : null}
-
-          {settings.instructions ? (
-            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              {settings.instructions}
-            </div>
-          ) : null}
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="full-name">Full Name</Label>
-              <Input id="full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="024 123 4567" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ghana-card">Ghana Card Number</Label>
-              <Input id="ghana-card" value={ghanaCardNumber} onChange={(e) => setGhanaCardNumber(e.target.value.toUpperCase())} placeholder="GHA-123456789-1" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Accra, Ghana" />
-            </div>
+    <DashboardPageShell
+      title="AFA Registration"
+      description="Fill your details, pay securely, and we will process your registration."
+    >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+        <DashboardPanel title="Start Registration">
+          <div className="flex items-center gap-2 mb-4 -mt-2">
+            <ShieldCheck className="h-4 w-4 text-amber-500" />
           </div>
+          <div className="space-y-4">
+            {!settings.is_active ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                AFA registration is currently disabled by admin.
+              </div>
+            ) : null}
 
-          <div className="rounded-lg bg-muted/50 p-4 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Registration Fee</span>
-              <span className="font-semibold">GHc {Number(settings.base_price || 0).toFixed(2)}</span>
+            {settings.instructions ? (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-white/65">
+                {settings.instructions}
+              </div>
+            ) : null}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="full-name">Full Name</Label>
+                <Input id="full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="024 123 4567" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ghana-card">Ghana Card Number</Label>
+                <Input id="ghana-card" value={ghanaCardNumber} onChange={(e) => setGhanaCardNumber(e.target.value.toUpperCase())} placeholder="GHA-123456789-1" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Accra, Ghana" />
+              </div>
             </div>
-            <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-              <span className="text-muted-foreground">Checkout</span>
-              <span className="font-semibold text-foreground">Paystack verification required</span>
+
+            <div className="rounded-lg bg-gray-50 p-4 text-sm dark:bg-white/[0.03]">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500 dark:text-white/55">Registration Fee</span>
+                <span className="font-semibold text-gray-900 dark:text-white">GHc {Number(settings.base_price || 0).toFixed(2)}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t border-gray-200 pt-2 dark:border-white/10">
+                <span className="text-gray-500 dark:text-white/55">Checkout</span>
+                <span className="font-semibold text-gray-900 dark:text-white">Paystack verification required</span>
+              </div>
             </div>
-          </div>
 
-          <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
-            Your registration is only created after Paystack confirms a successful payment, and then it appears in the admin dashboard.
-          </div>
+            <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500 dark:bg-white/[0.03] dark:text-white/55">
+              Your registration is only created after Paystack confirms a successful payment, and then it appears in the admin dashboard.
+            </div>
 
-          <div className="grid gap-2">
-            <Button onClick={() => void payWithPaystack()} className="w-full" disabled={submitting || paystackLoading || !settings.is_active}>
+            <Button onClick={() => void payWithPaystack()} className="w-full" disabled={paystackLoading || !settings.is_active}>
               {paystackLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Pay with Paystack
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </DashboardPanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>My AFA Registrations</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No AFA registrations yet.</p>
-          ) : (
-            rows.map((row) => (
-              <div key={row.id} className="rounded-xl border border-border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold text-foreground">{row.full_name}</p>
-                  <Badge variant="outline">{row.status}</Badge>
+        <DashboardPanel title="My AFA Registrations">
+          <div className="space-y-3">
+            {rows.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-white/50">No AFA registrations yet.</p>
+            ) : (
+              rows.map((row) => (
+                <div key={row.id} className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-white/[0.02]">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-gray-900 dark:text-white">{row.full_name}</p>
+                    <Badge variant="outline">{row.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-white/55">{row.phone} • {row.ghana_card_number}</p>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-white/55">Location: {row.location}</p>
+                  <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Amount: GHc {Number(row.amount || 0).toFixed(2)}</p>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">{row.phone} • {row.ghana_card_number}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Location: {row.location}</p>
-                <p className="mt-2 text-sm font-medium">Amount: GHc {Number(row.amount || 0).toFixed(2)}</p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
+              ))
+            )}
+          </div>
+        </DashboardPanel>
+      </motion.div>
+    </DashboardPageShell>
   )
 }

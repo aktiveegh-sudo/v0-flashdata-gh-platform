@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Globe, Loader2, Plus, Edit2, Trash2 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  DashboardPageShell,
+  DashboardPanel,
+} from '@/components/dashboard/page-shell'
+import { FlashPageLoader } from '@/components/flash-loader'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -251,26 +255,13 @@ export default function OtherServicesPage() {
 
   const margin = (sellingPrice: number, basePrice: number) => sellingPrice - basePrice
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading services...
-      </div>
-    )
-  }
+  if (loading) return <FlashPageLoader />
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Extra Services</h1>
-          <p className="text-muted-foreground">Set prices and availability for other services in your shop</p>
-        </div>
+    <DashboardPageShell
+      title="Extra Services"
+      description="Set prices and availability for other services in your shop."
+      actions={
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2" onClick={() => handleOpenDialog()}>
@@ -335,22 +326,16 @@ export default function OtherServicesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-primary" />
-            Store Services ({storeServices.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      }
+    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <DashboardPanel title={`Store Services (${storeServices.length})`}>
           {storeServices.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">No services configured yet.</p>
           ) : (
             <div className="space-y-3">
               {storeServices.map((svc) => (
-                <div key={svc.id} className="rounded-lg border border-border p-4">
+                <div key={svc.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
@@ -397,8 +382,8 @@ export default function OtherServicesPage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </DashboardPanel>
     </motion.div>
+    </DashboardPageShell>
   )
 }

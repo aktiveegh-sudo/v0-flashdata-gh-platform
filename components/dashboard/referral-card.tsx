@@ -39,7 +39,7 @@ export function ReferralCard() {
   }
 
   return (
-    <Card className="border-amber-400/20 bg-white shadow-sm dark:bg-[#0a110d]">
+    <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base text-gray-900 dark:text-white">
           <Share2 className="h-4 w-4 text-amber-500" />

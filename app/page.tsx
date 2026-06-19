@@ -1,12 +1,24 @@
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { ArrowRight, BadgeCheck, Clock3, ShieldCheck, TrendingUp } from 'lucide-react'
-import { HeroVideoBackground } from '@/components/public/hero-video-background'
 import { MainSiteShell } from '@/components/public/main-site-shell'
-import { HomeHeroActions, LiveOrderTicker, WelcomeModal } from '@/components/public/swift-home-sections'
 import { getPublicSiteSettings } from '@/lib/site-settings'
 import { getPublicStats } from '@/lib/public-stats'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
+
+const WelcomeModal = dynamic(() =>
+  import('@/components/public/swift-home-sections').then((m) => m.WelcomeModal)
+)
+const HomeHeroActions = dynamic(() =>
+  import('@/components/public/swift-home-sections').then((m) => m.HomeHeroActions)
+)
+const LiveOrderTicker = dynamic(() =>
+  import('@/components/public/swift-home-sections').then((m) => m.LiveOrderTicker)
+)
+const HeroVideoBackground = dynamic(() =>
+  import('@/components/public/hero-video-background').then((m) => m.HeroVideoBackground)
+)
 
 const steps = [
   { step: '01', title: 'Pick Your Network', text: 'Choose MTN, Telecel or AirtelTigo and select your bundle size.' },

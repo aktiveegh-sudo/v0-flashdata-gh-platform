@@ -12,11 +12,16 @@ import {
   Package,
   Copy,
   Link2,
-  Loader2,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DashboardPageShell,
+  DashboardPanel,
+  DashboardStatGrid,
+  DashboardStatCard,
+} from '@/components/dashboard/page-shell'
+import { FlashPageLoader } from '@/components/flash-loader'
 import { supabase } from '@/lib/supabase/client'
 import { getDashboardAuthHeaders } from '@/lib/dashboard/client-auth'
 import { getStorePublicUrl } from '@/lib/store-domain'
@@ -167,66 +172,34 @@ export default function MyStorePage() {
     return Array.from(networkMap.entries()).map(([name, count]) => ({ name, orders: count }))
   }, [orders])
 
-  const stats = [
-    {
-      label: 'Total Earnings',
-      value: `GHc ${totalEarnings.toFixed(2)}`,
-      icon: DollarSign,
-      color: 'text-green-500',
-      bgColor: 'bg-green-100 dark:bg-green-900/30',
-    },
-    {
-      label: 'Orders Today',
-      value: String(todayOrders),
-      icon: ShoppingCart,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-100 dark:bg-blue-900/30',
-    },
-    {
-      label: 'Store Visitors',
-      value: String(uniqueVisitors),
-      icon: Users,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-100 dark:bg-purple-900/30',
-    },
-    {
-      label: 'Active Packages',
-      value: String(activePackages),
-      icon: Package,
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-100 dark:bg-orange-900/30',
-    },
-  ]
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading store dashboard...
-      </div>
-    )
-  }
+  if (loading) return <FlashPageLoader />
 
   return (
+    <DashboardPageShell
+      title="My Shop"
+      description="Track sales, orders, and your public shop performance."
+      stats={
+        <DashboardStatGrid>
+          <DashboardStatCard label="Total Earnings" value={`GHc ${totalEarnings.toFixed(2)}`} icon={DollarSign} />
+          <DashboardStatCard label="Orders Today" value={String(todayOrders)} icon={ShoppingCart} />
+          <DashboardStatCard label="Store Visitors" value={String(uniqueVisitors)} icon={Users} />
+          <DashboardStatCard label="Active Packages" value={String(activePackages)} icon={Package} />
+        </DashboardStatGrid>
+      }
+    >
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">My Shop</h1>
-        <p className="text-muted-foreground">Track sales, orders, and your public shop performance</p>
-      </div>
-
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <DashboardPanel>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Link2 className="h-4 w-4 text-primary" />
+            <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white">
+              <Link2 className="h-4 w-4 text-amber-500" />
               Your Public Store Link
             </p>
-            <p className="text-sm text-primary">
+            <p className="text-sm text-amber-600 dark:text-amber-400">
               {publicLink || 'Create your store slug in Store Settings to get your link'}
             </p>
           </div>
@@ -234,41 +207,15 @@ export default function MyStorePage() {
             <Copy className="h-4 w-4" />
             Copy Link
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </DashboardPanel>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bgColor}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <Badge variant="secondary" className="bg-muted text-muted-foreground">Live</Badge>
-              </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Sales Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Weekly Sales
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
+        <DashboardPanel title="Weekly Sales">
+          <div className="flex items-center gap-2 mb-4 -mt-2">
+            <TrendingUp className="h-4 w-4 text-amber-500" />
+          </div>
+          <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={salesData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -292,19 +239,13 @@ export default function MyStorePage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
+        </DashboardPanel>
 
-        {/* Orders by Network */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5 text-primary" />
-              Orders by Network
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
+        <DashboardPanel title="Orders by Network">
+          <div className="flex items-center gap-2 mb-4 -mt-2">
+            <Store className="h-4 w-4 text-amber-500" />
+          </div>
+          <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={ordersByNetwork}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -322,48 +263,43 @@ export default function MyStorePage() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
+        </DashboardPanel>
       </div>
 
-      {/* Recent Orders */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-primary" />
-            Recent Orders
-          </CardTitle>
+      <DashboardPanel
+        title="Recent Orders"
+        action={
           <a
             href="/dashboard/store-orders"
-            className="flex items-center gap-1 text-sm text-primary hover:underline"
+            className="flex items-center gap-1 text-sm text-amber-600 hover:underline dark:text-amber-400"
           >
             View All
             <ArrowUpRight className="h-4 w-4" />
           </a>
-        </CardHeader>
-        <CardContent>
+        }
+      >
           <div className="space-y-3">
             {recentOrders.length === 0 ? (
-              <p className="py-8 text-center text-muted-foreground">No store orders yet</p>
+              <p className="py-8 text-center text-gray-500 dark:text-white/50">No store orders yet</p>
             ) : (
               recentOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="flex items-center justify-between rounded-lg bg-muted/50 p-4"
+                  className="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-white/[0.03]"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-400/15 text-sm font-bold text-amber-600 dark:text-amber-400">
                       {order.customer_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{order.customer_name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-medium text-gray-900 dark:text-white">{order.customer_name}</p>
+                      <p className="text-sm text-gray-500 dark:text-white/55">
                         {order.data_packages?.amount || '-'} {order.data_packages?.network || 'Order'}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-foreground">GHc {Number(order.total_price).toFixed(2)}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">GHc {Number(order.total_price).toFixed(2)}</p>
                     <Badge
                       variant="secondary"
                       className={
@@ -383,8 +319,8 @@ export default function MyStorePage() {
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
+      </DashboardPanel>
     </motion.div>
+    </DashboardPageShell>
   )
 }

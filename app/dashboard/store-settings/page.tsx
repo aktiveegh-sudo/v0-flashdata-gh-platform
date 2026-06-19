@@ -2,9 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Save, Store, Loader2, Link2, Copy } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Save, Store, Link2, Copy, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  DashboardPageShell,
+  DashboardPanel,
+} from '@/components/dashboard/page-shell'
+import { FlashPageLoader } from '@/components/flash-loader'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -236,36 +240,25 @@ export default function StoreSettingsPage() {
     toast.success('Store link copied')
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading store settings...
-      </div>
-    )
-  }
+  if (loading) return <FlashPageLoader />
 
   return (
+    <DashboardPageShell
+      title="Shop Settings"
+      description="Customize your shop name, look, and contact details."
+    >
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Shop Settings</h1>
-        <p className="text-muted-foreground">Customize your shop name, look, and contact details</p>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5 text-primary" />
-              Branding & Identity
-            </CardTitle>
-            <CardDescription>Your public mini website details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <DashboardPanel
+          title="Branding & Identity"
+          description="Your public mini website details"
+          className="lg:col-span-2"
+        >
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="brandName">Brand Name</Label>
               <Input id="brandName" value={brandName} onChange={(e) => setBrandName(e.target.value)} />
@@ -351,15 +344,11 @@ export default function StoreSettingsPage() {
                 <Input id="whatsappNumber" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </DashboardPanel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Availability</CardTitle>
-            <CardDescription>What users can buy from your store</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <DashboardPanel title="Availability" description="What users can buy from your store">
+          <div className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
               <div>
                 <p className="text-sm font-medium">Store Active</p>
@@ -388,9 +377,10 @@ export default function StoreSettingsPage() {
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save Store Settings
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </DashboardPanel>
       </div>
     </motion.div>
+    </DashboardPageShell>
   )
 }

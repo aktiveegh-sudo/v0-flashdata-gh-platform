@@ -52,7 +52,7 @@ export function QuickActions() {
             <div className={`rounded-xl bg-gradient-to-br p-2.5 ${action.gradient} transition-transform group-hover:scale-110`}>
               <action.icon className="h-4 w-4 text-white" />
             </div>
-            <span className="text-center text-xs font-semibold text-gray-700 dark:text-slate-100">{action.label}</span>
+            <span className="text-center text-xs font-semibold text-gray-700 dark:text-white">{action.label}</span>
           </Link>
         </motion.div>
       ))}

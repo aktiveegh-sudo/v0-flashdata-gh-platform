@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, RotateCw } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -294,18 +295,16 @@ export default function AdminOrdersPage() {
   }, [rows])
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
-          <p className="text-sm text-muted-foreground">Unified feed of dashboard and store orders for data, AFA, and services.</p>
-        </div>
+    <AdminPageShell
+      title="Orders"
+      description="Unified feed of dashboard and store orders for data, AFA, and services."
+      actions={
         <Button onClick={exportCsv} className="min-h-11">
           <Download className="mr-2 h-4 w-4" /> Export CSV
         </Button>
-      </div>
-
-      <Card>
+      }
+    >
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle className="text-base">Order Status Filter</CardTitle>
         </CardHeader>
@@ -334,7 +333,7 @@ export default function AdminOrdersPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full min-w-[1100px] text-sm">
             <thead className="bg-muted/60 text-left">
@@ -412,6 +411,6 @@ export default function AdminOrdersPage() {
           </table>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   )
 }

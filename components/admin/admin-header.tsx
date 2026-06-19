@@ -89,7 +89,7 @@ export function AdminHeader({ userName, userEmail, onLogout, onMenuClick }: Admi
               <Menu className="h-5 w-5" />
             </Button>
           ) : null}
-          <div className="min-w-0 pl-10 lg:pl-0">
+          <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">{greeting}</p>
             <h2 className="truncate text-lg font-black lg:text-xl">{pageTitle}</h2>
           </div>

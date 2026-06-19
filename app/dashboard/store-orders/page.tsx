@@ -3,9 +3,15 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ShoppingCart, Check, X, Clock, Phone, Loader2 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  DashboardPageShell,
+  DashboardPanel,
+  DashboardStatGrid,
+  DashboardStatCard,
+} from '@/components/dashboard/page-shell'
+import { FlashPageLoader } from '@/components/flash-loader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase/client'
 import { getDashboardAuthHeaders } from '@/lib/dashboard/client-auth'
@@ -133,7 +139,7 @@ export default function StoreOrdersPage() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border border-border bg-card p-4 transition-all hover:shadow-md"
+      className="rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md dark:border-white/10 dark:bg-[#0a0a0f]"
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -203,86 +209,46 @@ export default function StoreOrdersPage() {
     </motion.div>
   )
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading store orders...
-      </div>
-    )
-  }
+  if (loading) return <FlashPageLoader />
 
   return (
+    <DashboardPageShell
+      title="Shop Orders"
+      description="Review and manage incoming customer orders from your shop link."
+      stats={
+        <DashboardStatGrid>
+          <DashboardStatCard label="Pending" value={String(pendingOrders.length)} icon={Clock} />
+          <DashboardStatCard label="Processing" value={String(processingOrders.length)} icon={ShoppingCart} />
+          <DashboardStatCard
+            label="Delivered"
+            value={String(completedOrders.filter((o) => o.status === 'delivered').length)}
+            icon={Check}
+          />
+        </DashboardStatGrid>
+      }
+    >
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Shop Orders</h1>
-        <p className="text-muted-foreground">Review and manage incoming customer orders from your shop link</p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-              <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{pendingOrders.length}</p>
-              <p className="text-sm text-muted-foreground">Pending</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-              <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{processingOrders.length}</p>
-              <p className="text-sm text-muted-foreground">Processing</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-              <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">
-                {completedOrders.filter((o) => o.status === 'delivered').length}
-              </p>
-              <p className="text-sm text-muted-foreground">Delivered</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-primary" />
-              All Store Orders ({orders.length})
-            </CardTitle>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="declined">Declined</SelectItem>
-                <SelectItem value="delivered">Delivered</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
+      <DashboardPanel
+        title={`All Store Orders (${orders.length})`}
+        action={
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="declined">Declined</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      >
           {filteredOrders.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">No orders found for this filter</p>
           ) : (
@@ -292,8 +258,8 @@ export default function StoreOrdersPage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </DashboardPanel>
     </motion.div>
+    </DashboardPageShell>
   )
 }

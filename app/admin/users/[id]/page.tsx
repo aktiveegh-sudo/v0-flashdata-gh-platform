@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, ExternalLink, Trash2, AlertCircle, Wallet } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -266,23 +267,23 @@ export default function UserDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <AdminPageShell title="User Details" description="Loading user profile and activity.">
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
         <div className="text-center">Loading user details...</div>
-      </div>
+      </AdminPageShell>
     )
   }
 
   if (!user) {
     return (
-      <div className="space-y-6">
+      <AdminPageShell title="User Details" description="User profile and activity.">
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
         <div className="text-center text-destructive">User not found</div>
-      </div>
+      </AdminPageShell>
     )
   }
 
@@ -291,14 +292,14 @@ export default function UserDetailPage() {
   const completedOrders = storeOrders.filter((o) => o.status === 'delivered').length
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <AdminPageShell
+      title={user.full_name || user.email || 'User Details'}
+      description={`${user.email || 'No email'} · ${user.role} · ${user.status}`}
+      actions={
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Back
           </Button>
-        </div>
-        <div className="flex gap-2">
           <Button
             variant={user.status === 'active' ? 'outline' : 'default'}
             size="sm"
@@ -311,10 +312,10 @@ export default function UserDetailPage() {
             <Trash2 className="mr-2 h-4 w-4" /> Delete
           </Button>
         </div>
-      </div>
-
+      }
+    >
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle>User Information</CardTitle>
           </CardHeader>
@@ -348,7 +349,7 @@ export default function UserDetailPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle>Wallet & Store</CardTitle>
           </CardHeader>
@@ -398,7 +399,7 @@ export default function UserDetailPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle className="text-sm">Total Sales</CardTitle>
           </CardHeader>
@@ -408,7 +409,7 @@ export default function UserDetailPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle className="text-sm">Store Orders</CardTitle>
           </CardHeader>
@@ -418,7 +419,7 @@ export default function UserDetailPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle className="text-sm">Transactions</CardTitle>
           </CardHeader>
@@ -429,7 +430,7 @@ export default function UserDetailPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Recent Transactions</CardTitle>
         </CardHeader>
@@ -458,7 +459,7 @@ export default function UserDetailPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Store Orders</CardTitle>
         </CardHeader>
@@ -589,6 +590,6 @@ export default function UserDetailPage() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AdminPageShell>
   )
 }

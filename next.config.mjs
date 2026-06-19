@@ -11,6 +11,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns', 'framer-motion'],
+  },
   turbopack: {
     root: __dirname,
   },

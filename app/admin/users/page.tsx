@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Users, Search } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -97,40 +98,39 @@ export default function AdminUsersPage() {
 	const adminUsers = users.filter((user) => user.role === 'super_admin').length
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="text-2xl font-bold tracking-tight">Users</h1>
-				<p className="text-sm text-muted-foreground">Realtime user list with profile and wallet balances.</p>
-			</div>
-
-			<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm text-muted-foreground">Total Users</CardTitle>
-					</CardHeader>
-					<CardContent className="text-2xl font-bold">{loading ? '...' : totalUsers.toLocaleString()}</CardContent>
-				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm text-muted-foreground">Active</CardTitle>
-					</CardHeader>
-					<CardContent className="text-2xl font-bold">{loading ? '...' : activeUsers.toLocaleString()}</CardContent>
-				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm text-muted-foreground">Suspended</CardTitle>
-					</CardHeader>
-					<CardContent className="text-2xl font-bold">{loading ? '...' : suspendedUsers.toLocaleString()}</CardContent>
-				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm text-muted-foreground">Super Admins</CardTitle>
-					</CardHeader>
-					<CardContent className="text-2xl font-bold">{loading ? '...' : adminUsers.toLocaleString()}</CardContent>
-				</Card>
-			</div>
-
-			<Card>
+		<AdminPageShell
+			title="Users"
+			description="Realtime user list with profile and wallet balances."
+			stats={
+				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+					<Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+						<CardHeader className="pb-2">
+							<CardTitle className="text-sm text-muted-foreground">Total Users</CardTitle>
+						</CardHeader>
+						<CardContent className="text-2xl font-bold">{loading ? '...' : totalUsers.toLocaleString()}</CardContent>
+					</Card>
+					<Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+						<CardHeader className="pb-2">
+							<CardTitle className="text-sm text-muted-foreground">Active</CardTitle>
+						</CardHeader>
+						<CardContent className="text-2xl font-bold">{loading ? '...' : activeUsers.toLocaleString()}</CardContent>
+					</Card>
+					<Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+						<CardHeader className="pb-2">
+							<CardTitle className="text-sm text-muted-foreground">Suspended</CardTitle>
+						</CardHeader>
+						<CardContent className="text-2xl font-bold">{loading ? '...' : suspendedUsers.toLocaleString()}</CardContent>
+					</Card>
+					<Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+						<CardHeader className="pb-2">
+							<CardTitle className="text-sm text-muted-foreground">Super Admins</CardTitle>
+						</CardHeader>
+						<CardContent className="text-2xl font-bold">{loading ? '...' : adminUsers.toLocaleString()}</CardContent>
+					</Card>
+				</div>
+			}
+		>
+			<Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2">
 						<Users className="h-4 w-4" />
@@ -246,6 +246,6 @@ export default function AdminUsersPage() {
 					</div>
 				</CardContent>
 			</Card>
-		</div>
+		</AdminPageShell>
 	)
 }

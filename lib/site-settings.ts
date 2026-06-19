@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { unstable_cache } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 
 type PublicSiteSettings = {
@@ -29,7 +30,7 @@ const getAdminClient = () => {
   return cachedClient
 }
 
-export const getPublicSiteSettings = async (): Promise<PublicSiteSettings | null> => {
+const fetchPublicSiteSettings = async (): Promise<PublicSiteSettings | null> => {
   const adminClient = getAdminClient()
   if (!adminClient) {
     return null
@@ -47,3 +48,7 @@ export const getPublicSiteSettings = async (): Promise<PublicSiteSettings | null
 
   return (data as PublicSiteSettings | null) || null
 }
+
+export const getPublicSiteSettings = unstable_cache(fetchPublicSiteSettings, ['public-site-settings'], {
+  revalidate: 60,
+})

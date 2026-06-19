@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase/client'
@@ -274,21 +275,13 @@ export default function AdminOverviewPage() {
   )
 
   return (
-    <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-2xl border border-amber-400/20 bg-white p-6 shadow-sm dark:border-amber-400/20 dark:bg-[#0a110d]">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-400/10 blur-2xl" />
-        <div className="relative z-10">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-500">Admin Insight</p>
-          <h1 className="mt-2 text-2xl font-black lg:text-3xl">Global Management</h1>
-          <p className="mt-2 max-w-2xl text-sm text-gray-500 dark:text-white/60">
-            High-level platform metrics and financial reconciliation for FlashData GH.
-          </p>
-        </div>
-      </div>
-
+    <AdminPageShell
+      title="Global Management"
+      description="High-level platform metrics and financial reconciliation for FlashData GH."
+    >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
-          <Card key={card.label} className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
+          <Card key={card.label} className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-bold uppercase tracking-[0.12em] text-gray-500 dark:text-white/45">
                 {card.label}
@@ -302,7 +295,7 @@ export default function AdminOverviewPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle>Revenue Last 7 Days</CardTitle>
           </CardHeader>
@@ -319,7 +312,7 @@ export default function AdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle>Sales by Network</CardTitle>
           </CardHeader>
@@ -337,7 +330,7 @@ export default function AdminOverviewPage() {
         </Card>
       </div>
 
-      <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Recent Activity Feed</CardTitle>
         </CardHeader>
@@ -359,7 +352,7 @@ export default function AdminOverviewPage() {
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle>Recent Users</CardTitle>
           </CardHeader>
@@ -386,7 +379,7 @@ export default function AdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
           </CardHeader>
@@ -412,7 +405,7 @@ export default function AdminOverviewPage() {
             )}
           </CardContent>
         </Card>
-        <Card className="border-gray-200 bg-white shadow-sm dark:border-white/8 dark:bg-[#0a110d]">
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
           <CardHeader>
             <CardTitle>Recent Transactions</CardTitle>
           </CardHeader>
@@ -439,6 +432,6 @@ export default function AdminOverviewPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AdminPageShell>
   )
 }

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Banknote, Smartphone, Building2, CheckCircle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DashboardPageShell, DashboardPanel } from '@/components/dashboard/page-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -124,13 +124,13 @@ export default function WithdrawalPage() {
 
   if (showSuccess) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex min-h-[60vh] items-center justify-center"
-      >
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="p-8">
+      <DashboardPageShell title="Cash Out" description="Your withdrawal request was submitted.">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex min-h-[40vh] items-center justify-center"
+        >
+          <DashboardPanel className="w-full max-w-md text-center">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -139,50 +139,43 @@ export default function WithdrawalPage() {
             >
               <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
             </motion.div>
-            <h2 className="text-2xl font-bold text-foreground">Withdrawal Requested!</h2>
-            <p className="mt-2 text-muted-foreground">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Withdrawal Requested!</h2>
+            <p className="mt-2 text-gray-500 dark:text-white/55">
               Your withdrawal request has been submitted successfully.
             </p>
-            <div className="mt-6 rounded-lg bg-muted p-4">
-              <p className="text-sm text-muted-foreground">Reference Number</p>
-              <p className="text-lg font-mono font-semibold text-foreground">{reference}</p>
+            <div className="mt-6 rounded-lg bg-gray-50 p-4 dark:bg-white/[0.03]">
+              <p className="text-sm text-gray-500 dark:text-white/50">Reference Number</p>
+              <p className="text-lg font-mono font-semibold text-gray-900 dark:text-white">{reference}</p>
             </div>
-            <p className="mt-4 text-sm text-muted-foreground">
+            <p className="mt-4 text-sm text-gray-500 dark:text-white/55">
               You will receive your funds within 24 hours.
             </p>
             <Button className="mt-6 w-full" onClick={resetForm}>
               Make Another Withdrawal
             </Button>
-          </CardContent>
-        </Card>
-      </motion.div>
+          </DashboardPanel>
+        </motion.div>
+      </DashboardPageShell>
     )
   }
 
   return (
+    <DashboardPageShell
+      title="Cash Out"
+      description="Send money from your wallet to mobile money or bank."
+    >
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Cash Out</h1>
-        <p className="text-muted-foreground">Send money from your wallet to mobile money or bank</p>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Balance Card */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Banknote className="h-5 w-5 text-primary" />
-              Available Balance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">GH₵ {availableBalance.toFixed(2)}</p>
-            <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+        <DashboardPanel title="Available Balance" className="lg:col-span-1">
+          <div className="flex items-center gap-2 mb-4">
+            <Banknote className="h-5 w-5 text-amber-500" />
+          </div>
+          <p className="text-3xl font-black text-gray-900 dark:text-white">GH₵ {availableBalance.toFixed(2)}</p>
+          <div className="mt-4 space-y-2 text-sm text-gray-500 dark:text-white/55">
               <div className="flex justify-between">
                 <span>Minimum withdrawal</span>
                 <span>GH₵ {minWithdrawal.toFixed(2)}</span>
@@ -196,15 +189,10 @@ export default function WithdrawalPage() {
                 <span>Within 24 hours</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </DashboardPanel>
 
-        {/* Withdrawal Form */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Request Withdrawal</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <DashboardPanel title="Request Withdrawal" className="lg:col-span-2">
+          <div className="space-y-6">
             {/* Amount */}
             <div className="space-y-2">
               <Label htmlFor="amount">Amount (GH₵)</Label>
@@ -349,9 +337,10 @@ export default function WithdrawalPage() {
             >
               Request Withdrawal
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </DashboardPanel>
       </div>
     </motion.div>
+    </DashboardPageShell>
   )
 }

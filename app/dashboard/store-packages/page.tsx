@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Edit2, Trash2, Package, Loader2 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  DashboardPageShell,
+  DashboardPanel,
+} from '@/components/dashboard/page-shell'
+import { FlashPageLoader } from '@/components/flash-loader'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -390,26 +394,18 @@ export default function StorePackagesPage() {
 
   const profit = (sellingPrice: number, costPrice: number) => sellingPrice - costPrice
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading store packages...
-      </div>
-    )
-  }
+  if (loading) return <FlashPageLoader />
 
   return (
+    <DashboardPageShell
+      title="Shop Data Packages"
+      description="Choose what to sell, set your price, and publish to your shop."
+    >
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Shop Data Packages</h1>
-          <p className="text-muted-foreground">Choose what to sell, set your price, and publish to your shop</p>
-        </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -505,13 +501,8 @@ export default function StorePackagesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>AFA Price Setup</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <DashboardPanel title="AFA Price Setup">
           {!afaBasePackage ? (
             <p className="text-sm text-muted-foreground">Admin has not configured AFA base pricing yet.</p>
           ) : (
@@ -558,22 +549,14 @@ export default function StorePackagesPage() {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </DashboardPanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" />
-            All Available Packages ({listedBasePackages.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <DashboardPanel title={`All Available Packages (${listedBasePackages.length})`}>
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Network</th>
+                <tr className="border-b border-gray-100 dark:border-white/5">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-white/45">Network</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Package</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data Price</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Selling Price</th>
@@ -594,7 +577,7 @@ export default function StorePackagesPage() {
                     const configured = storePackageByBaseId.get(basePkg.id)
 
                     return (
-                    <tr key={basePkg.id} className="border-b border-border transition-colors hover:bg-muted/50">
+                    <tr key={basePkg.id} className="border-b border-gray-50 transition-colors hover:bg-gray-50 dark:border-white/[0.03] dark:hover:bg-white/[0.02]">
                       <td className="px-4 py-3">
                         <Badge className={networkColors[basePkg.network || ''] || 'bg-primary'}>
                           {basePkg.network || 'N/A'}
@@ -662,8 +645,7 @@ export default function StorePackagesPage() {
                 const configured = storePackageByBaseId.get(basePkg.id)
 
                 return (
-                <Card key={basePkg.id} className="border-border">
-                  <CardContent className="p-4">
+                <div key={basePkg.id} className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-[#0a0a0f]">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -721,14 +703,13 @@ export default function StorePackagesPage() {
                         ) : null}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                </div>
                 )
               })
             )}
           </div>
-        </CardContent>
-      </Card>
+      </DashboardPanel>
     </motion.div>
+    </DashboardPageShell>
   )
 }

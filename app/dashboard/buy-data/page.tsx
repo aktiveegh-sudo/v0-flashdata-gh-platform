@@ -4,12 +4,12 @@ import { useEffect, useMemo, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Wifi, Phone, Check, AlertCircle, Loader2 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { DashboardPageShell, DashboardPanel } from '@/components/dashboard/page-shell'
 import { supabase } from '@/lib/supabase/client'
 import { useLoadingStore } from '@/lib/store'
 import { compareNetworks, networkCardTheme, normalizeNetwork, sortNetworks } from '@/lib/network-order'
@@ -230,24 +230,21 @@ function BuyDataContent() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-100 lg:text-3xl">Buy Data</h1>
-        <p className="text-slate-400">Choose a network, pick a bundle, and pay securely</p>
-      </div>
-
+    <DashboardPageShell
+      title="Buy Data"
+      description="Choose a network, pick a bundle, and pay securely from your wallet."
+    >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       {loadingPackages ? (
-        <Card>
-          <CardContent className="flex min-h-[180px] items-center justify-center gap-2 p-6 text-muted-foreground">
+        <DashboardPanel>
+          <div className="flex min-h-[180px] items-center justify-center gap-2 text-gray-500 dark:text-white/50">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading packages...
-          </CardContent>
-        </Card>
+          </div>
+        </DashboardPanel>
       ) : networks.length === 0 ? (
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground">No data packages available yet. Admin will add packages shortly.</p>
-          </CardContent>
-        </Card>
+        <DashboardPanel>
+          <p className="text-sm text-gray-500 dark:text-white/50">No data packages available yet. Admin will add packages shortly.</p>
+        </DashboardPanel>
       ) : (
         <>
           <div className="grid gap-3 md:grid-cols-3">
@@ -261,8 +258,8 @@ function BuyDataContent() {
                   }}
                   className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-base font-semibold transition-all ${
                     selectedNetwork === network
-                      ? 'border-[#f4c532] bg-[#f4c532] text-[#16110a] shadow-[0_10px_28px_rgba(212,166,23,0.28)]'
-                      : 'border-white/10 bg-[#070d16] text-slate-100 hover:border-[#f4c532]/45'
+                      ? 'border-amber-400 bg-amber-400 text-black shadow-md shadow-amber-400/25'
+                      : 'border-gray-200 bg-white text-gray-900 hover:border-amber-400/50 dark:border-white/10 dark:bg-[#0a0a0f] dark:text-white dark:hover:border-amber-400/45'
                   }`}
                 >
                   <Wifi className="h-4 w-4" />
@@ -272,16 +269,14 @@ function BuyDataContent() {
             })}
           </div>
 
-          <p className="console-section-label">{selectedNetwork.toUpperCase()} available bundles</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-white/45">
+            {selectedNetwork.toUpperCase()} available bundles
+          </p>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="console-section-label">Select Package</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <DashboardPanel title="Select Package">
                 {currentPackages.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No packages available for this network.</p>
+                  <p className="text-sm text-gray-500 dark:text-white/50">No packages available for this network.</p>
                 ) : (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {currentPackages.map((pkg) => (
@@ -308,22 +303,18 @@ function BuyDataContent() {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </DashboardPanel>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="console-section-label">Quick Steps</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-300">
+            <DashboardPanel title="Quick Steps">
+              <div className="space-y-3 text-sm text-gray-600 dark:text-white/65">
                 <p>1. Pick your network</p>
                 <p>2. Tap a package card</p>
                 <p>3. Enter required details in popup</p>
                 <p>4. Pay on Paystack and return for verification</p>
                 <p>5. Your order is created only after payment is verified</p>
-                <p className="pt-2 text-xs text-slate-400">Packages are managed by admins only.</p>
-              </CardContent>
-            </Card>
+                <p className="pt-2 text-xs text-gray-400 dark:text-white/40">Packages are managed by admins only.</p>
+              </div>
+            </DashboardPanel>
           </div>
 
           <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
@@ -425,7 +416,8 @@ function BuyDataContent() {
           </Dialog>
         </>
       )}
-    </motion.div>
+      </motion.div>
+    </DashboardPageShell>
   )
 }
 

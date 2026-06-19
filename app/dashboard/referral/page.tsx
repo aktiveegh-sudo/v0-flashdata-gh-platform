@@ -1,15 +1,16 @@
 'use client'
 
 import { ReferralCard } from '@/components/dashboard/referral-card'
+import { DashboardPageShell } from '@/components/dashboard/page-shell'
 
 export default function ReferralPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-white lg:text-3xl">Refer & Earn</h1>
-        <p className="mt-1 text-sm text-slate-400">Invite friends and earn when they join and buy data on FlashData GH.</p>
-      </div>
+    <DashboardPageShell
+      title="Refer & Earn"
+      description="Invite friends and earn when they join and buy data on FlashData GH."
+      className="mx-auto max-w-3xl"
+    >
       <ReferralCard />
-    </div>
+    </DashboardPageShell>
   )
 }

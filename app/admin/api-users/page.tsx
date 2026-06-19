@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { KeyRound, Ban, Copy, Plus } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -135,13 +136,11 @@ export default function AdminApiUsersPage() {
   const alreadyAssigned = new Set(rows.map((r) => r.user_id))
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">API Users</h1>
-        <p className="text-sm text-muted-foreground">Generate, revoke, and monitor API key usage.</p>
-      </div>
-
-      <Card>
+    <AdminPageShell
+      title="API Users"
+      description="Generate, revoke, and monitor API key usage."
+    >
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Create API User</CardTitle>
         </CardHeader>
@@ -175,7 +174,7 @@ export default function AdminApiUsersPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>API Access Records</CardTitle>
         </CardHeader>
@@ -233,6 +232,6 @@ export default function AdminApiUsersPage() {
           </table>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { BellRing, Pencil, Send, Trash2 } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -214,13 +215,11 @@ export default function AdminSendNotificationPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Send Notification</h1>
-        <p className="text-sm text-muted-foreground">Broadcast to all users or target a specific user.</p>
-      </div>
-
-      <Card>
+    <AdminPageShell
+      title="Send Notification"
+      description="Broadcast to all users or target a specific user."
+    >
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>{editingId ? 'Edit Notification' : 'Create Notification'}</CardTitle>
         </CardHeader>
@@ -295,7 +294,7 @@ export default function AdminSendNotificationPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Recent Notifications</CardTitle>
         </CardHeader>
@@ -332,6 +331,6 @@ export default function AdminSendNotificationPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   )
 }

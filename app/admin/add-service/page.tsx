@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, Pencil, Trash2, Upload } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -195,13 +196,11 @@ export default function AdminAddServicePage() {
   const previewUrl = useMemo(() => form.image_url || '', [form.image_url])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Add Service</h1>
-        <p className="text-sm text-muted-foreground">Manage online services with image upload and instant preview.</p>
-      </div>
-
-      <Card>
+    <AdminPageShell
+      title="Add Service"
+      description="Manage online services with image upload and instant preview."
+    >
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>{editingId ? 'Edit Service' : 'Create Service'}</CardTitle>
         </CardHeader>
@@ -282,7 +281,7 @@ export default function AdminAddServicePage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Service Catalog</CardTitle>
         </CardHeader>
@@ -318,6 +317,6 @@ export default function AdminAddServicePage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   )
 }

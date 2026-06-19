@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { CheckCircle2, XCircle } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -147,13 +148,11 @@ export default function AdminWithdrawalsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Withdrawals</h1>
-        <p className="text-sm text-muted-foreground">Approve or reject requests with wallet deduction logic on approval.</p>
-      </div>
-
-      <Card>
+    <AdminPageShell
+      title="Withdrawals"
+      description="Approve or reject requests with wallet deduction logic on approval."
+    >
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Withdrawal Requests</CardTitle>
         </CardHeader>
@@ -223,6 +222,6 @@ export default function AdminWithdrawalsPage() {
           </table>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   )
 }

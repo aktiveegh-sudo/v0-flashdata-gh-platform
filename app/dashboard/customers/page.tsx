@@ -2,8 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Users, Phone, ShoppingBag } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import {
+  DashboardPageShell,
+  DashboardPanel,
+  DashboardStatGrid,
+  DashboardStatCard,
+} from '@/components/dashboard/page-shell'
 import { getDashboardAuthHeaders } from '@/lib/dashboard/client-auth'
 import { format } from 'date-fns'
 
@@ -61,72 +66,53 @@ export default function CustomersPage() {
     return Array.from(map.values()).sort((a, b) => new Date(b.lastOrder).getTime() - new Date(a.lastOrder).getTime())
   }, [orders])
 
+  const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total_price || 0), 0)
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-white lg:text-3xl">Customers</h1>
-        <p className="mt-1 text-sm text-slate-400">People who have ordered from your store.</p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="h-4 w-4 text-amber-400" />
-            Store Customers ({customers.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Loading customers...</p>
-          ) : customers.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">No store customers yet. Share your store link to get started.</p>
-          ) : (
-            <div className="space-y-3">
-              {customers.map((customer) => (
-                <div key={customer.phone} className="flex flex-col gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-semibold text-white">{customer.name}</p>
-                    <p className="mt-1 flex items-center gap-1 text-sm text-slate-400">
-                      <Phone className="h-3.5 w-3.5" />
-                      {customer.phone}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <Badge variant="secondary">{customer.orders} orders</Badge>
-                    <Badge variant="outline">GHc {customer.spent.toFixed(2)}</Badge>
-                    <span className="text-xs text-slate-500">Last: {format(new Date(customer.lastOrder), 'MMM d, yyyy')}</span>
-                  </div>
+    <DashboardPageShell
+      title="Customers"
+      description="People who have ordered from your store."
+      stats={
+        <DashboardStatGrid>
+          <DashboardStatCard label="Total Customers" value={String(customers.length)} icon={Users} />
+          <DashboardStatCard label="Total Orders" value={String(orders.length)} icon={ShoppingBag} />
+          <DashboardStatCard label="Store Revenue" value={`GHc ${totalRevenue.toFixed(2)}`} icon={ShoppingBag} />
+        </DashboardStatGrid>
+      }
+    >
+      <DashboardPanel title="Store Customers" description={`${customers.length} unique customer${customers.length === 1 ? '' : 's'}`}>
+        {loading ? (
+          <p className="py-8 text-center text-sm text-gray-500 dark:text-white/50">Loading customers...</p>
+        ) : customers.length === 0 ? (
+          <p className="py-8 text-center text-sm text-gray-500 dark:text-white/50">
+            No store customers yet. Share your store link to get started.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {customers.map((customer) => (
+              <div
+                key={customer.phone}
+                className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-white/8 dark:bg-white/[0.02]"
+              >
+                <div>
+                  <p className="font-semibold text-gray-900 dark:text-white">{customer.name}</p>
+                  <p className="mt-1 flex items-center gap-1 text-sm text-gray-500 dark:text-white/55">
+                    <Phone className="h-3.5 w-3.5 text-amber-500" />
+                    {customer.phone}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ShoppingBag className="h-4 w-4 text-amber-400" />
-            Customer Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Total Customers</p>
-            <p className="mt-2 text-2xl font-black text-white">{customers.length}</p>
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <Badge variant="secondary">{customer.orders} orders</Badge>
+                  <Badge variant="outline">GHc {customer.spent.toFixed(2)}</Badge>
+                  <span className="text-xs text-gray-400 dark:text-white/40">
+                    Last: {format(new Date(customer.lastOrder), 'MMM d, yyyy')}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Total Orders</p>
-            <p className="mt-2 text-2xl font-black text-white">{orders.length}</p>
-          </div>
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Store Revenue</p>
-            <p className="mt-2 text-2xl font-black text-white">
-              GHc {orders.reduce((sum, order) => sum + Number(order.total_price || 0), 0).toFixed(2)}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </DashboardPanel>
+    </DashboardPageShell>
   )
 }

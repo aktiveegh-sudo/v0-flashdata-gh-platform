@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Loader2, Save, Upload } from 'lucide-react'
+import { AdminPageShell } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -295,13 +296,11 @@ export default function AdminSiteSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Site Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage global platform configuration from a single record.</p>
-      </div>
-
-      <Card>
+    <AdminPageShell
+      title="Site Settings"
+      description="Manage global platform configuration from a single record."
+    >
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Global Configuration</CardTitle>
         </CardHeader>
@@ -428,7 +427,7 @@ export default function AdminSiteSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
           <CardTitle>Provider Secrets</CardTitle>
         </CardHeader>
@@ -461,6 +460,6 @@ export default function AdminSiteSettingsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   )
 }
