@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { StoreNotFoundState } from '@/components/store/store-not-found-state'
 import { StorePaymentCompleteClient } from '@/components/store/store-payment-complete-client'
 import { StoreThemeProvider } from '@/components/store/store-theme-provider'
-import { fetchStoreBySlug } from '@/lib/store-fetch'
+import { getStoreRecordBySlug } from '@/lib/store-tenant'
 
 type StorePaymentCompletePageProps = {
   params: Promise<{ slug: string }>
@@ -10,7 +10,7 @@ type StorePaymentCompletePageProps = {
 
 export default async function StorePaymentCompletePage({ params }: StorePaymentCompletePageProps) {
   const { slug } = await params
-  const store = await fetchStoreBySlug(slug)
+  const store = await getStoreRecordBySlug(slug)
 
   if (!store) {
     return (

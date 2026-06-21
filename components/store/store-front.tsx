@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { startPaystackCheckout } from '@/lib/paystack/client'
+import { getStorePaymentCompletePath } from '@/lib/store-paths'
 import {
   buildWhatsAppUrl,
   bytebossNetworkBadgeClass,
@@ -201,7 +202,7 @@ export function StoreFront({ store }: StoreFrontProps) {
           ghanaCardNumber: isAfa ? afaGhanaCard.trim().toUpperCase() : undefined,
           location: isAfa ? afaLocation.trim() : undefined,
           customerPhone: recipientPhone.trim(),
-          redirectPath: `/store/${store.slug}/payment-complete`,
+          redirectPath: getStorePaymentCompletePath(store.slug, window.location.host),
         })
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Payment could not start')
@@ -229,7 +230,7 @@ export function StoreFront({ store }: StoreFrontProps) {
           phone: recipientPhone.trim(),
           customerName: customerName.trim(),
           customerPhone: recipientPhone.trim(),
-          redirectPath: `/store/${store.slug}/payment-complete`,
+          redirectPath: getStorePaymentCompletePath(store.slug, window.location.host),
         })
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Payment could not start')

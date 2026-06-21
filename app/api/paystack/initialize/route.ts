@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { initializePaystackTransaction, PaystackFlow } from '@/lib/paystack'
 import { normalizeToGhanaPhone, supabaseAdmin } from '@/lib/api/rest'
+import { getStorePaymentCompletePath, normalizeStorePaymentRedirectPath } from '@/lib/store-paths'
 
 type InitializeBody = {
   flow: PaystackFlow
@@ -294,6 +295,9 @@ export async function POST(request: NextRequest) {
     const customerPhoneFromBody = normalizeToGhanaPhone(body.customerPhone || '')
     const customerPhoneFromStore = normalizeToGhanaPhone(store.contact_phone || '')
     const customerPhone = customerPhoneFromBody || customerPhoneFromStore || (store.contact_phone || '').trim() || 'N/A'
+    const storePaymentCompletePath = body.redirectPath
+      ? normalizeStorePaymentRedirectPath(body.redirectPath, origin)
+      : getStorePaymentCompletePath(store.slug, origin)
 
     if (body.flow === 'store_service') {
       if (!body.serviceId) {
@@ -320,10 +324,10 @@ export async function POST(request: NextRequest) {
       const payment = await initializePaystackTransaction({
         email: customerEmail,
         amount: Number(serviceRow.selling_price || 0),
-        callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(body.redirectPath || `/store/${store.slug}`)}`,
+        callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(storePaymentCompletePath)}`,
         metadata: {
           flow: body.flow,
-          redirectPath: body.redirectPath || `/store/${store.slug}`,
+          redirectPath: storePaymentCompletePath,
           storeId: store.id,
           serviceId: serviceRow.service_id,
           phone: normalizedServicePhone,
@@ -372,10 +376,10 @@ export async function POST(request: NextRequest) {
     const payment = await initializePaystackTransaction({
       email: customerEmail,
       amount: Number(packageRow.selling_price || 0),
-      callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(body.redirectPath || `/store/${store.slug}`)}`,
+      callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(storePaymentCompletePath)}`,
       metadata: {
         flow: body.flow === 'store_afa' || isStoreAfa ? 'store_afa' : 'store_data',
-        redirectPath: body.redirectPath || `/store/${store.slug}`,
+        redirectPath: storePaymentCompletePath,
         storeId: store.id,
         packageId: packageRow.data_package_id,
         phone: normalizedPhone,

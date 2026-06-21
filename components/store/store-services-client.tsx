@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { startPaystackCheckout } from '@/lib/paystack/client'
+import { getStorePaymentCompletePath } from '@/lib/store-paths'
 import type { StoreRecord } from '@/lib/store-tenant'
 import toast from 'react-hot-toast'
 
@@ -47,7 +48,7 @@ export function StoreServicesClient({ store }: StoreServicesClientProps) {
         serviceId: selectedService.id,
         phone: recipientPhone.trim(),
         customerPhone: recipientPhone.trim(),
-        redirectPath: `/store/${store.slug}/payment-complete`,
+        redirectPath: getStorePaymentCompletePath(store.slug, window.location.host),
       })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Unable to initialize payment')

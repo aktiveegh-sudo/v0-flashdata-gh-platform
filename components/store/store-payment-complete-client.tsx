@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStoreTheme } from '@/components/store/store-theme-provider'
+import { getStoreHomePath } from '@/lib/store-paths'
 import type { StoreRecord } from '@/lib/store-tenant'
 
 type StorePaymentCompleteClientProps = {
@@ -19,7 +20,8 @@ export function StorePaymentCompleteClient({ store }: StorePaymentCompleteClient
 
   const message = searchParams.get('message') || 'Payment complete. Your order is being processed.'
   const reference = searchParams.get('reference') || ''
-  const storeHomePath = `/store/${store.slug}`
+  const storeHomePath =
+    typeof window !== 'undefined' ? getStoreHomePath(store.slug, window.location.host) : `/store/${store.slug}`
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {

@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getStoreDomainHost } from '@/lib/store-paths'
 
 const STATIC_ASSET_PATTERN = /\.(?:css|js|mjs|map|png|jpg|jpeg|gif|webp|svg|ico|txt|xml|json)$/i
+
+const PLATFORM_ROUTE_PREFIXES = [
+  '/payments',
+  '/track-order',
+  '/agent',
+  '/dashboard',
+  '/admin',
+  '/buy-data',
+  '/buy-airtime',
+  '/other-services',
+  '/become-agent',
+]
+
+const isPlatformRoute = (pathname: string) =>
+  PLATFORM_ROUTE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
 
 export function proxy(request: NextRequest) {
   const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.hostname).toLowerCase()
@@ -18,7 +34,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  if (host.includes('netbundlegh.store')) {
+  if (host.includes(getStoreDomainHost())) {
+    if (isPlatformRoute(pathname)) {
+      return NextResponse.next()
+    }
+
     const segments = pathname.split('/').filter(Boolean)
     const slug = segments[0]
 

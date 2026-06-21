@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { isStorePaymentCompletePath } from '@/lib/store-paths'
 
 function PaymentsCallbackContent() {
   const router = useRouter()
@@ -41,7 +42,7 @@ function PaymentsCallbackContent() {
       setLoading(false)
 
       const redirectTarget = result.data?.redirectPath || nextPath
-      const isStorePaymentComplete = /\/store\/[^/]+\/payment-complete$/.test(redirectTarget)
+      const isStorePaymentComplete = isStorePaymentCompletePath(redirectTarget)
 
       window.setTimeout(() => {
         if (isStorePaymentComplete) {
