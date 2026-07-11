@@ -1,46 +1,20 @@
 import 'server-only'
 
 import { getOptionalSecret } from '@/lib/secrets'
+import { formatSmsRecipient } from '@/lib/sms/format'
+import { sendTxtConnectSms, type SendSmsInput, type SendSmsResult } from '@/lib/sms/txtconnect'
 
-const SMS_ENDPOINT = 'https://webapp.usmsgh.com/api/sms/send'
+const LEGACY_SMS_ENDPOINT = 'https://webapp.usmsgh.com/api/sms/send'
 const DEFAULT_SENDER_ID = 'FlashDataGH'
 
-type SendSmsInput = {
-  recipient: string
-  message: string
-  senderId?: string
-}
+export type { SendSmsInput, SendSmsResult }
 
-type SendSmsResult = {
-  ok: boolean
-  skipped?: boolean
-  error?: string
-  data?: unknown
-}
+export { formatSmsRecipient }
 
-export const formatSmsRecipient = (phone: string): string | null => {
-  const digits = phone.replace(/\D/g, '')
-
-  if (digits.length === 12 && digits.startsWith('233')) {
-    return digits
-  }
-
-  if (digits.length === 10 && digits.startsWith('0')) {
-    return `233${digits.slice(1)}`
-  }
-
-  if (digits.length === 9) {
-    return `233${digits}`
-  }
-
-  return null
-}
-
-export const sendUsmsGhSms = async (input: SendSmsInput): Promise<SendSmsResult> => {
+const sendLegacyUsmsGhSms = async (input: SendSmsInput): Promise<SendSmsResult> => {
   const token = await getOptionalSecret(['USMSGH_API_TOKEN'])
   if (!token) {
-    console.warn('[USMS-GH] Skipping SMS: USMSGH_API_TOKEN is not configured')
-    return { ok: false, skipped: true, error: 'SMS provider not configured' }
+    return { ok: false, skipped: true, error: 'Legacy SMS provider not configured' }
   }
 
   const recipient = formatSmsRecipient(input.recipient)
@@ -51,7 +25,7 @@ export const sendUsmsGhSms = async (input: SendSmsInput): Promise<SendSmsResult>
   const configuredSender = input.senderId || (await getOptionalSecret(['USMSGH_SENDER_ID'])) || DEFAULT_SENDER_ID
   const senderId = configuredSender.replace(/[^a-zA-Z0-9]/g, '').slice(0, 11) || DEFAULT_SENDER_ID
 
-  const response = await fetch(SMS_ENDPOINT, {
+  const response = await fetch(LEGACY_SMS_ENDPOINT, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -78,7 +52,23 @@ export const sendUsmsGhSms = async (input: SendSmsInput): Promise<SendSmsResult>
   return { ok: true, data: result?.data }
 }
 
+export const sendSms = async (input: SendSmsInput): Promise<SendSmsResult> => {
+  const txtConnectResult = await sendTxtConnectSms(input)
+  if (txtConnectResult.ok || !txtConnectResult.skipped) {
+    return txtConnectResult
+  }
+
+  return sendLegacyUsmsGhSms(input)
+}
+
+export const sendUsmsGhSms = sendSms
+
 type PurchaseSmsKind = 'data' | 'afa' | 'service' | 'store_data' | 'store_service' | 'store_afa'
+
+export type CustomerOrderSmsSource = 'dashboard' | 'public'
+
+export const shouldSendCustomerOrderSms = (source: string) =>
+  source === 'dashboard' || source === 'public' || source.startsWith('dashboard')
 
 const buildPurchaseProcessingMessage = (input: {
   reference: string
@@ -90,15 +80,36 @@ const buildPurchaseProcessingMessage = (input: {
 
   if (input.kind === 'data' || input.kind === 'store_data') {
     const bundle = item ? ` (${item})` : ''
-    return `FlashData GH: Your data bundle${bundle} is being processed. Ref ${ref}. Thank you for your purchase.`
+    return `FlashData GH: Your data bundle${bundle} is underway. Ref ${ref}. We will notify you when it is complete.`
   }
 
   if (input.kind === 'afa' || input.kind === 'store_afa') {
-    return `FlashData GH: Your AFA registration is being processed. Ref ${ref}. Thank you for your purchase.`
+    return `FlashData GH: Your AFA registration is underway. Ref ${ref}. We will notify you when it is complete.`
   }
 
   const label = item || 'order'
-  return `FlashData GH: Your ${label} is being processed. Ref ${ref}. Thank you for your purchase.`
+  return `FlashData GH: Your ${label} is underway. Ref ${ref}. We will notify you when it is complete.`
+}
+
+const buildPurchaseCompletedMessage = (input: {
+  reference: string
+  itemName?: string | null
+  kind: PurchaseSmsKind
+}) => {
+  const ref = input.reference.trim()
+  const item = (input.itemName || '').trim()
+
+  if (input.kind === 'data' || input.kind === 'store_data') {
+    const bundle = item ? ` (${item})` : ''
+    return `FlashData GH: Your data bundle${bundle} has been delivered successfully. Ref ${ref}. Thank you for choosing FlashData GH.`
+  }
+
+  if (input.kind === 'afa' || input.kind === 'store_afa') {
+    return `FlashData GH: Your AFA registration is complete. Ref ${ref}. Thank you for choosing FlashData GH.`
+  }
+
+  const label = item || 'order'
+  return `FlashData GH: Your ${label} is complete. Ref ${ref}. Thank you for choosing FlashData GH.`
 }
 
 export const sendPurchaseProcessingSms = async (input: {
@@ -112,8 +123,37 @@ export const sendPurchaseProcessingSms = async (input: {
     return { ok: false, skipped: true, error: 'No customer phone for SMS' }
   }
 
-  return sendUsmsGhSms({
+  return sendSms({
     recipient: phone,
     message: buildPurchaseProcessingMessage(input),
+  })
+}
+
+export const sendPurchaseCompletedSms = async (input: {
+  phone?: string | null
+  reference: string
+  itemName?: string | null
+  kind: PurchaseSmsKind
+}) => {
+  const phone = (input.phone || '').trim()
+  if (!phone || phone.toUpperCase() === 'N/A') {
+    return { ok: false, skipped: true, error: 'No customer phone for SMS' }
+  }
+
+  return sendSms({
+    recipient: phone,
+    message: buildPurchaseCompletedMessage(input),
+  })
+}
+
+export const sendAdminBroadcastSms = async (input: { phone: string; message: string }) => {
+  const phone = input.phone.trim()
+  if (!phone) {
+    return { ok: false, skipped: true, error: 'No phone number' }
+  }
+
+  return sendSms({
+    recipient: phone,
+    message: input.message.trim(),
   })
 }

@@ -45,7 +45,7 @@ const FLAGS: FlagDef[] = [
     description: 'Active data delivery provider for paid orders.',
     type: 'select',
     options: [
-      { value: 'swiftdata', label: 'FlashData (Primary)' },
+      { value: 'swiftdata', label: 'Swift Reseller (Primary)' },
       { value: 'secondary', label: 'Secondary Provider' },
     ],
   },

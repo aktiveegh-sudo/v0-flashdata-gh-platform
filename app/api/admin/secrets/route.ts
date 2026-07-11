@@ -12,8 +12,8 @@ const ADMIN_SECRET_DEFINITIONS = [
   },
   {
     key: 'SWIFTDATA_DEVELOPER_KEY',
-    label: 'FlashData Developer Key',
-    description: 'Bearer token used for FlashData delivery requests.',
+    label: 'Swift Reseller API Key',
+    description: 'Primary Bearer token for SwiftData Reseller (Authorization: Bearer sk_live_...). Used for /v1/buy-data.',
     isSecret: true,
   },
   {
@@ -29,15 +29,27 @@ const ADMIN_SECRET_DEFINITIONS = [
     isSecret: false,
   },
   {
+    key: 'TXTCONNECT_API_KEY',
+    label: 'TxtConnect API Key',
+    description: 'Bearer token for sending SMS via api.txtconnect.net.',
+    isSecret: true,
+  },
+  {
+    key: 'TXTCONNECT_SENDER_ID',
+    label: 'TxtConnect Sender ID',
+    description: 'Approved sender name shown on SMS (e.g. FlashDataGH).',
+    isSecret: false,
+  },
+  {
     key: 'USMSGH_API_TOKEN',
-    label: 'USMS-GH API Token',
-    description: 'Bearer token for sending purchase SMS via webapp.usmsgh.com.',
+    label: 'USMS-GH API Token (Fallback)',
+    description: 'Optional fallback Bearer token for webapp.usmsgh.com if TxtConnect is unavailable.',
     isSecret: true,
   },
   {
     key: 'USMSGH_SENDER_ID',
-    label: 'USMS-GH Sender ID',
-    description: 'Your approved USMS-GH sender ID (max 11 characters). Request and approve one in the USMS-GH portal under Sending before SMS can deliver.',
+    label: 'USMS-GH Sender ID (Fallback)',
+    description: 'Optional fallback sender ID for USMS-GH.',
     isSecret: false,
   },
 ] as const

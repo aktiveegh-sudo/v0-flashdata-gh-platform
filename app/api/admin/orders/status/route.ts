@@ -2,6 +2,11 @@ import { NextRequest } from 'next/server'
 import { assertAdminRequest } from '@/lib/admin/auth'
 import { jsonError, jsonOk, supabaseAdmin } from '@/lib/api/rest'
 import { adminStatusOptions, type AdminOrderSource } from '@/lib/orders/status'
+import {
+  fetchDashboardOrderSmsContext,
+  fetchStoreOrderSmsContext,
+  maybeSendOrderStatusSms,
+} from '@/lib/sms/order-status'
 
 type StatusUpdateBody = {
   source?: AdminOrderSource
@@ -56,6 +61,28 @@ export async function PATCH(request: NextRequest) {
 
     if (!data) {
       return jsonError('Order not found', 404)
+    }
+
+    if (status === 'delivered') {
+      const smsContext =
+        source === 'dashboard'
+          ? await fetchDashboardOrderSmsContext(orderId)
+          : source === 'store_data' || source === 'store_service' || source === 'store_afa'
+            ? await fetchStoreOrderSmsContext(orderId)
+            : null
+
+      if (smsContext) {
+        await maybeSendOrderStatusSms({
+          phone: smsContext.phone,
+          reference: smsContext.reference,
+          itemName: smsContext.itemName,
+          kind: smsContext.kind,
+          source: smsContext.source,
+          status: 'delivered',
+        }).catch((error) => {
+          console.error('[SMS] Admin delivered status SMS failed:', error instanceof Error ? error.message : error)
+        })
+      }
     }
 
     return jsonOk({ order: data })

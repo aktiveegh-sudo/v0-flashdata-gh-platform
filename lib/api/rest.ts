@@ -230,20 +230,20 @@ const getOrderNotificationKindLabel = (kind: OrderNotificationKind) => {
 }
 
 export const notifyAdminsOfNewOrder = async (input: NotifyAdminsOfNewOrderInput) => {
-  if (input.customerPhone) {
+  if (input.customerPhone && (input.source === 'dashboard' || input.source === 'public')) {
     try {
       const smsResult = await sendPurchaseProcessingSms({
         phone: input.customerPhone,
         reference: input.reference,
         itemName: input.itemName,
-        kind: input.kind,
+        kind: input.kind === 'store_data' || input.kind === 'data' ? 'data' : input.kind === 'store_afa' || input.kind === 'afa' ? 'afa' : input.kind === 'store_service' || input.kind === 'service' ? 'service' : 'data',
       })
 
       if (!smsResult.ok && !smsResult.skipped) {
-        console.error('[USMS-GH] Purchase SMS failed:', smsResult.error)
+        console.error('[SMS] Purchase processing SMS failed:', smsResult.error)
       }
     } catch (error) {
-      console.error('[USMS-GH] Purchase SMS error:', error instanceof Error ? error.message : error)
+      console.error('[SMS] Purchase processing SMS error:', error instanceof Error ? error.message : error)
     }
   }
 

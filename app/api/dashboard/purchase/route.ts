@@ -385,6 +385,15 @@ export async function POST(request: NextRequest) {
       return jsonError(txError.message, 500)
     }
 
+    await notifyAdminsOfNewOrder({
+      kind: 'data',
+      reference,
+      amount,
+      source: 'dashboard',
+      customerPhone: normalizedPhone,
+      itemName: packageRow.name,
+    })
+
     const deliveryOutcome = await fulfillDataOrderDelivery({
       orderId: createdOrder.id,
       network: packageRow.network,
@@ -393,6 +402,7 @@ export async function POST(request: NextRequest) {
       reference,
       idempotencyKey: `wallet-${reference}`,
       source: 'dashboard_wallet',
+      itemName: `${packageRow.amount} ${packageRow.network}`,
       existingMetadata: {
         source: 'dashboard_wallet',
         flow: 'data',
@@ -442,15 +452,6 @@ export async function POST(request: NextRequest) {
         },
       })
       .eq('reference', reference)
-
-    await notifyAdminsOfNewOrder({
-      kind: 'data',
-      reference,
-      amount,
-      source: 'dashboard',
-      customerPhone: normalizedPhone,
-      itemName: packageRow.name,
-    })
 
     return NextResponse.json({
       success: true,

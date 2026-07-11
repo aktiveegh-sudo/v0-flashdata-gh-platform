@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { createPendingTransaction, generateReference, notifyAdminsOfNewOrder, supabaseAdmin } from '@/lib/api/rest'
 import { deliverDataBundleByProvider } from '@/lib/data-delivery'
+import { maybeSendOrderStatusSms } from '@/lib/sms/order-status'
 import { getRequiredSecret } from './secrets'
 
 export type PaystackFlow =
@@ -410,6 +411,7 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         amount,
         source: 'dashboard',
         customerPhone: metadata.phone,
+        itemName: `${packageRow.amount} ${packageRow.network}`,
       })
 
       try {
@@ -421,9 +423,12 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
           idempotencyKey: `dash-${reference}`,
         })
 
+        const nextStatus = delivery.status === 'completed' || delivery.status === 'delivered' ? 'delivered' : 'processing'
+
         await supabaseAdmin
           .from('orders')
           .update({
+            status: nextStatus,
             metadata: {
               source: 'paystack',
               payment_channel: charge.channel,
@@ -434,6 +439,17 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
             },
           })
           .eq('id', createdOrder.id)
+
+        if (nextStatus === 'delivered') {
+          await maybeSendOrderStatusSms({
+            phone: metadata.phone,
+            reference,
+            itemName: `${packageRow.amount} ${packageRow.network}`,
+            kind: 'data',
+            source: 'dashboard',
+            status: 'delivered',
+          })
+        }
 
         await supabaseAdmin
           .from('transactions')
@@ -687,6 +703,12 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
             customerNote = `${customerNote} | Provider: ${delivery.provider} | Delivery Status: ${delivery.status}${
               delivery.orderId ? ` | Provider Order: ${delivery.orderId}` : ''
             }`
+
+            if (delivery.status === 'completed' || delivery.status === 'delivered') {
+              storeOrderStatus = 'delivered'
+            } else {
+              storeOrderStatus = 'processing'
+            }
           } catch (deliveryError) {
             const deliveryMessage = deliveryError instanceof Error ? deliveryError.message : 'SwiftData delivery failed'
             storeOrderStatus = 'declined'
@@ -742,6 +764,17 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
         customerName: publicCustomerName,
         customerPhone: publicCustomerPhone,
       })
+
+      if (storeOrderStatus === 'delivered') {
+        await maybeSendOrderStatusSms({
+          phone: publicCustomerPhone,
+          reference,
+          itemName: itemLabel,
+          kind: itemType === 'service' ? 'service' : metadata.flow === 'public_afa' ? 'afa' : 'data',
+          source: 'public',
+          status: 'delivered',
+        })
+      }
     }
 
     return {

@@ -392,7 +392,7 @@ export default function AdminSiteSettingsPage() {
                     <SelectValue placeholder="Choose provider" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="swiftdata">FlashData (Primary)</SelectItem>
+                    <SelectItem value="swiftdata">Swift Reseller (Primary)</SelectItem>
                     <SelectItem value="secondary">Secondary Provider</SelectItem>
                   </SelectContent>
                 </Select>

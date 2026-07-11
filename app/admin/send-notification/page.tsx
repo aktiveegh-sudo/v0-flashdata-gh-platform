@@ -1,15 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BellRing, Pencil, Send, Trash2 } from 'lucide-react'
+import { BellRing, MessageSquare, Pencil, Send, Trash2 } from 'lucide-react'
 import { AdminPageShell } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { getAdminAuthHeaders } from '@/lib/admin/client-auth'
 import { supabase } from '@/lib/supabase/client'
 import { formatDateTime } from '@/lib/admin/utils'
 import toast from 'react-hot-toast'
@@ -37,11 +40,13 @@ export default function AdminSendNotificationPage() {
   const [sending, setSending] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  const [target, setTarget] = useState<'all' | 'single'>('all')
-  const [selectedUserId, setSelectedUserId] = useState('')
+  const [target, setTarget] = useState<'all' | 'selected'>('all')
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [type, setType] = useState<'info' | 'success' | 'warning' | 'error'>('info')
+  const [sendInApp, setSendInApp] = useState(true)
+  const [sendSms, setSendSms] = useState(true)
 
   const loadData = async () => {
     setLoading(true)
@@ -87,33 +92,37 @@ export default function AdminSendNotificationPage() {
     }
   }, [])
 
+  const toggleUserSelection = (userId: string, checked: boolean) => {
+    setSelectedUserIds((current) => {
+      if (checked) {
+        return current.includes(userId) ? current : [...current, userId]
+      }
+      return current.filter((id) => id !== userId)
+    })
+  }
+
   const sendNotification = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!title.trim() || !message.trim()) {
-      toast.error('Title and message are required')
+    if (!message.trim()) {
+      toast.error('Message is required')
+      return
+    }
+
+    if (!sendInApp && !sendSms) {
+      toast.error('Enable in-app notification or SMS')
+      return
+    }
+
+    if (target === 'selected' && selectedUserIds.length === 0) {
+      toast.error('Select at least one user')
       return
     }
 
     setSending(true)
 
-    let targetIds: string[] = []
-
-    if (target === 'all') {
-      const usersRes = await supabase.client.from('profiles').select('id')
-      if (usersRes.error) {
-        toast.error(usersRes.error.message)
-        setSending(false)
-        return
-      }
-
-      targetIds = (((usersRes.data as Array<{ id: string }> | null) || []).map((u) => u.id).filter(Boolean))
-    } else {
-      targetIds = [selectedUserId].filter(Boolean)
-    }
-
     if (editingId) {
-      const targetUserId = target === 'single' ? selectedUserId : ''
+      const targetUserId = selectedUserIds[0] || ''
       if (!targetUserId) {
         toast.error('Please select a user for this notification')
         setSending(false)
@@ -124,7 +133,7 @@ export default function AdminSendNotificationPage() {
         .from('notifications')
         .update({
           user_id: targetUserId,
-          title: title.trim(),
+          title: title.trim() || 'FlashData GH',
           message: message.trim(),
           type,
         })
@@ -138,62 +147,76 @@ export default function AdminSendNotificationPage() {
 
       toast.success('Notification updated')
       setSending(false)
-      setEditingId(null)
-      setTitle('')
-      setMessage('')
-      setSelectedUserId('')
-      setTarget('all')
+      cancelEdit()
       void loadData()
       return
     }
 
-    const validTargets = targetIds
+    try {
+      const headers = await getAdminAuthHeaders()
+      const response = await fetch('/api/admin/notifications/broadcast', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          mode: target,
+          userIds: target === 'selected' ? selectedUserIds : undefined,
+          title: title.trim() || 'FlashData GH',
+          message: message.trim(),
+          type,
+          sendInApp,
+          sendSms,
+        }),
+      })
 
-    if (validTargets.length === 0) {
-      toast.error('No target users found')
+      const payload = (await response.json().catch(() => null)) as {
+        success?: boolean
+        error?: string
+        data?: { targetedUsers?: number; inAppSent?: number; smsSent?: number; smsFailed?: number; smsSkipped?: number }
+      } | null
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || 'Unable to send notification')
+      }
+
+      const summary = payload.data
+      toast.success(
+        `Sent to ${summary?.targetedUsers || 0} user(s)` +
+          (sendSms
+            ? ` · SMS: ${summary?.smsSent || 0} sent, ${summary?.smsFailed || 0} failed, ${summary?.smsSkipped || 0} skipped`
+            : '')
+      )
+
+      setTitle('')
+      setMessage('')
+      setSelectedUserIds([])
+      void loadData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to send notification')
+    } finally {
       setSending(false)
-      return
     }
-
-    const payload = validTargets.map((userId) => ({
-      user_id: userId,
-      title: title.trim(),
-      message: message.trim(),
-      type,
-      is_read: false,
-    }))
-
-    const { error } = await supabase.client.from('notifications').insert(payload)
-    if (error) {
-      toast.error(error.message)
-      setSending(false)
-      return
-    }
-
-    toast.success(`Sent ${payload.length} notification(s)`)
-    setSending(false)
-    setTitle('')
-    setMessage('')
-    setSelectedUserId('')
-    void loadData()
   }
 
   const editNotification = (row: NotificationRow) => {
     setEditingId(row.id)
-    setTarget('single')
-    setSelectedUserId(row.user_id)
+    setTarget('selected')
+    setSelectedUserIds([row.user_id])
     setTitle(row.title)
     setMessage(row.message)
     setType(row.type)
+    setSendInApp(true)
+    setSendSms(false)
   }
 
   const cancelEdit = () => {
     setEditingId(null)
     setTarget('all')
-    setSelectedUserId('')
+    setSelectedUserIds([])
     setTitle('')
     setMessage('')
     setType('info')
+    setSendInApp(true)
+    setSendSms(true)
   }
 
   const deleteNotification = async (id: string) => {
@@ -217,7 +240,7 @@ export default function AdminSendNotificationPage() {
   return (
     <AdminPageShell
       title="Send Notification"
-      description="Broadcast to all users or target a specific user."
+      description="Send in-app alerts and SMS to all users or selected users."
     >
       <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
         <CardHeader>
@@ -234,39 +257,17 @@ export default function AdminSendNotificationPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Users</SelectItem>
-                    <SelectItem value="single">Specific User</SelectItem>
+                    <SelectItem value="selected">Selected Users</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {target === 'single' && (
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Select User</Label>
-                  <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Choose user" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {(user.full_name || 'Unnamed User') + (user.phone ? ` (${user.phone})` : '')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="System maintenance notice" />
-              </div>
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label>Type</Label>
                 <Select value={type} onValueChange={(value) => setType(value as typeof type)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="info">Info</SelectItem>
                     <SelectItem value="success">Success</SelectItem>
@@ -277,13 +278,64 @@ export default function AdminSendNotificationPage() {
               </div>
             </div>
 
+            {target === 'selected' ? (
+              <div className="space-y-3 rounded-xl border border-border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <Label>Select Users</Label>
+                  <p className="text-xs text-muted-foreground">{selectedUserIds.length} selected</p>
+                </div>
+                <div className="max-h-56 space-y-2 overflow-y-auto">
+                  {users.map((user) => (
+                    <label key={user.id} className="flex items-center gap-3 rounded-lg border border-border/70 px-3 py-2">
+                      <Checkbox
+                        checked={selectedUserIds.includes(user.id)}
+                        onCheckedChange={(checked) => toggleUserSelection(user.id, checked === true)}
+                      />
+                      <span className="text-sm">
+                        {user.full_name || 'Unnamed User'}
+                        {user.phone ? <span className="text-muted-foreground"> · {user.phone}</span> : null}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="space-y-2">
-              <Label>Message</Label>
-              <Textarea rows={5} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Write notification details..." />
+              <Label>Title</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="FlashData GH update" />
             </div>
 
+            <div className="space-y-2">
+              <Label>Message</Label>
+              <Textarea rows={5} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Write your message..." />
+            </div>
+
+            {!editingId ? (
+              <div className="grid gap-3 rounded-xl border border-border p-4 md:grid-cols-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">In-app notification</p>
+                    <p className="text-xs text-muted-foreground">Show inside user dashboards</p>
+                  </div>
+                  <Switch checked={sendInApp} onCheckedChange={setSendInApp} />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="flex items-center gap-2 text-sm font-medium">
+                      <MessageSquare className="h-4 w-4" />
+                      SMS message
+                    </p>
+                    <p className="text-xs text-muted-foreground">Send via TxtConnect to saved phone numbers</p>
+                  </div>
+                  <Switch checked={sendSms} onCheckedChange={setSendSms} />
+                </div>
+              </div>
+            ) : null}
+
             <Button type="submit" disabled={sending} className="w-fit min-h-11">
-              <Send className="mr-2 h-4 w-4" /> {sending ? (editingId ? 'Updating...' : 'Sending...') : editingId ? 'Update Notification' : 'Send Notification'}
+              <Send className="mr-2 h-4 w-4" />{' '}
+              {sending ? (editingId ? 'Updating...' : 'Sending...') : editingId ? 'Update Notification' : 'Send Notification'}
             </Button>
             {editingId ? (
               <Button type="button" variant="outline" className="w-fit" onClick={cancelEdit}>
