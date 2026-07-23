@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeSwitcher } from '@/components/theme-switcher'
+import { WhatsAppChannelFab } from '@/components/whatsapp-channel-fab'
 
 type MainSiteShellProps = {
   children: React.ReactNode
@@ -135,6 +136,8 @@ export function MainSiteShell({ children, activeTab = 'home' }: MainSiteShellPro
           © {new Date().getFullYear()} FlashData GH. All rights reserved.
         </div>
       </footer>
+
+      <WhatsAppChannelFab />
     </div>
   )
 }

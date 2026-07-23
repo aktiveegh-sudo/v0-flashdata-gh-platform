@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { MessageCircle } from 'lucide-react'
 import { useAuthStore, useTransactionStore, useWalletStore, type Transaction } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { ensureProfileAndWalletForUser } from '@/lib/supabase/profile-bootstrap'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { DashboardNavTour } from '@/components/dashboard/dashboard-nav-tour'
+import { WhatsAppChannelFab } from '@/components/whatsapp-channel-fab'
 import { PageLoader } from '@/components/loader'
 
 type DbTransaction = {
@@ -50,7 +50,6 @@ export default function DashboardLayout({
   const [mounted, setMounted] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
   const [activeUserId, setActiveUserId] = useState('')
-  const [whatsappChannelUrl, setWhatsappChannelUrl] = useState('')
 
   const syncFinancialState = useCallback(async (userId: string) => {
     const [{ data: wallet }, { data: txRows }] = await Promise.all([
@@ -163,23 +162,8 @@ export default function DashboardLayout({
   }, [activeUserId, mounted])
 
   useEffect(() => {
-    if (!mounted) {
-      return
-    }
-
-    const loadWhatsappChannel = async () => {
-      const { data } = await supabase.client
-        .from('site_settings')
-        .select('whatsapp_channel_url')
-        .limit(1)
-        .maybeSingle()
-
-      const raw = (data as { whatsapp_channel_url?: string | null } | null)?.whatsapp_channel_url || ''
-      setWhatsappChannelUrl(raw.trim())
-    }
-
-    void loadWhatsappChannel()
-  }, [mounted])
+    setMounted(true)
+  }, [])
 
   if (!mounted || checkingSession) {
     return <PageLoader />
@@ -198,18 +182,7 @@ export default function DashboardLayout({
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>
-      {whatsappChannelUrl ? (
-        <a
-          href={whatsappChannelUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:-translate-y-0.5 hover:bg-green-600"
-          aria-label="Open WhatsApp channel"
-        >
-          <MessageCircle className="h-4 w-4" />
-          WhatsApp Channel
-        </a>
-      ) : null}
+      <WhatsAppChannelFab />
       <DashboardNavTour />
     </div>
   )

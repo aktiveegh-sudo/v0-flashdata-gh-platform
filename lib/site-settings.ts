@@ -7,6 +7,7 @@ type PublicSiteSettings = {
   site_name: string | null
   hero_text: string | null
   hero_video_url: string | null
+  whatsapp_channel_url: string | null
 }
 
 let cachedClient: ReturnType<typeof createClient> | null = null
@@ -38,7 +39,7 @@ const fetchPublicSiteSettings = async (): Promise<PublicSiteSettings | null> => 
 
   const { data, error } = await adminClient
     .from('site_settings')
-    .select('site_name,hero_text,hero_video_url')
+    .select('site_name,hero_text,hero_video_url,whatsapp_channel_url')
     .limit(1)
     .maybeSingle()
 
