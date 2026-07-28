@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { initializePaystackTransaction, PaystackFlow } from '@/lib/paystack'
 import { normalizeToGhanaPhone, supabaseAdmin } from '@/lib/api/rest'
 import { getStorePaymentCompletePath, normalizeStorePaymentRedirectPath } from '@/lib/store-paths'
+import { resolveBuyerUnitPrice } from '@/lib/dashboard/subagent'
 
 type InitializeBody = {
   flow: PaystackFlow
@@ -109,9 +110,17 @@ export async function POST(request: NextRequest) {
           return jsonError(packageError?.message || 'Data package not found', 404)
         }
 
+        const platformPrice = Number(packageRow.agent_price || packageRow.selling_price || 0)
+        const priced = await resolveBuyerUnitPrice({
+          buyerId: authUser.id,
+          kind: 'data',
+          packageId: packageRow.id,
+          platformAgentPrice: platformPrice,
+        })
+
         const payment = await initializePaystackTransaction({
           email,
-          amount: Number(packageRow.agent_price || packageRow.selling_price || 0),
+          amount: priced.amount,
           callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(body.redirectPath || '/dashboard/buy-data')}`,
           metadata: {
             flow: body.flow,
@@ -119,6 +128,8 @@ export async function POST(request: NextRequest) {
             userId: authUser.id,
             packageId: packageRow.id,
             phone: normalizedPhone,
+            parentAgentId: priced.parentAgentId || undefined,
+            platformAgentPrice: priced.platformAgentPrice,
           },
         })
 
@@ -145,18 +156,27 @@ export async function POST(request: NextRequest) {
         return jsonError(settingsError?.message || 'AFA registration is unavailable', 403)
       }
 
+      const platformPrice = Number(settings.agent_price || settings.base_price || 0)
+      const priced = await resolveBuyerUnitPrice({
+        buyerId: authUser.id,
+        kind: 'afa',
+        platformAgentPrice: platformPrice,
+      })
+
       const payment = await initializePaystackTransaction({
         email,
-        amount: Number(settings.agent_price || settings.base_price || 0),
+        amount: priced.amount,
         callbackUrl: `${origin}/payments/callback?next=${encodeURIComponent(body.redirectPath || '/dashboard/afa')}`,
         metadata: {
           flow: body.flow,
           redirectPath: body.redirectPath || '/dashboard/afa',
-            userId: authUser.id,
+          userId: authUser.id,
           phone: normalizedPhone,
           fullName,
           ghanaCardNumber,
           location,
+          parentAgentId: priced.parentAgentId || undefined,
+          platformAgentPrice: priced.platformAgentPrice,
         },
       })
 

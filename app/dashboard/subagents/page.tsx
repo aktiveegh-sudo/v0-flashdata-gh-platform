@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, Plus, UserPlus, Users } from 'lucide-react'
+import Link from 'next/link'
+import { Copy, Loader2, Plus, UserPlus, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,7 +14,8 @@ import {
   DashboardStatCard,
 } from '@/components/dashboard/page-shell'
 import { FlashPageLoader } from '@/components/flash-loader'
-import { fetchSubAgents, type SubAgentRow } from '@/lib/dashboard/agent-pages-data'
+import { SubAgentRecruitGate } from '@/components/dashboard/subagent-recruit-gate'
+import { fetchAgentStore, fetchSubAgents, type SubAgentRow } from '@/lib/dashboard/agent-pages-data'
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
@@ -22,8 +24,8 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 export default function SubAgentsPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [subAgents, setSubAgents] = useState<SubAgentRow[]>([])
+  const [inviteUrl, setInviteUrl] = useState('')
   const [lookup, setLookup] = useState('')
-  const [commission, setCommission] = useState('5')
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +51,11 @@ export default function SubAgentsPage() {
       setUserId(uid)
 
       try {
+        const store = await fetchAgentStore(uid)
+        if (store?.slug) {
+          const origin = typeof window !== 'undefined' ? window.location.origin : ''
+          setInviteUrl(`${origin}/store/${store.slug}/join`)
+        }
         await loadSubAgents(uid)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to load sub-agents')
@@ -81,18 +88,25 @@ export default function SubAgentsPage() {
   const handleAdd = async () => {
     if (!userId) return
 
-    const parsedCommission = Number(commission)
-    if (!Number.isFinite(parsedCommission) || parsedCommission < 0 || parsedCommission > 100) {
-      toast.error('Commission must be between 0 and 100')
-      return
-    }
-
     setAdding(true)
 
     try {
+      const { data: selfCheck } = await supabase.client
+        .from('sub_agents')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (selfCheck) {
+        toast.error('Subagents cannot recruit other subagents')
+        setAdding(false)
+        return
+      }
+
       const targetUserId = await resolveUserId(lookup)
       if (!targetUserId) {
-        toast.error('Agent not found. Enter a valid email, phone, or user ID.')
+        toast.error('User not found. Enter a valid email, phone, or user ID.')
         setAdding(false)
         return
       }
@@ -106,19 +120,18 @@ export default function SubAgentsPage() {
       const { error: insertError } = await supabase.client.from('sub_agents').insert({
         parent_agent_id: userId,
         user_id: targetUserId,
-        commission_rate: parsedCommission,
-        status: 'pending',
+        commission_rate: 0,
+        status: 'active',
       })
 
       if (insertError) {
-        toast.error(insertError.message.includes('duplicate') ? 'This agent is already linked' : insertError.message)
+        toast.error(insertError.message.includes('duplicate') ? 'This user is already linked' : insertError.message)
         setAdding(false)
         return
       }
 
-      toast.success('Sub-agent added successfully')
+      toast.success('Sub-agent linked successfully')
       setLookup('')
-      setCommission('5')
       await loadSubAgents(userId)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add sub-agent')
@@ -145,6 +158,15 @@ export default function SubAgentsPage() {
     await loadSubAgents(userId)
   }
 
+  const copyInvite = async () => {
+    if (!inviteUrl) {
+      toast.error('Create your store first to get an invite link')
+      return
+    }
+    await navigator.clipboard.writeText(inviteUrl)
+    toast.success('Invite link copied')
+  }
+
   const activeCount = subAgents.filter((row) => row.status === 'active').length
   const pendingCount = subAgents.filter((row) => row.status === 'pending').length
 
@@ -161,9 +183,10 @@ export default function SubAgentsPage() {
   }
 
   return (
+    <SubAgentRecruitGate>
     <DashboardPageShell
       title="Sub-Agents"
-      description="Recruit sub-agents, set commissions, and track their status."
+      description="Share your store invite link so others can join as subagents with their own wallet and store."
       stats={
         <DashboardStatGrid>
           <DashboardStatCard label="Total" value={String(subAgents.length)} icon={Users} />
@@ -172,8 +195,41 @@ export default function SubAgentsPage() {
         </DashboardStatGrid>
       }
     >
-      <DashboardPanel title="Add Sub-Agent">
-        <div className="grid gap-4 sm:grid-cols-[1fr_120px_auto] sm:items-end">
+      <DashboardPanel title="Invite link">
+        <p className="mb-3 text-sm text-gray-500 dark:text-white/50">
+          People open this page on your store, then create an account or sign in to become your subagent.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Input readOnly value={inviteUrl || 'Set up My Store to generate an invite link'} className="flex-1" />
+          <Button type="button" variant="outline" onClick={() => void copyInvite()} disabled={!inviteUrl}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copy
+          </Button>
+          {inviteUrl ? (
+            <Button asChild className="bg-amber-400 text-black hover:bg-amber-300">
+              <Link href={inviteUrl.replace(/^https?:\/\/[^/]+/, '') || '#'}>Open</Link>
+            </Button>
+          ) : (
+            <Button asChild variant="outline">
+              <Link href="/dashboard/store-settings">Store settings</Link>
+            </Button>
+          )}
+        </div>
+        <p className="mt-3 text-xs text-gray-500">
+          Set wholesale prices on{' '}
+          <Link href="/dashboard/subagent-pricing" className="font-semibold text-amber-600 hover:underline">
+            Subagent Pricing
+          </Link>
+          . View their activity on{' '}
+          <Link href="/dashboard/subagent-orders" className="font-semibold text-amber-600 hover:underline">
+            Subagent Orders
+          </Link>
+          .
+        </p>
+      </DashboardPanel>
+
+      <DashboardPanel title="Link existing user (optional)">
+        <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="space-y-2">
             <Label htmlFor="lookup">Email, Phone, or User ID</Label>
             <Input
@@ -183,79 +239,57 @@ export default function SubAgentsPage() {
               onChange={(e) => setLookup(e.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="commission">Commission %</Label>
-            <Input
-              id="commission"
-              type="number"
-              min={0}
-              max={100}
-              value={commission}
-              onChange={(e) => setCommission(e.target.value)}
-            />
-          </div>
           <Button
             onClick={() => void handleAdd()}
             disabled={adding || !lookup.trim()}
             className="gap-2 bg-amber-400 text-black hover:bg-amber-300"
           >
             {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Add
+            Link user
           </Button>
         </div>
       </DashboardPanel>
 
-      <DashboardPanel title="Your Sub-Agents" description="Manage commission and activation status.">
+      <DashboardPanel title="Your subagents">
         {subAgents.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-500 dark:text-white/50">
-            No sub-agents yet. Add an agent by email, phone, or user ID above.
-          </p>
+          <p className="text-sm text-gray-500">No subagents yet. Share your invite link to get started.</p>
         ) : (
           <div className="space-y-3">
-            {subAgents.map((row) => (
-              <div
-                key={row.id}
-                className="flex flex-col gap-3 rounded-xl border border-gray-100 p-4 dark:border-white/5 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-semibold text-gray-900 dark:text-white">
-                    {row.profiles?.full_name || 'Agent'}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-white/45">
-                    {row.profiles?.email || row.profiles?.phone || row.user_id}
-                  </p>
-                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                    {row.commission_rate}% commission
-                  </p>
+            {subAgents.map((row) => {
+              const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles
+              return (
+                <div
+                  key={row.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 p-4 dark:border-white/8"
+                >
+                  <div>
+                    <p className="font-bold">{profile?.full_name || 'Sub-agent'}</p>
+                    <p className="text-xs text-gray-500">
+                      {profile?.email || profile?.phone || row.user_id}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="capitalize">
+                      {row.status}
+                    </Badge>
+                    {row.status !== 'active' ? (
+                      <Button size="sm" variant="outline" onClick={() => void handleStatusUpdate(row.id, 'active')}>
+                        Activate
+                      </Button>
+                    ) : null}
+                    {row.status !== 'suspended' ? (
+                      <Button size="sm" variant="outline" onClick={() => void handleStatusUpdate(row.id, 'suspended')}>
+                        Suspend
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge
-                    variant="secondary"
-                    className={
-                      row.status === 'active'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                        : row.status === 'suspended'
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                    }
-                  >
-                    {row.status}
-                  </Badge>
-                  {row.status !== 'active' ? (
-                    <Button size="sm" variant="outline" onClick={() => void handleStatusUpdate(row.id, 'active')}>
-                      Activate
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" onClick={() => void handleStatusUpdate(row.id, 'suspended')}>
-                      Suspend
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </DashboardPanel>
     </DashboardPageShell>
+    </SubAgentRecruitGate>
   )
 }

@@ -126,8 +126,37 @@ export default function OtherServicesPage() {
       return
     }
 
-    setBaseServices(servicesPayload.data ?? [])
-    setStoreServices((configured as StoreService[] | null) ?? [])
+    let serviceFloors: Record<string, number> = {}
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      if (token) {
+        const floorsRes = await fetch('/api/dashboard/subagent-pricing', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const floorsJson = (await floorsRes.json().catch(() => null)) as {
+          success?: boolean
+          data?: { serviceFloors?: Record<string, number> }
+        }
+        if (floorsRes.ok && floorsJson?.success) {
+          serviceFloors = floorsJson.data?.serviceFloors || {}
+        }
+      }
+    } catch {
+      // keep platform agent_price
+    }
+
+    const applyFloor = (svc: BaseService) => ({
+      ...svc,
+      agent_price: Number(serviceFloors[svc.id] ?? svc.agent_price ?? 0),
+    })
+
+    setBaseServices((servicesPayload.data ?? []).map(applyFloor))
+    setStoreServices(
+      ((configured as StoreService[] | null) ?? []).map((row) =>
+        row.online_services ? { ...row, online_services: applyFloor(row.online_services) } : row
+      )
+    )
     setLoading(false)
   }
 

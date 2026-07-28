@@ -17,7 +17,7 @@ type WalletRow = {
 
 type TransactionType = 'data_purchase' | 'online_service'
 
-type OrderNotificationKind = 'data' | 'afa' | 'service' | 'store_data' | 'store_service' | 'store_afa'
+type OrderNotificationKind = 'data' | 'afa' | 'service' | 'airtime' | 'store_data' | 'store_service' | 'store_afa'
 
 type NotifyAdminsOfNewOrderInput = {
   kind: OrderNotificationKind
@@ -218,6 +218,8 @@ const getOrderNotificationKindLabel = (kind: OrderNotificationKind) => {
       return 'AFA'
     case 'service':
       return 'Service'
+    case 'airtime':
+      return 'Airtime'
     case 'store_data':
       return 'Store Data'
     case 'store_service':
@@ -230,17 +232,31 @@ const getOrderNotificationKindLabel = (kind: OrderNotificationKind) => {
 }
 
 export const notifyAdminsOfNewOrder = async (input: NotifyAdminsOfNewOrderInput) => {
-  if (input.customerPhone && (input.source === 'dashboard' || input.source === 'public')) {
+  const customerPhone = (input.customerPhone || '').trim()
+  if (customerPhone && customerPhone.toUpperCase() !== 'N/A') {
     try {
+      const kind: 'data' | 'afa' | 'service' | 'airtime' =
+        input.kind === 'airtime'
+          ? 'airtime'
+          : input.kind === 'store_data' || input.kind === 'data'
+            ? 'data'
+            : input.kind === 'store_afa' || input.kind === 'afa'
+              ? 'afa'
+              : input.kind === 'store_service' || input.kind === 'service'
+                ? 'service'
+                : 'data'
+
       const smsResult = await sendPurchaseProcessingSms({
-        phone: input.customerPhone,
+        phone: customerPhone,
         reference: input.reference,
         itemName: input.itemName,
-        kind: input.kind === 'store_data' || input.kind === 'data' ? 'data' : input.kind === 'store_afa' || input.kind === 'afa' ? 'afa' : input.kind === 'store_service' || input.kind === 'service' ? 'service' : 'data',
+        kind,
       })
 
       if (!smsResult.ok && !smsResult.skipped) {
         console.error('[SMS] Purchase processing SMS failed:', smsResult.error)
+      } else if (smsResult.skipped) {
+        console.warn('[SMS] Purchase processing SMS skipped:', smsResult.error)
       }
     } catch (error) {
       console.error('[SMS] Purchase processing SMS error:', error instanceof Error ? error.message : error)

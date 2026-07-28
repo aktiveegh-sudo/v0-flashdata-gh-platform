@@ -23,7 +23,21 @@ const getTableForSource = (source: AdminOrderSource) => {
     return 'afa_registrations' as const
   }
 
+  if (source === 'dashboard_airtime' || source === 'public_airtime') {
+    return 'transactions' as const
+  }
+
   return 'agent_store_orders' as const
+}
+
+const toPersistedStatus = (source: AdminOrderSource, status: string) => {
+  if (source === 'dashboard_airtime' || source === 'public_airtime') {
+    if (status === 'delivered') return 'success'
+    if (status === 'processing') return 'pending'
+    return status
+  }
+
+  return status
 }
 
 export async function PATCH(request: NextRequest) {
@@ -48,11 +62,18 @@ export async function PATCH(request: NextRequest) {
     }
 
     const table = getTableForSource(source)
+    const persistedStatus = toPersistedStatus(source, status)
+
+    const updatePayload =
+      table === 'transactions'
+        ? { status: persistedStatus }
+        : { status: persistedStatus, status_locked: true }
+
     const { data, error } = await supabaseAdmin
       .from(table)
-      .update({ status, status_locked: true })
+      .update(updatePayload)
       .eq('id', orderId)
-      .select('id,status,status_locked,updated_at')
+      .select(table === 'transactions' ? 'id,status,created_at' : 'id,status,status_locked,updated_at')
       .maybeSingle()
 
     if (error) {

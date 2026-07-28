@@ -60,6 +60,15 @@ export default function BuyAirtimePage() {
     void init()
   }, [])
 
+  const getAuthHeaders = async () => {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token || ''
+    if (!accessToken) {
+      throw new Error('Please login again')
+    }
+    return { Authorization: `Bearer ${accessToken}` }
+  }
+
   const handlePurchase = async () => {
     const normalizedPhone = normalizeToGhanaPhone(phone)
     const parsedAmount = Number(amount)
@@ -80,27 +89,27 @@ export default function BuyAirtimePage() {
     setSubmitting(true)
 
     try {
-      const reference = `AIR-${Date.now()}`
-      const { error: txError } = await supabase.client.from('transactions').insert({
-        user_id: userId,
-        type: 'airtime',
-        amount: parsedAmount,
-        status: 'pending',
-        description: `${network} Airtime — ${normalizedPhone}`,
-        reference,
-        wallet_applied: false,
-        metadata: {
-          source: 'dashboard_airtime',
-          network,
-          phone: normalizedPhone,
+      const authHeaders = await getAuthHeaders()
+      const response = await fetch('/api/dashboard/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders,
         },
+        body: JSON.stringify({
+          flow: 'airtime',
+          phone: normalizedPhone,
+          network,
+          amount: parsedAmount,
+        }),
       })
 
-      if (txError) {
-        toast.success(`Airtime request queued — GHc ${parsedAmount.toFixed(2)} to ${normalizedPhone}`)
-      } else {
-        toast.success(`Airtime purchase submitted — GHc ${parsedAmount.toFixed(2)} ${network}`)
+      const result = (await response.json().catch(() => null)) as { success?: boolean; error?: string }
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Unable to process airtime purchase')
       }
+
+      toast.success(`Airtime purchase submitted — GHc ${parsedAmount.toFixed(2)} ${network}`)
       setPhone('')
       setAmount('')
     } catch (err) {

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { fulfillDataOrderDelivery } from '@/lib/data-delivery'
 import { generateReference, normalizeToGhanaPhone, notifyAdminsOfNewOrder, supabaseAdmin } from '@/lib/api/rest'
+import { creditParentSubagentMargin, resolveBuyerUnitPrice } from '@/lib/dashboard/subagent'
 
 type PurchaseBody = {
-  flow?: 'data' | 'afa' | 'service'
+  flow?: 'data' | 'afa' | 'service' | 'airtime'
   packageId?: string
   serviceId?: string
   phone?: string
@@ -12,6 +13,8 @@ type PurchaseBody = {
   fullName?: string
   ghanaCardNumber?: string
   location?: string
+  network?: string
+  amount?: number
 }
 
 const jsonError = (message: string, status = 400) => NextResponse.json({ success: false, error: message }, { status })
@@ -100,7 +103,13 @@ export async function POST(request: NextRequest) {
         return jsonError(settingsError?.message || 'AFA registration is unavailable', 403)
       }
 
-      const amount = Number(settings.agent_price || settings.base_price || 0)
+      const platformPrice = Number(settings.agent_price || settings.base_price || 0)
+      const priced = await resolveBuyerUnitPrice({
+        buyerId: authUser.id,
+        kind: 'afa',
+        platformAgentPrice: platformPrice,
+      })
+      const amount = priced.amount
       const reference = generateReference('AFA-WAL')
 
       const walletResult = await applyWalletDelta(
@@ -152,11 +161,23 @@ export async function POST(request: NextRequest) {
           flow: 'afa',
           registration_id: createdRegistration.id,
           phone: normalizedPhone,
+          platform_agent_price: priced.platformAgentPrice,
+          parent_agent_id: priced.parentAgentId,
         },
       })
 
       if (txError) {
         return jsonError(txError.message, 500)
+      }
+
+      if (priced.parentAgentId && priced.margin > 0) {
+        await creditParentSubagentMargin({
+          parentAgentId: priced.parentAgentId,
+          subagentUserId: authUser.id,
+          margin: priced.margin,
+          reference,
+          metadata: { flow: 'afa' },
+        })
       }
 
       await notifyAdminsOfNewOrder({
@@ -175,6 +196,82 @@ export async function POST(request: NextRequest) {
           amount,
           balanceAfter: walletResult.wallet?.balance_after || 0,
           redirectPath: '/dashboard/afa',
+        },
+      })
+    }
+
+    if (flow === 'airtime') {
+      const normalizedPhone = normalizeToGhanaPhone(body.phone || '')
+      const network = String(body.network || '').trim()
+      const amount = Number(body.amount || 0)
+
+      if (!normalizedPhone) {
+        return jsonError('A valid phone number is required', 400)
+      }
+      if (!network) {
+        return jsonError('network is required', 400)
+      }
+      if (!Number.isFinite(amount) || amount < 1 || amount > 500) {
+        return jsonError('Enter an amount between GHc 1 and GHc 500', 400)
+      }
+
+      const reference = generateReference('AIR-WAL')
+      const walletResult = await applyWalletDelta(
+        authUser.id,
+        -amount,
+        'Airtime purchase',
+        reference,
+        { source: 'dashboard_wallet', flow: 'airtime', phone: normalizedPhone, network }
+      )
+
+      if (walletResult.error) {
+        return jsonError(
+          walletResult.error.includes('Insufficient') ? walletResult.error : `Wallet error: ${walletResult.error}`,
+          walletResult.error.includes('Insufficient') ? 402 : 500
+        )
+      }
+
+      const { error: txError } = await supabaseAdmin.from('transactions').insert({
+        user_id: authUser.id,
+        type: 'airtime',
+        amount,
+        status: 'pending',
+        description: `${network} Airtime — ${normalizedPhone}`,
+        reference,
+        wallet_applied: true,
+        metadata: {
+          source: 'dashboard_airtime',
+          flow: 'airtime',
+          phone: normalizedPhone,
+          network,
+        },
+      })
+
+      if (txError) {
+        await applyWalletDelta(authUser.id, amount, 'Airtime purchase refund', `${reference}-RFND`, {
+          source: 'dashboard_wallet',
+          flow: 'airtime',
+          reason: 'transaction_insert_failed',
+        })
+        return jsonError(txError.message, 500)
+      }
+
+      await notifyAdminsOfNewOrder({
+        kind: 'airtime',
+        reference,
+        amount,
+        source: 'dashboard',
+        customerPhone: normalizedPhone,
+        itemName: `${network} Airtime`,
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          reference,
+          amount,
+          balanceAfter: walletResult.wallet?.balance_after || 0,
+          redirectPath: '/dashboard/buy-airtime',
         },
       })
     }
@@ -200,7 +297,14 @@ export async function POST(request: NextRequest) {
         return jsonError(serviceError?.message || 'Service not found', 404)
       }
 
-      const amount = Number(serviceRow.agent_price || serviceRow.price || 0)
+      const platformPrice = Number(serviceRow.agent_price || serviceRow.price || 0)
+      const priced = await resolveBuyerUnitPrice({
+        buyerId: authUser.id,
+        kind: 'service',
+        serviceId: serviceRow.id,
+        platformAgentPrice: platformPrice,
+      })
+      const amount = priced.amount
       const reference = generateReference('SVC-WAL')
 
       const walletResult = await applyWalletDelta(
@@ -275,6 +379,8 @@ export async function POST(request: NextRequest) {
           flow: 'service',
           service_id: serviceRow.id,
           phone: normalizedPhone,
+          platform_agent_price: priced.platformAgentPrice,
+          parent_agent_id: priced.parentAgentId,
         },
       })
 
@@ -282,8 +388,18 @@ export async function POST(request: NextRequest) {
         return jsonError(txError.message, 500)
       }
 
+      if (priced.parentAgentId && priced.margin > 0) {
+        await creditParentSubagentMargin({
+          parentAgentId: priced.parentAgentId,
+          subagentUserId: authUser.id,
+          margin: priced.margin,
+          reference,
+          metadata: { flow: 'service', service_id: serviceRow.id },
+        })
+      }
+
       await notifyAdminsOfNewOrder({
-        kind: 'service',
+        kind: /airtime/i.test(`${serviceRow.name} ${serviceRow.category || ''}`) ? 'airtime' : 'service',
         reference,
         amount,
         source: 'dashboard',
@@ -324,7 +440,14 @@ export async function POST(request: NextRequest) {
       return jsonError('Use AFA flow for AFA registrations', 400)
     }
 
-    const amount = Number(packageRow.agent_price || packageRow.selling_price || 0)
+    const platformPrice = Number(packageRow.agent_price || packageRow.selling_price || 0)
+    const priced = await resolveBuyerUnitPrice({
+      buyerId: authUser.id,
+      kind: 'data',
+      packageId: packageRow.id,
+      platformAgentPrice: platformPrice,
+    })
+    const amount = priced.amount
     const reference = generateReference(`WAL-${String(packageRow.network || 'DATA').toUpperCase()}`)
 
     const walletResult = await applyWalletDelta(
@@ -378,11 +501,23 @@ export async function POST(request: NextRequest) {
         package_id: packageRow.id,
         phone: normalizedPhone,
         order_id: createdOrder.id,
+        platform_agent_price: priced.platformAgentPrice,
+        parent_agent_id: priced.parentAgentId,
       },
     })
 
     if (txError) {
       return jsonError(txError.message, 500)
+    }
+
+    if (priced.parentAgentId && priced.margin > 0) {
+      await creditParentSubagentMargin({
+        parentAgentId: priced.parentAgentId,
+        subagentUserId: authUser.id,
+        margin: priced.margin,
+        reference,
+        metadata: { flow: 'data', package_id: packageRow.id },
+      })
     }
 
     await notifyAdminsOfNewOrder({

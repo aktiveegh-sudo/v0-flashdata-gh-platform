@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { createPendingTransaction, generateReference, notifyAdminsOfNewOrder, supabaseAdmin } from '@/lib/api/rest'
 import { deliverDataBundleByProvider } from '@/lib/data-delivery'
+import { creditParentSubagentMargin, resolveBuyerUnitPrice } from '@/lib/dashboard/subagent'
 import { maybeSendOrderStatusSms } from '@/lib/sms/order-status'
 import { getRequiredSecret } from './secrets'
 
@@ -33,6 +34,8 @@ type PaystackMetadata = {
   customerPhone?: string
   customerEmail?: string
   paymentMethod?: string
+  parentAgentId?: string
+  platformAgentPrice?: number
 }
 
 type PaystackInitializeArgs = {
@@ -349,8 +352,15 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
     }
 
     const packageAgentPrice = Number(packageRow.agent_price || packageRow.selling_price || 0)
+    const priced = await resolveBuyerUnitPrice({
+      buyerId: metadata.userId,
+      kind: 'data',
+      packageId: packageRow.id,
+      platformAgentPrice: packageAgentPrice,
+    })
+    const expectedAmount = priced.amount
 
-    const hasDashboardDataAmountDrift = amountsDifferMeaningfully(packageAgentPrice, amount)
+    const hasDashboardDataAmountDrift = amountsDifferMeaningfully(expectedAmount, amount)
 
     const { data: existingOrder, error: existingOrderError } = await supabaseAdmin
       .from('orders')
@@ -376,7 +386,9 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
             source: 'paystack',
             payment_channel: charge.channel,
             amount_validation: hasDashboardDataAmountDrift ? 'price_changed_after_checkout' : 'ok',
-            package_price_now: packageAgentPrice,
+            package_price_now: expectedAmount,
+            platform_agent_price: priced.platformAgentPrice,
+            parent_agent_id: priced.parentAgentId,
             amount_paid: amount,
           },
         })
@@ -403,6 +415,16 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
 
       if (transactionError) {
         throw new Error('Unable to log Paystack data transaction')
+      }
+
+      if (priced.parentAgentId && priced.margin > 0) {
+        await creditParentSubagentMargin({
+          parentAgentId: priced.parentAgentId,
+          subagentUserId: metadata.userId,
+          margin: priced.margin,
+          reference,
+          metadata: { flow: 'dashboard_data', package_id: packageRow.id },
+        })
       }
 
       await notifyAdminsOfNewOrder({
@@ -520,8 +542,14 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
     }
 
     const afaAgentPrice = Number(settings.agent_price || settings.base_price || 0)
+    const priced = await resolveBuyerUnitPrice({
+      buyerId: metadata.userId,
+      kind: 'afa',
+      platformAgentPrice: afaAgentPrice,
+    })
+    const expectedAmount = priced.amount
 
-    const hasDashboardAfaAmountDrift = amountsDifferMeaningfully(afaAgentPrice, amount)
+    const hasDashboardAfaAmountDrift = amountsDifferMeaningfully(expectedAmount, amount)
 
     const { data: existingRegistration, error: existingRegistrationError } = await supabaseAdmin
       .from('afa_registrations')
@@ -565,13 +593,25 @@ export const fulfillPaystackPayment = async (reference: string): Promise<Fulfill
           registration_id: createdRegistration.id,
           registration_reference: reference,
           amount_validation: hasDashboardAfaAmountDrift ? 'price_changed_after_checkout' : 'ok',
-          afa_price_now: afaAgentPrice,
+          afa_price_now: expectedAmount,
+          platform_agent_price: priced.platformAgentPrice,
+          parent_agent_id: priced.parentAgentId,
           amount_paid: amount,
         },
       })
 
       if (transactionError) {
         throw new Error('Unable to log Paystack AFA transaction')
+      }
+
+      if (priced.parentAgentId && priced.margin > 0) {
+        await creditParentSubagentMargin({
+          parentAgentId: priced.parentAgentId,
+          subagentUserId: metadata.userId,
+          margin: priced.margin,
+          reference,
+          metadata: { flow: 'dashboard_afa' },
+        })
       }
 
       await notifyAdminsOfNewOrder({

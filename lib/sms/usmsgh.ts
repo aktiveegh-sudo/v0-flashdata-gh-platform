@@ -63,12 +63,12 @@ export const sendSms = async (input: SendSmsInput): Promise<SendSmsResult> => {
 
 export const sendUsmsGhSms = sendSms
 
-type PurchaseSmsKind = 'data' | 'afa' | 'service' | 'store_data' | 'store_service' | 'store_afa'
+type PurchaseSmsKind = 'data' | 'afa' | 'service' | 'airtime' | 'store_data' | 'store_service' | 'store_afa'
 
-export type CustomerOrderSmsSource = 'dashboard' | 'public'
+export type CustomerOrderSmsSource = 'dashboard' | 'public' | 'store' | 'api'
 
-export const shouldSendCustomerOrderSms = (source: string) =>
-  source === 'dashboard' || source === 'public' || source.startsWith('dashboard')
+/** Processing SMS goes out for every purchase channel. */
+export const shouldSendCustomerOrderSms = (_source?: string) => true
 
 const buildPurchaseProcessingMessage = (input: {
   reference: string
@@ -80,15 +80,20 @@ const buildPurchaseProcessingMessage = (input: {
 
   if (input.kind === 'data' || input.kind === 'store_data') {
     const bundle = item ? ` (${item})` : ''
-    return `FlashData GH: Your data bundle${bundle} is underway. Ref ${ref}. We will notify you when it is complete.`
+    return `FlashData GH: Your data order${bundle} is being processed. Ref ${ref}. We will notify you when it is complete.`
   }
 
   if (input.kind === 'afa' || input.kind === 'store_afa') {
-    return `FlashData GH: Your AFA registration is underway. Ref ${ref}. We will notify you when it is complete.`
+    return `FlashData GH: Your AFA registration is being processed. Ref ${ref}. We will notify you when it is complete.`
+  }
+
+  if (input.kind === 'airtime') {
+    const label = item ? ` (${item})` : ''
+    return `FlashData GH: Your airtime order${label} is being processed. Ref ${ref}. We will notify you when it is complete.`
   }
 
   const label = item || 'order'
-  return `FlashData GH: Your ${label} is underway. Ref ${ref}. We will notify you when it is complete.`
+  return `FlashData GH: Your ${label} is being processed. Ref ${ref}. We will notify you when it is complete.`
 }
 
 const buildPurchaseCompletedMessage = (input: {
@@ -106,6 +111,11 @@ const buildPurchaseCompletedMessage = (input: {
 
   if (input.kind === 'afa' || input.kind === 'store_afa') {
     return `FlashData GH: Your AFA registration is complete. Ref ${ref}. Thank you for choosing FlashData GH.`
+  }
+
+  if (input.kind === 'airtime') {
+    const label = item ? ` (${item})` : ''
+    return `FlashData GH: Your airtime order${label} is complete. Ref ${ref}. Thank you for choosing FlashData GH.`
   }
 
   const label = item || 'order'

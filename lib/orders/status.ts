@@ -11,6 +11,8 @@ export type AdminOrderSource =
   | 'store_data'
   | 'store_service'
   | 'store_afa'
+  | 'dashboard_airtime'
+  | 'public_airtime'
 
 export const normalizeAdminOrderStatus = (status: string) => {
   const value = String(status || '').trim().toLowerCase()
@@ -28,4 +30,6 @@ export const adminStatusOptions: Record<AdminOrderSource, string[]> = {
   store_data: ['pending', 'processing', 'delivered', 'declined'],
   store_service: ['pending', 'processing', 'delivered', 'declined'],
   store_afa: ['pending', 'processing', 'delivered', 'declined'],
+  dashboard_airtime: ['pending', 'processing', 'delivered', 'failed'],
+  public_airtime: ['pending', 'processing', 'delivered', 'failed'],
 }

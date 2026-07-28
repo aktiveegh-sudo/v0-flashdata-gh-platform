@@ -151,13 +151,13 @@ export default function StorePackagesPage() {
     const [{ data: allBase, error: baseError }, { data: configured, error: configuredError }] = await Promise.all([
       supabase.client
         .from('data_packages')
-        .select('id,network,name,amount,cost_price,selling_price,validity')
+        .select('id,network,name,amount,cost_price,agent_price,selling_price,validity')
         .eq('is_active', true)
         .order('network')
         .order('cost_price'),
       supabase.client
         .from('agent_store_packages')
-        .select('id,selling_price,is_active,data_packages(id,network,name,amount,cost_price,selling_price,validity)')
+        .select('id,selling_price,is_active,data_packages(id,network,name,amount,cost_price,agent_price,selling_price,validity)')
         .eq('store_id', store.id)
         .order('created_at', { ascending: false }),
     ])
@@ -174,19 +174,52 @@ export default function StorePackagesPage() {
       return
     }
 
-    const sortedBasePackages = ((allBase as BasePackage[] | null) ?? []).sort((a, b) => {
-      const networkDiff = (networkOrder[a.network] ?? 99) - (networkOrder[b.network] ?? 99)
-      if (networkDiff !== 0) return networkDiff
-      return Number(a.cost_price || 0) - Number(b.cost_price || 0)
-    })
+    let packageFloors: Record<string, number> = {}
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      if (token) {
+        const floorsRes = await fetch('/api/dashboard/subagent-pricing', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const floorsJson = (await floorsRes.json().catch(() => null)) as {
+          success?: boolean
+          data?: { packageFloors?: Record<string, number> }
+        }
+        if (floorsRes.ok && floorsJson?.success) {
+          packageFloors = floorsJson.data?.packageFloors || {}
+        }
+      }
+    } catch {
+      // Fall back to agent_price / cost_price below
+    }
 
-    const sortedStorePackages = ((configured as StorePackage[] | null) ?? []).sort((a, b) => {
-      const networkA = a.data_packages?.network || ''
-      const networkB = b.data_packages?.network || ''
-      const networkDiff = (networkOrder[networkA] ?? 99) - (networkOrder[networkB] ?? 99)
-      if (networkDiff !== 0) return networkDiff
-      return Number(a.data_packages?.cost_price || 0) - Number(b.data_packages?.cost_price || 0)
-    })
+    const withFloor = (pkg: BasePackage & { agent_price?: number }) => {
+      const floor = Number(packageFloors[pkg.id] ?? pkg.agent_price ?? pkg.cost_price ?? 0)
+      return { ...pkg, cost_price: floor }
+    }
+
+    const sortedBasePackages = ((allBase as Array<BasePackage & { agent_price?: number }> | null) ?? [])
+      .map(withFloor)
+      .sort((a, b) => {
+        const networkDiff = (networkOrder[a.network] ?? 99) - (networkOrder[b.network] ?? 99)
+        if (networkDiff !== 0) return networkDiff
+        return Number(a.cost_price || 0) - Number(b.cost_price || 0)
+      })
+
+    const sortedStorePackages = ((configured as StorePackage[] | null) ?? [])
+      .map((row) => {
+        if (!row.data_packages) return row
+        const floored = withFloor(row.data_packages as BasePackage & { agent_price?: number })
+        return { ...row, data_packages: floored }
+      })
+      .sort((a, b) => {
+        const networkA = a.data_packages?.network || ''
+        const networkB = b.data_packages?.network || ''
+        const networkDiff = (networkOrder[networkA] ?? 99) - (networkOrder[networkB] ?? 99)
+        if (networkDiff !== 0) return networkDiff
+        return Number(a.data_packages?.cost_price || 0) - Number(b.data_packages?.cost_price || 0)
+      })
 
     const afaBase =
       sortedBasePackages.find((pkg) => pkg.network === 'AFA' && pkg.name === 'AFA Registration') ||

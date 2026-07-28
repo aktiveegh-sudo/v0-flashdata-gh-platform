@@ -53,7 +53,7 @@ export const dashboardMainNavItems: DashboardNavItem[] = [
   { label: 'My Store', href: '/dashboard/my-store', icon: Store },
   { label: 'Report Issue', href: '/dashboard/report-issue', icon: AlertCircle },
   { label: 'Address Book', href: '/dashboard/customers', icon: BookUser },
-  { label: 'Referral Program', href: '/dashboard/referral', icon: Share2 },
+  { label: 'Referral Program', href: '/dashboard/referral', icon: Share2, subAgentHidden: true },
 ]
 
 /** Collapsible "More Options" items — matches SwiftData Um array order */
@@ -65,6 +65,7 @@ export const dashboardMoreNavItems: DashboardNavItem[] = [
   { label: 'Store Settings', href: '/dashboard/store-settings', icon: Settings },
   { label: 'Subagents', href: '/dashboard/subagents', icon: Users, badge: 'New', subAgentHidden: true },
   { label: 'Subagent Pricing', href: '/dashboard/subagent-pricing', icon: Tag, subAgentHidden: true },
+  { label: 'Subagent Orders', href: '/dashboard/subagent-orders', icon: ClipboardCheck, subAgentHidden: true },
   { label: 'Flyer Generator', href: '/dashboard/flyer', icon: ImageIcon },
   { label: 'Marketing Tools', href: '/dashboard/marketing', icon: Megaphone },
   { label: 'Result Checker', href: '/dashboard/result-checker', icon: ClipboardCheck },
@@ -103,6 +104,7 @@ export const dashboardPageLabels: Record<string, string> = {
   '/dashboard/store-settings': 'Store Settings',
   '/dashboard/subagents': 'Subagents',
   '/dashboard/subagent-pricing': 'Subagent Pricing',
+  '/dashboard/subagent-orders': 'Subagent Orders',
   '/dashboard/flyer': 'Flyer Generator',
   '/dashboard/marketing': 'Marketing Tools',
   '/dashboard/result-checker': 'Result Checker',

@@ -1,16 +1,29 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, ExternalLink, Trash2, AlertCircle, Wallet } from 'lucide-react'
-import { AdminPageShell } from '@/components/admin/page-shell'
+import {
+  ArrowLeft,
+  ExternalLink,
+  Package,
+  RefreshCw,
+  ShoppingCart,
+  Store,
+  Trash2,
+  AlertCircle,
+  Wallet,
+  Receipt,
+  Banknote,
+} from 'lucide-react'
+import { AdminPageShell, AdminStatCard, AdminStatGrid } from '@/components/admin/page-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { supabase } from '@/lib/supabase/client'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatDateTime, ghanaCurrency } from '@/lib/admin/utils'
 import { getAdminAuthHeaders } from '@/lib/admin/client-auth'
 import toast from 'react-hot-toast'
@@ -32,20 +45,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
-type UserDetail = {
+type Profile = {
   id: string
   full_name: string | null
   email: string | null
   phone: string | null
   role: 'user' | 'super_admin'
   status: 'active' | 'suspended'
-  avatar_url: string | null
   created_at: string
 }
 
 type WalletInfo = {
   balance: number
-  last_updated: string
+  last_updated: string | null
 }
 
 type Transaction = {
@@ -58,19 +70,117 @@ type Transaction = {
   created_at: string
 }
 
+type DataOrder = {
+  id: string
+  phone: string
+  amount: number
+  status: string
+  reference: string | null
+  created_at: string
+  data_packages?: { name: string; network: string; amount: string } | Array<{ name: string; network: string; amount: string }> | null
+}
+
 type StoreOrder = {
   id: string
   item_type: 'data' | 'service'
   customer_name: string
+  customer_phone?: string
   total_price: number
-  status: 'pending' | 'processing' | 'delivered' | 'declined'
+  status: string
+  created_at: string
+  data_packages?: { name: string; network: string; amount: string } | null
+  online_services?: { name: string; category: string } | null
+}
+
+type Withdrawal = {
+  id: string
+  amount: number
+  payment_method: string
+  account_number: string
+  account_name: string
+  status: string
+  requested_at?: string
   created_at: string
 }
 
-type Store = {
+type StoreInfo = {
   id: string
   slug: string
   brand_name: string
+  tagline?: string | null
+  description?: string | null
+  contact_phone?: string | null
+  contact_email?: string | null
+  whatsapp_number?: string | null
+  allow_data?: boolean
+  allow_online_services?: boolean
+  is_active?: boolean
+}
+
+type StorePackage = {
+  id: string
+  selling_price: number
+  is_active: boolean
+  data_packages?: { name: string; network: string; amount: string; validity?: string } | null
+}
+
+type StoreService = {
+  id: string
+  selling_price: number
+  is_active: boolean
+  online_services?: { name: string; category: string } | null
+}
+
+type AfaRow = {
+  id: string
+  phone: string
+  full_name: string
+  status: string
+  amount?: number
+  reference?: string | null
+  created_at: string
+}
+
+type DossierStats = {
+  walletBalance: number
+  totalSales: number
+  totalWithdrawn: number
+  totalDataSpend: number
+  transactionCount: number
+  orderCount: number
+  storeOrderCount: number
+  storeOrderDelivered: number
+  withdrawalCount: number
+  packageCount: number
+  serviceCount: number
+  afaCount: number
+  subAgentCount?: number
+}
+
+type SubAgentOf = {
+  id: string
+  status: string
+  parent_agent_id: string
+  parent?: { id?: string; full_name?: string | null; email?: string | null } | null
+}
+
+type ChildSubAgent = {
+  id: string
+  status: string
+  user_id: string
+  child?: { id?: string; full_name?: string | null; email?: string | null; phone?: string | null } | null
+}
+
+const firstJoin = <T,>(value: T | T[] | null | undefined): T | null => {
+  if (Array.isArray(value)) return value[0] || null
+  return value || null
+}
+
+const statusBadge = (status: string) => {
+  const value = status.toLowerCase()
+  if (['success', 'delivered', 'approved', 'active', 'completed'].includes(value)) return 'default' as const
+  if (['failed', 'declined', 'rejected', 'suspended'].includes(value)) return 'destructive' as const
+  return 'outline' as const
 }
 
 export default function UserDetailPage() {
@@ -78,12 +188,19 @@ export default function UserDetailPage() {
   const params = useParams()
   const userId = params?.id as string
 
-  const [user, setUser] = useState<UserDetail | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [wallet, setWallet] = useState<WalletInfo | null>(null)
+  const [store, setStore] = useState<StoreInfo | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [orders, setOrders] = useState<DataOrder[]>([])
   const [storeOrders, setStoreOrders] = useState<StoreOrder[]>([])
-  const [sales, setSales] = useState<Transaction[]>([])
-  const [store, setStore] = useState<Store | null>(null)
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
+  const [storePackages, setStorePackages] = useState<StorePackage[]>([])
+  const [storeServices, setStoreServices] = useState<StoreService[]>([])
+  const [afaRows, setAfaRows] = useState<AfaRow[]>([])
+  const [stats, setStats] = useState<DossierStats | null>(null)
+  const [subAgentOf, setSubAgentOf] = useState<SubAgentOf | null>(null)
+  const [subAgents, setSubAgents] = useState<ChildSubAgent[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [suspendDialog, setSuspendDialog] = useState(false)
@@ -91,90 +208,87 @@ export default function UserDetailPage() {
   const [creditDialog, setCreditDialog] = useState(false)
   const [creditAmount, setCreditAmount] = useState('')
   const [creditNote, setCreditNote] = useState('')
+  const [txFilter, setTxFilter] = useState('')
 
-  useEffect(() => {
-    if (!userId) return
-    loadUserDetails()
-  }, [userId])
-
-  const loadUserDetails = async () => {
+  const loadUserDetails = useCallback(async () => {
     if (!userId) return
     setLoading(true)
 
     try {
-      await fetch('/api/orders/auto-complete', { method: 'POST' }).catch(() => null)
-      const [userRes, walletRes, transactionsRes, storeOrdersRes, salesRes, storeRes] = await Promise.all([
-        supabase.client.from('profiles').select('*').eq('id', userId).maybeSingle(),
-        supabase.client.from('wallets').select('*').eq('user_id', userId).maybeSingle(),
-        supabase.client
-          .from('transactions')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(20),
-        supabase.client
-          .from('agent_store_orders')
-          .select('id,item_type,customer_name,total_price,status,created_at')
-          .eq('store_id', (await supabase.client.from('agent_stores').select('id').eq('agent_id', userId).maybeSingle()).data?.id || '')
-          .order('created_at', { ascending: false })
-          .limit(20),
-        supabase.client
-          .from('transactions')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('type', 'store_sale')
-          .order('created_at', { ascending: false })
-          .limit(20),
-        supabase.client.from('agent_stores').select('*').eq('agent_id', userId).maybeSingle(),
-      ])
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/dossier`, {
+        headers: await getAdminAuthHeaders(false),
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      const payload = (await response.json().catch(() => null)) as {
+        success?: boolean
+        error?: string
+        data?: {
+          profile: Profile
+          wallet: WalletInfo | null
+          store: StoreInfo | null
+          transactions: Transaction[]
+          orders: DataOrder[]
+          storeOrders: StoreOrder[]
+          withdrawals: Withdrawal[]
+          storePackages: StorePackage[]
+          storeServices: StoreService[]
+          afaRegistrations: AfaRow[]
+          stats: DossierStats
+          subAgentOf?: SubAgentOf | null
+          subAgents?: ChildSubAgent[]
+        }
+      } | null
 
-      if (userRes.data) setUser(userRes.data as UserDetail)
-      if (walletRes.data)
-        setWallet({
-          balance: Number(walletRes.data.balance || 0),
-          last_updated: walletRes.data.last_updated,
-        })
-      if (transactionsRes.data)
-        setTransactions(
-          (transactionsRes.data as any[]).map((t) => ({
-            ...t,
-            amount: Number(t.amount || 0),
-          }))
-        )
-      if (storeOrdersRes.data)
-        setStoreOrders(
-          (storeOrdersRes.data as any[]).map((o) => ({
-            ...o,
-            total_price: Number(o.total_price || 0),
-          }))
-        )
-      if (salesRes.data)
-        setSales(
-          (salesRes.data as any[]).map((s) => ({
-            ...s,
-            amount: Number(s.amount || 0),
-          }))
-        )
-      if (storeRes.data) setStore(storeRes.data as Store)
+      if (!response.ok || !payload?.success || !payload.data) {
+        throw new Error(payload?.error || 'Failed to load user dashboard')
+      }
+
+      setProfile(payload.data.profile)
+      setWallet(payload.data.wallet)
+      setStore(payload.data.store)
+      setTransactions(payload.data.transactions || [])
+      setOrders(payload.data.orders || [])
+      setStoreOrders(payload.data.storeOrders || [])
+      setWithdrawals(payload.data.withdrawals || [])
+      setStorePackages(payload.data.storePackages || [])
+      setStoreServices(payload.data.storeServices || [])
+      setAfaRows(payload.data.afaRegistrations || [])
+      setStats(payload.data.stats)
+      setSubAgentOf(payload.data.subAgentOf || null)
+      setSubAgents(payload.data.subAgents || [])
     } catch (error) {
       console.error('Error loading user details:', error)
-      toast.error('Failed to load user details')
+      toast.error(error instanceof Error ? error.message : 'Failed to load user details')
+      setProfile(null)
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId])
+
+  useEffect(() => {
+    void loadUserDetails()
+  }, [loadUserDetails])
+
+  const filteredTransactions = useMemo(() => {
+    const q = txFilter.trim().toLowerCase()
+    if (!q) return transactions
+    return transactions.filter((tx) =>
+      [tx.type, tx.status, tx.reference, tx.description || ''].join(' ').toLowerCase().includes(q)
+    )
+  }, [transactions, txFilter])
 
   const handleSuspend = async () => {
-    if (!user) return
+    if (!profile) return
     setActionLoading(true)
 
     try {
       const response = await fetch('/api/admin/users/action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAdminAuthHeaders(),
         body: JSON.stringify({
           userId,
-          action: user.status === 'active' ? 'suspend' : 'activate',
+          action: profile.status === 'active' ? 'suspend' : 'activate',
         }),
       })
 
@@ -183,7 +297,7 @@ export default function UserDetailPage() {
         throw new Error(err.error || 'Failed to update user status')
       }
 
-      toast.success(`User ${user.status === 'active' ? 'suspended' : 'activated'} successfully`)
+      toast.success(`User ${profile.status === 'active' ? 'suspended' : 'activated'} successfully`)
       setSuspendDialog(false)
       await loadUserDetails()
     } catch (error) {
@@ -194,7 +308,7 @@ export default function UserDetailPage() {
   }
 
   const handleCreditWallet = async () => {
-    if (!user) return
+    if (!profile) return
 
     const amount = Number.parseFloat(creditAmount)
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -224,7 +338,7 @@ export default function UserDetailPage() {
         throw new Error(result?.error || 'Failed to credit wallet')
       }
 
-      toast.success(`Wallet credited successfully. New balance: ${ghanaCurrency(result.data?.balanceAfter || 0)}`)
+      toast.success(`Wallet credited. New balance: ${ghanaCurrency(result.data?.balanceAfter || 0)}`)
       setCreditDialog(false)
       setCreditAmount('')
       setCreditNote('')
@@ -237,17 +351,14 @@ export default function UserDetailPage() {
   }
 
   const handleDelete = async () => {
-    if (!user) return
+    if (!profile) return
     setActionLoading(true)
 
     try {
       const response = await fetch('/api/admin/users/action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          action: 'delete',
-        }),
+        headers: await getAdminAuthHeaders(),
+        body: JSON.stringify({ userId, action: 'delete' }),
       })
 
       if (!response.ok) {
@@ -267,18 +378,18 @@ export default function UserDetailPage() {
 
   if (loading) {
     return (
-      <AdminPageShell title="User Details" description="Loading user profile and activity.">
+      <AdminPageShell title="User Dashboard" description="Loading full account activity.">
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-        <div className="text-center">Loading user details...</div>
+        <div className="text-center text-sm text-muted-foreground">Loading user dashboard...</div>
       </AdminPageShell>
     )
   }
 
-  if (!user) {
+  if (!profile) {
     return (
-      <AdminPageShell title="User Details" description="User profile and activity.">
+      <AdminPageShell title="User Dashboard" description="User profile and activity.">
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
@@ -287,65 +398,108 @@ export default function UserDetailPage() {
     )
   }
 
-  const totalSales = sales.reduce((acc, s) => acc + s.amount, 0)
-  const totalStoreOrders = storeOrders.length
-  const completedOrders = storeOrders.filter((o) => o.status === 'delivered').length
-
   return (
     <AdminPageShell
-      title={user.full_name || user.email || 'User Details'}
-      description={`${user.email || 'No email'} · ${user.role} · ${user.status}`}
+      title={profile.full_name || profile.email || 'User Dashboard'}
+      description={`Full account view · ${profile.email || 'No email'} · ${profile.role} · ${profile.status}`}
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => router.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          <Button variant="outline" size="sm" onClick={() => router.push('/admin/users')}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Users
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void loadUserDetails()} disabled={loading}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
           <Button
-            variant={user.status === 'active' ? 'outline' : 'default'}
+            variant={profile.status === 'active' ? 'outline' : 'default'}
             size="sm"
             onClick={() => setSuspendDialog(true)}
             disabled={actionLoading}
           >
-            {user.status === 'active' ? 'Suspend' : 'Activate'}
+            {profile.status === 'active' ? 'Suspend' : 'Activate'}
           </Button>
           <Button variant="destructive" size="sm" onClick={() => setDeleteDialog(true)} disabled={actionLoading}>
             <Trash2 className="mr-2 h-4 w-4" /> Delete
           </Button>
         </div>
       }
+      stats={
+        <AdminStatGrid>
+          <AdminStatCard label="Wallet Balance" value={ghanaCurrency(stats?.walletBalance || 0)} icon={Wallet} />
+          <AdminStatCard label="Store Sales" value={ghanaCurrency(stats?.totalSales || 0)} icon={ShoppingCart} />
+          <AdminStatCard label="Data Spend" value={ghanaCurrency(stats?.totalDataSpend || 0)} icon={Package} />
+          <AdminStatCard label="Withdrawn" value={ghanaCurrency(stats?.totalWithdrawn || 0)} icon={Banknote} />
+        </AdminStatGrid>
+      }
     >
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f] lg:col-span-2">
           <CardHeader>
-            <CardTitle>User Information</CardTitle>
+            <CardTitle>Account Profile</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Name</p>
-              <p className="text-lg font-semibold">{user.full_name || 'No name'}</p>
+              <p className="text-sm text-muted-foreground">Name</p>
+              <p className="text-lg font-semibold">{profile.full_name || 'No name'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Email</p>
-              <p className="text-lg">{user.email || 'No email'}</p>
+              <p className="text-sm text-muted-foreground">Email</p>
+              <p className="text-lg">{profile.email || 'No email'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Phone</p>
-              <p className="text-lg">{user.phone || 'No phone'}</p>
+              <p className="text-sm text-muted-foreground">Phone</p>
+              <p className="text-lg">{profile.phone || 'No phone'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">User ID</p>
+              <p className="break-all font-mono text-xs">{profile.id}</p>
             </div>
             <div className="flex items-center gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Role</p>
-                <Badge>{user.role}</Badge>
+                <p className="text-sm text-muted-foreground">Role</p>
+                <Badge>{profile.role}</Badge>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <Badge variant={user.status === 'active' ? 'default' : 'destructive'}>{user.status}</Badge>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <Badge variant={profile.status === 'active' ? 'default' : 'destructive'}>{profile.status}</Badge>
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Joined</p>
-              <p className="text-sm">{formatDateTime(user.created_at)}</p>
+              <p className="text-sm text-muted-foreground">Joined</p>
+              <p className="text-sm">{formatDateTime(profile.created_at)}</p>
             </div>
+            {subAgentOf ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+                <p className="text-xs font-bold uppercase text-amber-700 dark:text-amber-300">Sub-agent of</p>
+                <Link
+                  href={`/admin/users/${subAgentOf.parent_agent_id}`}
+                  className="mt-1 inline-block font-semibold hover:underline"
+                >
+                  {firstJoin(subAgentOf.parent)?.full_name || 'Parent agent'}
+                </Link>
+                <p className="text-xs text-muted-foreground capitalize">Status: {subAgentOf.status}</p>
+              </div>
+            ) : null}
+            {subAgents.length > 0 ? (
+              <div className="rounded-xl border p-3">
+                <p className="text-xs font-bold uppercase text-muted-foreground">
+                  Subagents ({subAgents.length})
+                </p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {subAgents.slice(0, 8).map((row) => {
+                    const child = firstJoin(row.child)
+                    return (
+                      <li key={row.id}>
+                        <Link href={`/admin/users/${row.user_id}`} className="hover:underline">
+                          {child?.full_name || row.user_id.slice(0, 8)}
+                        </Link>
+                        <span className="ml-2 text-xs capitalize text-muted-foreground">{row.status}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -353,11 +507,13 @@ export default function UserDetailPage() {
           <CardHeader>
             <CardTitle>Wallet & Store</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Wallet Balance</p>
-              <p className="text-2xl font-bold">{wallet ? ghanaCurrency(wallet.balance) : 'N/A'}</p>
-              {wallet && <p className="text-xs text-muted-foreground">Updated: {formatDateTime(wallet.last_updated)}</p>}
+              <p className="text-sm text-muted-foreground">Wallet Balance</p>
+              <p className="text-3xl font-black">{wallet ? ghanaCurrency(wallet.balance) : 'N/A'}</p>
+              {wallet?.last_updated ? (
+                <p className="text-xs text-muted-foreground">Updated: {formatDateTime(wallet.last_updated)}</p>
+              ) : null}
               <Button
                 className="mt-3"
                 size="sm"
@@ -366,144 +522,311 @@ export default function UserDetailPage() {
                   setCreditNote('')
                   setCreditDialog(true)
                 }}
-                disabled={actionLoading || user.status === 'suspended'}
+                disabled={actionLoading || profile.status === 'suspended'}
               >
                 <Wallet className="mr-2 h-4 w-4" />
                 Credit Wallet
               </Button>
             </div>
+
             {store ? (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Store</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-semibold">{store.brand_name}</span>
-                  <a
-                    href={`/store/${store.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                  >
-                    Visit <ExternalLink className="h-3 w-3" />
-                  </a>
+              <div className="rounded-xl border border-border p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="flex items-center gap-2 font-semibold">
+                      <Store className="h-4 w-4" />
+                      {store.brand_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">/{store.slug}</p>
+                  </div>
+                  <Badge variant={store.is_active ? 'default' : 'outline'}>{store.is_active ? 'Live' : 'Off'}</Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">/{store.slug}</p>
+                <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                  <p>WhatsApp: {store.whatsapp_number || store.contact_phone || '—'}</p>
+                  <p>Data packages: {stats?.packageCount || 0} · Services: {stats?.serviceCount || 0}</p>
+                </div>
+                <Button asChild variant="outline" size="sm" className="mt-3">
+                  <Link href={`/store/${store.slug}`} target="_blank">
+                    Open storefront <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
               </div>
             ) : (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Store</p>
-                <p className="text-sm text-muted-foreground">No store created</p>
-              </div>
+              <p className="text-sm text-muted-foreground">No agent store created.</p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
-          <CardHeader>
-            <CardTitle className="text-sm">Total Sales</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{ghanaCurrency(totalSales)}</p>
-            <p className="text-xs text-muted-foreground mt-1">From {sales.length} transactions</p>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="transactions" className="gap-4">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
+          <TabsTrigger value="transactions">Transactions ({stats?.transactionCount || 0})</TabsTrigger>
+          <TabsTrigger value="orders">Data Orders ({stats?.orderCount || 0})</TabsTrigger>
+          <TabsTrigger value="store-orders">Store Orders ({stats?.storeOrderCount || 0})</TabsTrigger>
+          <TabsTrigger value="withdrawals">Withdrawals ({stats?.withdrawalCount || 0})</TabsTrigger>
+          <TabsTrigger value="store-catalog">Store Catalog</TabsTrigger>
+          <TabsTrigger value="afa">AFA ({stats?.afaCount || 0})</TabsTrigger>
+        </TabsList>
 
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
-          <CardHeader>
-            <CardTitle className="text-sm">Store Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{totalStoreOrders}</p>
-            <p className="text-xs text-muted-foreground mt-1">{completedOrders} delivered</p>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
-          <CardHeader>
-            <CardTitle className="text-sm">Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{transactions.length}</p>
-            <p className="text-xs text-muted-foreground mt-1">Total activity</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
-        <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No transactions found.</p>
-          ) : (
-            transactions.map((tx) => (
-              <div key={tx.id} className="rounded-lg border border-border p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-sm">{tx.type}</p>
-                    <p className="text-xs text-muted-foreground">{tx.description || tx.reference}</p>
+        <TabsContent value="transactions">
+          <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-4 w-4" /> All Transactions
+              </CardTitle>
+              <Input
+                value={txFilter}
+                onChange={(e) => setTxFilter(e.target.value)}
+                placeholder="Filter by type, status, reference..."
+                className="max-w-xs"
+              />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {filteredTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No transactions found.</p>
+              ) : (
+                filteredTransactions.map((tx) => (
+                  <div key={tx.id} className="rounded-lg border border-border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium">{tx.type}</p>
+                        <p className="text-xs text-muted-foreground">{tx.description || tx.reference}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{ghanaCurrency(tx.amount)}</p>
+                        <Badge variant={statusBadge(tx.status)} className="text-xs">
+                          {tx.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">{formatDateTime(tx.created_at)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{ghanaCurrency(tx.amount)}</p>
-                    <Badge variant={tx.status === 'success' ? 'default' : 'outline'} className="text-xs">
-                      {tx.status}
-                    </Badge>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">{formatDateTime(tx.created_at)}</p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
-        <CardHeader>
-          <CardTitle>Store Orders</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {storeOrders.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No store orders found.</p>
-          ) : (
-            storeOrders.map((order) => (
-              <div key={order.id} className="rounded-lg border border-border p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-sm">
-                      {order.item_type === 'data' ? 'Data' : 'Service'} - {order.customer_name}
+        <TabsContent value="orders">
+          <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+            <CardHeader>
+              <CardTitle>Agent Data Purchases</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {orders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No data orders found.</p>
+              ) : (
+                orders.map((order) => {
+                  const pkg = firstJoin(order.data_packages)
+                  return (
+                    <div key={order.id} className="rounded-lg border border-border p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {pkg ? `${pkg.amount} ${pkg.network} — ${pkg.name}` : 'Data order'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            To {order.phone} · {order.reference || order.id}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">{ghanaCurrency(order.amount)}</p>
+                          <Badge variant={statusBadge(order.status)} className="text-xs">
+                            {order.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">{formatDateTime(order.created_at)}</p>
+                    </div>
+                  )
+                })
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="store-orders">
+          <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+            <CardHeader>
+              <CardTitle>Customer Store Orders ({stats?.storeOrderDelivered || 0} delivered)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {storeOrders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No store orders found.</p>
+              ) : (
+                storeOrders.map((order) => {
+                  const pkg = firstJoin(order.data_packages)
+                  const service = firstJoin(order.online_services)
+                  const label =
+                    order.item_type === 'service'
+                      ? service?.name || 'Service'
+                      : pkg
+                        ? `${pkg.amount} ${pkg.network}`
+                        : 'Data'
+                  return (
+                    <div key={order.id} className="rounded-lg border border-border p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {label} · {order.customer_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{order.customer_phone || 'No phone'}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">{ghanaCurrency(order.total_price)}</p>
+                          <Badge variant={statusBadge(order.status)} className="text-xs">
+                            {order.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">{formatDateTime(order.created_at)}</p>
+                    </div>
+                  )
+                })
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="withdrawals">
+          <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+            <CardHeader>
+              <CardTitle>Withdrawal Requests</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {withdrawals.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No withdrawals found.</p>
+              ) : (
+                withdrawals.map((row) => (
+                  <div key={row.id} className="rounded-lg border border-border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {row.account_name} · {row.payment_method}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{row.account_number}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{ghanaCurrency(row.amount)}</p>
+                        <Badge variant={statusBadge(row.status)} className="text-xs">
+                          {row.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {formatDateTime(row.requested_at || row.created_at)}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{ghanaCurrency(order.total_price)}</p>
-                    <Badge
-                      variant={
-                        order.status === 'delivered'
-                          ? 'default'
-                          : order.status === 'declined'
-                            ? 'destructive'
-                            : 'outline'
-                      }
-                      className="text-xs"
-                    >
-                      {order.status}
-                    </Badge>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="store-catalog">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+              <CardHeader>
+                <CardTitle>Store Packages ({storePackages.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {storePackages.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No packages published.</p>
+                ) : (
+                  storePackages.map((row) => {
+                    const pkg = firstJoin(row.data_packages)
+                    return (
+                      <div key={row.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {pkg ? `${pkg.amount} ${pkg.network}` : 'Package'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{pkg?.name || '—'}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">{ghanaCurrency(Number(row.selling_price || 0))}</p>
+                          <Badge variant={row.is_active ? 'default' : 'outline'} className="text-xs">
+                            {row.is_active ? 'Active' : 'Off'}
+                          </Badge>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+              <CardHeader>
+                <CardTitle>Store Services ({storeServices.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {storeServices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No services published.</p>
+                ) : (
+                  storeServices.map((row) => {
+                    const service = firstJoin(row.online_services)
+                    return (
+                      <div key={row.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                        <div>
+                          <p className="text-sm font-medium">{service?.name || 'Service'}</p>
+                          <p className="text-xs text-muted-foreground">{service?.category || '—'}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">{ghanaCurrency(Number(row.selling_price || 0))}</p>
+                          <Badge variant={row.is_active ? 'default' : 'outline'} className="text-xs">
+                            {row.is_active ? 'Active' : 'Off'}
+                          </Badge>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="afa">
+          <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0a0a0f]">
+            <CardHeader>
+              <CardTitle>AFA Registrations</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {afaRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No AFA registrations found.</p>
+              ) : (
+                afaRows.map((row) => (
+                  <div key={row.id} className="rounded-lg border border-border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium">{row.full_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {row.phone} · {row.reference || row.id}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {row.amount != null ? <p className="font-semibold">{ghanaCurrency(Number(row.amount || 0))}</p> : null}
+                        <Badge variant={statusBadge(row.status)} className="text-xs">
+                          {row.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">{formatDateTime(row.created_at)}</p>
                   </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">{formatDateTime(order.created_at)}</p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={creditDialog} onOpenChange={setCreditDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Credit Wallet</DialogTitle>
             <DialogDescription>
-              Add funds to {user.full_name || 'this user'}&apos;s wallet. The credit is recorded in transactions and wallet ledger.
+              Add funds to {profile.full_name || 'this user'}&apos;s wallet. The credit is recorded in transactions.
             </DialogDescription>
           </DialogHeader>
 
@@ -552,21 +875,21 @@ export default function UserDetailPage() {
       <AlertDialog open={suspendDialog} onOpenChange={setSuspendDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{user.status === 'active' ? 'Suspend User?' : 'Activate User?'}</AlertDialogTitle>
+            <AlertDialogTitle>{profile.status === 'active' ? 'Suspend User?' : 'Activate User?'}</AlertDialogTitle>
             <AlertDialogDescription>
-              {user.status === 'active'
+              {profile.status === 'active'
                 ? 'This user will no longer be able to access their account.'
                 : 'This user will be able to access their account again.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-center gap-2 rounded-lg bg-yellow-50 p-3">
             <AlertCircle className="h-4 w-4 text-yellow-600" />
-            <p className="text-sm text-yellow-800">{user.full_name || 'This user'}</p>
+            <p className="text-sm text-yellow-800">{profile.full_name || 'This user'}</p>
           </div>
           <div className="flex gap-2">
             <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSuspend} disabled={actionLoading} className="bg-yellow-600 hover:bg-yellow-700">
-              {actionLoading ? 'Processing...' : user.status === 'active' ? 'Suspend' : 'Activate'}
+            <AlertDialogAction onClick={() => void handleSuspend()} disabled={actionLoading} className="bg-yellow-600 hover:bg-yellow-700">
+              {actionLoading ? 'Processing...' : profile.status === 'active' ? 'Suspend' : 'Activate'}
             </AlertDialogAction>
           </div>
         </AlertDialogContent>
@@ -576,15 +899,17 @@ export default function UserDetailPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone. The user account and all associated data will be permanently deleted.</AlertDialogDescription>
+            <AlertDialogDescription>
+              This action cannot be undone. The user account and associated data will be permanently deleted.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3">
             <AlertCircle className="h-4 w-4 text-red-600" />
-            <p className="text-sm text-red-800">{user.full_name || 'This user'}</p>
+            <p className="text-sm text-red-800">{profile.full_name || 'This user'}</p>
           </div>
           <div className="flex gap-2">
             <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={actionLoading} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={() => void handleDelete()} disabled={actionLoading} className="bg-red-600 hover:bg-red-700">
               {actionLoading ? 'Deleting...' : 'Delete User'}
             </AlertDialogAction>
           </div>

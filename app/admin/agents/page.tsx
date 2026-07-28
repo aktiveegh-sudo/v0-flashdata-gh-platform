@@ -127,8 +127,12 @@ export default function AdminAgentsPage() {
                   filtered.map((row) => (
                     <tr key={row.id} className="border-b border-gray-50 last:border-0 dark:border-white/5">
                       <td className="py-3 pr-4">
-                        <p className="font-medium text-gray-900 dark:text-white">{row.full_name || 'Unnamed'}</p>
-                        <p className="text-xs text-gray-500 dark:text-white/50">{row.email || row.phone || '-'}</p>
+                        <Link href={`/admin/users/${row.id}`} className="group block">
+                          <p className="font-medium text-gray-900 group-hover:text-amber-600 dark:text-white dark:group-hover:text-amber-300">
+                            {row.full_name || 'Unnamed'}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-white/50">{row.email || row.phone || '-'}</p>
+                        </Link>
                       </td>
                       <td className="py-3 pr-4 text-gray-700 dark:text-white/80">
                         {row.storeName || '-'}

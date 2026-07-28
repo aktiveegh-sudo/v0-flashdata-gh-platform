@@ -20,7 +20,7 @@ export type SendSmsResult = {
 }
 
 export const sendTxtConnectSms = async (input: SendSmsInput): Promise<SendSmsResult> => {
-  const apiKey = await getOptionalSecret(['TXTCONNECT_API_KEY', 'USMSGH_API_TOKEN'])
+  const apiKey = await getOptionalSecret(['TXTCONNECT_API_KEY'])
   if (!apiKey) {
     console.warn('[TxtConnect] Skipping SMS: TXTCONNECT_API_KEY is not configured')
     return { ok: false, skipped: true, error: 'SMS provider not configured' }
@@ -59,11 +59,13 @@ export const sendTxtConnectSms = async (input: SendSmsInput): Promise<SendSmsRes
     | null
 
   const providerMessage = result?.data?.message || result?.msg || ''
-  const providerFailed = result?.data?.in_error === true || result?.data?.status_code !== '000'
+  const statusCode = result?.data?.status_code
+  const providerFailed =
+    result?.data?.in_error === true || (typeof statusCode === 'string' && statusCode !== '000')
 
   if (!response.ok || providerFailed) {
     const errorMessage = providerMessage || `SMS request failed (${response.status})`
-    console.error('[TxtConnect] SMS failed:', { recipient, senderId, errorMessage })
+    console.error('[TxtConnect] SMS failed:', { recipient, senderId, errorMessage, statusCode })
     return { ok: false, error: errorMessage }
   }
 

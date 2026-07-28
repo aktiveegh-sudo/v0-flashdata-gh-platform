@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { assertAdminRequest } from '@/lib/admin/auth'
 import { supabaseAdmin } from '@/lib/api/rest'
 
 export async function POST(request: NextRequest) {
   try {
+    const { response } = await assertAdminRequest(request)
+    if (response) {
+      return response
+    }
+
     const { userId, action } = await request.json()
 
     if (!userId || !action) {

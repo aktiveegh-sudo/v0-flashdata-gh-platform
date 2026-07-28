@@ -91,11 +91,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       if (subMeta?.parent_agent_id) {
         const { data: store } = await supabase.client
           .from('agent_stores')
-          .select('store_name, store_logo_url')
-          .eq('user_id', subMeta.parent_agent_id)
+          .select('brand_name, logo_url')
+          .eq('agent_id', subMeta.parent_agent_id)
           .maybeSingle()
 
-        setParentStore((store as ParentStoreBranding | null) || null)
+        setParentStore(
+          store
+            ? {
+                store_name: store.brand_name,
+                store_logo_url: store.logo_url,
+              }
+            : null
+        )
       }
     }
 
@@ -112,6 +119,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   }
 
   const isSubAgentOnly = Boolean(subAgentMeta?.parent_agent_id)
+
+  const visibleMainItems = dashboardMainNavItems.filter(
+    (item) => !(isSubAgentOnly && item.subAgentHidden)
+  )
 
   const visibleMoreItems = dashboardMoreNavItems.filter(
     (item) => !(isSubAgentOnly && item.subAgentHidden)
@@ -189,7 +200,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         <nav className="space-y-1">
-          {dashboardMainNavItems.map((item) => (
+          {visibleMainItems.map((item) => (
             <NavLink key={item.href} item={item} />
           ))}
         </nav>

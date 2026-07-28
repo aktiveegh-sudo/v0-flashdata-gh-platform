@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Clock3, Menu, Moon, PackageSearch, RefreshCw, Search, Sun, X } from 'lucide-react'
+import Link from 'next/link'
+import { Clock3, Menu, Moon, PackageSearch, RefreshCw, Search, Sun, Users, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -433,6 +434,12 @@ export function StoreFront({ store }: StoreFrontProps) {
                   </button>
                 </li>
               ) : null}
+              <li>
+                <Link href={`/store/${store.slug}/join`} className="inline-flex items-center gap-1.5 hover:text-amber-500">
+                  <Users className="h-3.5 w-3.5" />
+                  Become a Sub-Agent
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
